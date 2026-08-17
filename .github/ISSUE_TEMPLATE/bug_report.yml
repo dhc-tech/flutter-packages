@@ -1,0 +1,46 @@
+name: 🐛 Bug Report
+description: Report an issue or unexpected behavior in any of the packages.
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this bug! Please provide as much detail as possible.
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Impacted Package
+      description: Which package in this monorepo has the bug?
+      options:
+        - white_label_kit
+        - theme_kit
+        - network_kit
+        - analytics_kit
+        - other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Package Version
+      description: What version of the package are you using? (e.g. 0.0.1)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description & Reproduction Steps
+      description: Describe the bug and provide steps or a minimal code snippet to reproduce it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Stack Trace
+      description: Paste any relevant terminal or console logs.
+      render: shell

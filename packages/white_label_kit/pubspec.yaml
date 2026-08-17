@@ -1,0 +1,43 @@
+name: white_label_kit
+description: >-
+  Zero-touch white-label tenant isolation for Flutter: define tenants in
+  white_label.yaml, run `dart run white_label_kit:configure`, and your Android
+  build.gradle + iOS Xcode project are patched automatically. No manual
+  native-file editing — just like flutter_flavorizr, but security-safe (one
+  tenant's data per binary). CLI: init/configure/add-tenant/validate/list/
+  build/run/generate/doctor.
+version: 0.0.1
+publish_to: 'none'
+homepage: https://github.com/dhc-tech/white_label_kit
+repository: https://github.com/dhc-tech/white_label_kit
+
+environment:
+  sdk: ^3.13.0
+
+executables:
+  white_label: white_label
+  menu: menu
+  runner: runner
+  init: init
+  configure: configure
+  generate: generate
+  list: list
+  add-tenant: add-tenant
+  update-tenant: update-tenant
+  remove-tenant: remove-tenant
+  doctor: doctor
+  validate: validate
+  run: run
+  build: build
+
+
+dependencies:
+  yaml: ^3.1.3
+  path: ^1.9.1
+  build: ^4.0.10
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.31.2
+  build_runner: ^2.16.0
+  build_test: ^3.5.19

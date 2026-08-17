@@ -1,0 +1,87 @@
+name: CI Matrix Pipeline
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # 1. Code Formatting & Linting across all Packages
+  # ============================================================================
+  analyze:
+    name: 🔍 Formatting & Static Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout Monorepo
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup Dart & Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Resolve Package Dependencies
+        run: |
+          for pkg in packages/*; do
+            if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
+              echo "➜ Resolving dependencies for $pkg..."
+              (cd "$pkg" && dart pub get)
+            fi
+          done
+
+      - name: 🎨 Verify Dart Code Formatting
+        run: dart format --output=none --set-exit-if-changed packages/
+
+      - name: 🔍 Static Analysis (Fatal Infos Enforcement)
+        run: |
+          for pkg in packages/*; do
+            if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
+              echo "➜ Analyzing $pkg..."
+              (cd "$pkg" && dart analyze --fatal-infos)
+            fi
+          done
+
+  # ============================================================================
+  # 2. Automated Test Matrix across all Packages
+  # ============================================================================
+  test:
+    name: 🧪 Automated Test Suite Matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: analyze
+
+    steps:
+      - name: 📥 Checkout Monorepo
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup Dart & Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Resolve Package Dependencies
+        run: |
+          for pkg in packages/*; do
+            if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
+              (cd "$pkg" && dart pub get)
+            fi
+          done
+
+      - name: 🧪 Execute Tests per Package
+        run: |
+          for pkg in packages/*; do
+            if [ -d "$pkg/test" ]; then
+              echo "➜ Running test suite for $pkg..."
+              (cd "$pkg" && dart test)
+            fi
+          done
