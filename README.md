@@ -31,6 +31,7 @@ flutter-packages/
 │   │   ├── ci.yml                     # 🔍 Formatting, static analysis & test matrix
 │   │   ├── pull_request_label.yml     # 🏷️ Automatic package path PR labeler
 │   │   ├── auto_submit.yml            # 🤖 Automated PR merge & submit pipeline
+│   │   ├── ai_pr_review.yml           # 🧠 Free Gemini 2.0 Flash AI code reviewer
 │   │   └── publish.yml                # 🚀 Pub.dev automated publishing workflow
 │   ├── dependabot.yml                 # 🔄 Automated weekly dependency maintenance
 │   ├── labeler.yml                    # 🏷️ Package-to-label mapping configuration
