@@ -1,0 +1,34 @@
+# Continuous Integration Configuration for DHC Tech Flutter Packages
+# Defines targets, environments, and matrix checks for CI pipelines.
+
+enabled_branches:
+  - main
+
+platform_properties:
+  linux:
+    properties:
+      os: Ubuntu
+      dependencies:
+        - dart_sdk: stable
+        - flutter_sdk: stable
+  macos:
+    properties:
+      os: macOS
+      dependencies:
+        - flutter_sdk: stable
+
+targets:
+  - name: Linux Formatting & Static Analysis
+    script: .ci/scripts/analyze.sh
+    enabled_branches:
+      - main
+
+  - name: Linux Automated Test Matrix
+    script: .ci/scripts/test.sh
+    enabled_branches:
+      - main
+
+  - name: Monorepo Health & Validation
+    script: .ci/scripts/validate.sh
+    enabled_branches:
+      - main
