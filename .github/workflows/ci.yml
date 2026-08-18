@@ -51,7 +51,18 @@ jobs:
 
       - name: 🎨 Verify Dart Code Formatting
         shell: bash
-        run: dart format --output=none --set-exit-if-changed packages/
+        # Formatted one package at a time, not one shot from the repo root:
+        # with no root workspace pubspec, `dart format packages/` in one
+        # call resolves each file's language version ambiguously across
+        # independently-versioned packages, which made this check
+        # non-convergent (flip-flopping between two valid formatter outputs
+        # across runs). Scoping each invocation to one package's own
+        # resolved context is stable.
+        run: |
+          for pkg in packages/*; do
+            [ -f "$pkg/pubspec.yaml" ] || continue
+            (cd "$pkg" && dart format --output=none --set-exit-if-changed .)
+          done
 
       - name: 🔍 Static Analysis (Fatal Infos Enforcement)
         shell: bash

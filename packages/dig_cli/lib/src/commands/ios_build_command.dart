@@ -140,13 +140,16 @@ Future<void> buildIos({
 
     final buildResult = await runWithSpinner(
       '🚧 Running flutter build ipa --release --export-method $method...',
-      () => Process.run('flutter', [
-        'build',
-        'ipa',
-        '--release',
-        '--export-method',
-        method,
-      ], workingDirectory: projectRoot.path),
+      () => Process.run(
+          'flutter',
+          [
+            'build',
+            'ipa',
+            '--release',
+            '--export-method',
+            method,
+          ],
+          workingDirectory: projectRoot.path),
     );
 
     if (buildResult.exitCode != 0) {

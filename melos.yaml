@@ -22,13 +22,26 @@ scripts:
 
   format:
     run: |
-      dart format --set-exit-if-changed .
-    description: Verify code formatting across all packages.
+      for pkg in packages/*; do
+        [ -f "$pkg/pubspec.yaml" ] || continue
+        (cd "$pkg" && dart format --output=none --set-exit-if-changed .)
+      done
+    description: |
+      Verify code formatting, one package at a time. Formatting from the
+      repo root in one shot (`dart format packages/`) resolves each
+      file's language version ambiguously across independently-versioned
+      packages with no root workspace pubspec, which made the formatter
+      non-convergent (flip-flopping between two valid outputs on
+      successive runs). Scoping each invocation to a single package's own
+      resolved context is stable.
 
   format:fix:
     run: |
-      dart format .
-    description: Apply automatic code formatting across all packages.
+      for pkg in packages/*; do
+        [ -f "$pkg/pubspec.yaml" ] || continue
+        (cd "$pkg" && dart format .)
+      done
+    description: Apply automatic code formatting, one package at a time (see format).
 
   test:
     run: |

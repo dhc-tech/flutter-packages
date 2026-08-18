@@ -29,7 +29,14 @@ jobs:
           cache: true
 
       - name: 🎨 Run Dart Format
-        run: dart format packages/
+        # One package at a time, matching ci.yml's check — see that file's
+        # comment for why formatting from the repo root in one shot was
+        # non-convergent.
+        run: |
+          for pkg in packages/*; do
+            [ -f "$pkg/pubspec.yaml" ] || continue
+            (cd "$pkg" && dart format .)
+          done
 
       - name: 🚀 Commit & Push Formatting Fixes (Zero Manual Work)
         uses: stefanzweifel/git-auto-commit-action@v5
