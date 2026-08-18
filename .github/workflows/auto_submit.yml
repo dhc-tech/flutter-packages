@@ -93,6 +93,12 @@ jobs:
           MERGE_FORKS: "false"
           MERGE_RETRIES: "6"
           MERGE_RETRY_SLEEP: "10000"
+          # A queued PR whose base has moved gets brought up to date by
+          # merging base into it (a normal merge commit on the PR
+          # branch), never a force-push/rebase — explicit here so this
+          # doesn't silently depend on the action's own default.
+          UPDATE_LABELS: ""
+          UPDATE_METHOD: "merge"
 
       # If the PR was labeled
       # autosubmit but wasn't actually ready (checks failing, missing
