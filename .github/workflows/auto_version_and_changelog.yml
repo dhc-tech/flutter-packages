@@ -1,4 +1,21 @@
-name: 🚀 Auto Version, Changelog & Tag Release
+name: 🚀 Auto Version & Changelog PR
+
+# Two-stage release, matching the flutter/packages / release-please
+# pattern — required because branch protection blocks any direct push
+# to main ("Changes must be made through a pull request"), including
+# from this bot. Confirmed the hard way: melos version's commit was
+# rejected outright, while the tags it also pushed were NOT rejected
+# (tags aren't the protected `main` ref) — leaving 3 tags pointing at
+# commits that were never actually on main. Deleted those; this
+# workflow no longer creates tags at all.
+#
+# Stage 1 (this workflow): melos computes the version bump + changelog
+# on a new branch, opens a PR, labels it autosubmit. Goes through the
+# normal review + CI gate like any other change.
+# Stage 2 (release_tag_on_merge.yml): once that PR merges to main,
+# create + push the actual release tag(s) — which DOES trigger
+# publish.yml, since creating a tag isn't blocked by "require PR for
+# main".
 
 on:
   push:
@@ -16,21 +33,25 @@ concurrency:
 
 jobs:
   version_and_release:
-    name: 📦 Semantic Version Bump & Changelog
+    name: 📦 Semantic Version Bump & Changelog PR
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'chore(release):') && !contains(github.event.head_commit.message, '[skip ci]')"
     permissions:
-      contents: write   # melos version pushes commits + release tags
+      contents: write        # pushing the release branch
+      pull-requests: write   # opening + labeling the release PR
 
     steps:
       - name: 📥 Checkout Repository (Full History)
-        # zizmor: ignore[artipacked] persist-credentials must stay true —
-        # this job needs git push credentials for melos version --push
-        # below, not just read access.
+        # GITHUB_TOKEN is fine here — this stage only pushes a new
+        # branch and opens a PR, neither of which the anti-recursion
+        # push-trigger suppression applies to (that only affects
+        # push/tag-triggered workflows, which is why release_tag_on_merge.yml
+        # specifically needs PAT_TOKEN and this one doesn't).
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
 
       - name: 🛠️ Setup Dart & Flutter SDK
         uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
@@ -42,16 +63,10 @@ jobs:
         run: |
           # melos 8+ requires the directory to be a native Dart pub
           # workspace to discover any packages at all. The root
-          # pubspec.yaml now declares one (workspace: field), and each
+          # pubspec.yaml declares one (workspace: field), and each
           # package opts in via resolution: workspace — stripped again
           # right before dart pub publish in publish.yml so the field
           # never reaches pub.dev / external consumers of the packages.
-          #
-          # This step was silently broken before that workspace existed:
-          # every prior run hit "not a melos workspace", melos version
-          # exited non-zero, and the version-bump step's own error
-          # handling quietly treated that as "no version changes" — the
-          # release pipeline had never actually worked, on any package.
           dart pub global activate melos
           echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
 
@@ -63,27 +78,29 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: 🚀 Version, changelog, tag & push (melos)
+      - name: 🌿 Create release branch
+        id: branch
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          branch="release/auto-${RUN_ID}"
+          git checkout -b "$branch"
+          echo "name=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: 🚀 Version & changelog (melos, no tag)
         id: melos_version
         run: |
-          # Melos analyzes conventional commits since each package's last
-          # <name>-vX.Y.Z tag, bumps pubspec.yaml, writes CHANGELOG.md,
-          # commits as the bot, and creates the release tag — locally
-          # only. melos 8 removed the --push flag entirely (confirmed:
-          # `melos version --help` no longer lists it, and passing it
-          # made melos print its usage text and exit 1, which the
-          # previous version of this step's own error handling
-          # misdiagnosed as "melos failed"). Pushing the commit + tag is
-          # now a separate explicit step below.
+          # --no-git-tag-version: tags come later, only once this PR's
+          # commit is actually on main (see release_tag_on_merge.yml).
+          # melos 8 also has no --push flag at all any more; this branch
+          # gets pushed explicitly below, separately from main.
           #
-          # Failure handling is intentionally NOT a blanket "any non-zero
-          # exit means nothing to release" — that exact blanket swallow
-          # is what let this step report false success for months while
-          # melos failed outright on every run. Only "nothing left to
-          # version" is treated as benign; anything else fails the job
-          # loudly so a real breakage can never hide again.
+          # Failure handling is intentionally NOT a blanket "any
+          # non-zero exit means nothing to release" — that exact
+          # swallow is what let this step report false success for
+          # months while melos failed outright on every run.
           set +e
-          output=$(melos version --all --yes 2>&1)
+          output=$(melos version --all --yes --no-git-tag-version 2>&1)
           exit_code=$?
           echo "$output"
           set -e
@@ -98,6 +115,22 @@ jobs:
             exit 1
           fi
 
-      - name: 🚀 Push release commit & tags
+      - name: 🚀 Push release branch
         if: steps.melos_version.outputs.versioned == 'true'
-        run: git push --follow-tags origin HEAD:main
+        env:
+          BRANCH: ${{ steps.branch.outputs.name }}
+        run: git push origin "$BRANCH"
+
+      - name: 📬 Open release PR
+        if: steps.melos_version.outputs.versioned == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.branch.outputs.name }}
+        run: |
+          pr_url=$(gh pr create \
+            --title "chore(release): version packages" \
+            --body "Automated version bump + changelog from melos. Merging this PR triggers the release tag(s), which then trigger pub.dev publishing." \
+            --base main \
+            --head "$BRANCH" \
+            --label "autosubmit")
+          echo "Opened $pr_url"

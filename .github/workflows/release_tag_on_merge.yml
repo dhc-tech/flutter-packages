@@ -1,0 +1,64 @@
+name: 🏷️ Push Release Tag(s) After Merge
+
+# Stage 2 of the release pipeline (see auto_version_and_changelog.yml
+# for stage 1). Once a "chore(release): version packages" PR actually
+# merges to main, this creates and pushes a <package>-vX.Y.Z tag for
+# every package whose pubspec.yaml version doesn't already have one —
+# the exact tag pattern publish.yml listens for.
+#
+# Tag creation is a separate ref from `main`, so it isn't blocked by
+# "require a pull request to change main" — confirmed this is what
+# actually differs from a direct branch push, which IS blocked even
+# for this same PAT_TOKEN.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/**'
+
+permissions: {}
+
+concurrency:
+  group: release-tag-on-merge-main
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    name: 🏷️ Tag newly-released packages
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.message, 'chore(release):')
+    permissions:
+      contents: write   # creating and pushing the release tag(s)
+
+    steps:
+      - name: 📥 Checkout Repository (Full History)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
+          persist-credentials: true
+
+      - name: 🔧 Configure Git Identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: 🏷️ Create & push missing release tags
+        run: |
+          for pkg_dir in packages/*; do
+            [ -f "$pkg_dir/pubspec.yaml" ] || continue
+            pkg=$(basename "$pkg_dir")
+            version=$(grep '^version:' "$pkg_dir/pubspec.yaml" | head -1 | awk '{print $2}' | tr -d "'\"")
+            tag="${pkg}-v${version}"
+
+            if git rev-parse "$tag" >/dev/null 2>&1; then
+              echo "➜ $pkg: $tag already exists, skipping."
+              continue
+            fi
+
+            echo "🏷️ $pkg: tagging $tag"
+            git tag -a "$tag" -m "Release $pkg $version"
+            git push origin "$tag"
+          done
