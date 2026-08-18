@@ -1,0 +1,41 @@
+# Scans this repo's own .github/workflows/*.yml files for security issues:
+# script injection via untemplated ${{ github.event.* }} interpolation,
+# excessive permissions, unpinned third-party actions, secrets exposed to
+# pull_request_target, etc.
+#
+# This is the open-source equivalent of the internal
+# "Google GitHub Admin: Actions Workflow Security Scan" check seen on
+# flutter/packages PRs — zizmor is the tool Google itself publishes for
+# this purpose (github.com/zizmorcore/zizmor).
+
+name: 🛡️ GitHub Actions Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+
+permissions: {}
+
+jobs:
+  zizmor:
+    name: 🔍 Scan workflows (zizmor)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4.2.2
+
+      - name: 🛡️ Run zizmor
+        uses: zizmorcore/zizmor-action@v0.1.1
+        with:
+          # Warn-level findings surface as annotations without blocking the
+          # merge queue on day one; raise to a stricter level once the
+          # existing workflows are clean.
+          persona: pedantic
