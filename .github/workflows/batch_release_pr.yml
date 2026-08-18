@@ -35,6 +35,9 @@ concurrency:
 jobs:
   prepare:
     name: Prepare batch release PR
+    permissions:
+      contents: write        # pushing the release branch (needed by the called workflow)
+      pull-requests: write   # opening/updating the release PR (needed by the called workflow)
     uses: ./.github/workflows/reusable_release.yml
     with:
       packages: ${{ inputs.packages }}
