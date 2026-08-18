@@ -68,8 +68,13 @@ jobs:
         run: |
           # Melos analyzes conventional commits since each package's last
           # <name>-vX.Y.Z tag, bumps pubspec.yaml, writes CHANGELOG.md,
-          # commits as the bot, creates the release tag, and pushes both
-          # the commit and the tag — in one step, same as flutter/packages.
+          # commits as the bot, and creates the release tag — locally
+          # only. melos 8 removed the --push flag entirely (confirmed:
+          # `melos version --help` no longer lists it, and passing it
+          # made melos print its usage text and exit 1, which the
+          # previous version of this step's own error handling
+          # misdiagnosed as "melos failed"). Pushing the commit + tag is
+          # now a separate explicit step below.
           #
           # Failure handling is intentionally NOT a blanket "any non-zero
           # exit means nothing to release" — that exact blanket swallow
@@ -78,7 +83,7 @@ jobs:
           # version" is treated as benign; anything else fails the job
           # loudly so a real breakage can never hide again.
           set +e
-          output=$(melos version --all --yes --push 2>&1)
+          output=$(melos version --all --yes 2>&1)
           exit_code=$?
           echo "$output"
           set -e
@@ -92,3 +97,7 @@ jobs:
             echo "melos version failed for a reason other than 'nothing to release' — failing the job."
             exit 1
           fi
+
+      - name: 🚀 Push release commit & tags
+        if: steps.melos_version.outputs.versioned == 'true'
+        run: git push --follow-tags origin HEAD:main
