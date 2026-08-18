@@ -43,5 +43,11 @@ jobs:
           github_action_config.auto_review: "true"
           github_action_config.auto_describe: "true"
           github_action_config.auto_improve: "true"
+          # Without these two, PR-Agent only ever runs on the PR's initial
+          # 'opened' event and silently no-ops on every subsequent push
+          # ("Skipping action: synchronize") — confirmed happening on our
+          # first run.
+          github_action_config.handle_push_trigger: "true"
+          github_action_config.push_commands: '["/review", "/describe", "/improve"]'
           pr_reviewer.num_code_suggestions: "4"
           pr_reviewer.inline_code_comments: "true"
