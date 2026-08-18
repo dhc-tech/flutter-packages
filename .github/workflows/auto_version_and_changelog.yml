@@ -41,24 +41,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: 🚀 Run Melos Versioning & Changelog Generation
+      - name: 🚀 Version, changelog, tag & push (melos)
         id: melos_version
         run: |
-          # Melos automatically analyzes commits, bumps pubspec version, and generates CHANGELOG.md
-          if melos version --yes --no-git-tag-version; then
+          # Melos analyzes conventional commits since each package's last
+          # <name>-vX.Y.Z tag, bumps pubspec.yaml, writes CHANGELOG.md,
+          # commits as the bot, creates the release tag, and pushes both
+          # the commit and the tag — in one step, same as flutter/packages.
+          if melos version --all --yes --push; then
             echo "versioned=true" >> $GITHUB_OUTPUT
           else
             echo "versioned=false" >> $GITHUB_OUTPUT
             echo "No package changes requiring a version bump."
-          fi
-
-      - name: 💾 Commit & Push Version Bumps & Changelogs
-        if: steps.melos_version.outputs.versioned == 'true'
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git add packages/
-            git commit -m "chore(release): automated package version bumps and changelog updates [skip ci]"
-            git push origin main
-          else
-            echo "Working tree clean, no version changes to commit."
           fi

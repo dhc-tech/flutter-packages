@@ -63,10 +63,10 @@ def main():
         return
 
     comment_body = (
-        f"## 🤖 Free AI PR Review (Gemini 2.0 Flash)\n\n"
+        f"## 🤖 Gemini AI PR Review\n\n"
         f"{review_text}\n\n"
         f"---\n"
-        f"*Automated review powered by Google Gemini Free Tier.*"
+        f"*Automated review powered by Google Gemini.*"
     )
 
     comment_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
