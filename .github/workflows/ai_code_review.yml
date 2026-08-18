@@ -110,7 +110,13 @@ jobs:
 
           MAX_OUTPUT_CHARS = 60000  # GitHub comment body limit is ~65536
           MODEL = "openai/gpt-oss-20b:free"
-          MARKER = "<!-- dhc-ai-reviewer:review -->"
+          COMMIT_SHA = os.environ.get("COMMIT_SHA", "")
+          # Scoped to the current commit, not just the PR — so a new
+          # push always gets its own fresh comment (matching how
+          # CodeRabbit does it), while a retry within the SAME push
+          # (e.g. an earlier run got cancelled) still finds and updates
+          # its own comment instead of duplicating.
+          MARKER = f"<!-- dhc-ai-reviewer:review:{COMMIT_SHA} -->"
           HEADER = MARKER + "\n## 🤖 DHC AI Reviewer\n\n"
 
 
@@ -220,13 +226,13 @@ jobs:
                       {"role": "user", "content": user_prompt},
                   ],
                   "temperature": 0.2,
-                  "max_tokens": 4000,  # reasoning + JSON needs more room than plain prose did
+                  "max_tokens": 6000,  # reasoning + JSON needs more room than plain prose did
                   # A plain (non-streaming) request came back with empty
                   # content on this model until reasoning was explicitly
                   # enabled — per OpenRouter's docs, this model needs
                   # "reasoning": {"enabled": true} to populate the final
                   # message content synchronously.
-                  "reasoning": {"enabled": True},
+                  "reasoning": {"enabled": True, "effort": "low"},  # keep reasoning short so it doesn't eat the whole token budget before reaching content
                   "stream": False,
               }
 
@@ -255,7 +261,13 @@ jobs:
               try:
                   with urllib.request.urlopen(req, timeout=120) as res:
                       raw = json.loads(res.read().decode("utf-8"))
-                  review_text = raw["choices"][0]["message"]["content"].strip()
+                  message = raw["choices"][0]["message"]
+                  # A real run hit finish_reason: "length" mid-reasoning,
+                  # leaving content: null — fall back to the reasoning
+                  # field's own text rather than crashing on
+                  # None.strip(), even though it won't be valid JSON
+                  # (better than losing the review entirely).
+                  review_text = (message.get("content") or message.get("reasoning") or "").strip()
               except urllib.error.HTTPError as e:
                   detail = e.read().decode("utf-8", errors="replace")[:500]
                   gh_api(
@@ -511,8 +523,8 @@ jobs:
                       {"role": "user", "content": user_prompt},
                   ],
                   "temperature": 0.2,
-                  "max_tokens": 3000,
-                  "reasoning": {"enabled": True},
+                  "max_tokens": 5000,
+                  "reasoning": {"enabled": True, "effort": "low"},  # keep reasoning short so it doesn't eat the whole token budget before reaching content
                   "stream": False,
               }
 
@@ -531,7 +543,8 @@ jobs:
               try:
                   with urllib.request.urlopen(req, timeout=120) as res:
                       raw = json.loads(res.read().decode("utf-8"))
-                  reply_text = raw["choices"][0]["message"]["content"].strip()
+                  message = raw["choices"][0]["message"]
+                  reply_text = (message.get("content") or message.get("reasoning") or "").strip()
               except urllib.error.HTTPError as e:
                   detail = e.read().decode("utf-8", errors="replace")[:500]
                   gh_api(
