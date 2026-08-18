@@ -43,7 +43,7 @@ jobs:
     steps:
       - name: 🔍 Find the PR for this SHA
         id: find_pr
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const sha = context.payload.workflow_run
@@ -60,7 +60,7 @@ jobs:
 
       - name: 📋 Build & upsert summary comment
         if: steps.find_pr.outputs.number != ''
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           # Passed via env, not templated into the script string: GitHub
           # expands ${{ }} into the script text before it's parsed, so
