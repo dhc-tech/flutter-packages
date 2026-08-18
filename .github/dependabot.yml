@@ -4,6 +4,16 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    groups:
+      # github/codeql-action/init and .../analyze are pinned to the same
+      # SHA in codeql.yml and MUST move together — Dependabot otherwise
+      # opens two independent PRs, each bumping only one of the two,
+      # which fails CodeQL outright ("Loaded a configuration file for
+      # version X, but running version Y"). Confirmed by exactly that
+      # failure on two real PRs before this group existed.
+      codeql-action:
+        patterns:
+          - "github/codeql-action/*"
     labels:
       - "infra: workflows"
     # Not labeling "autosubmit" here — dependabot_auto_merge.yml decides
