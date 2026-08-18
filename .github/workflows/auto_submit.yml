@@ -51,10 +51,11 @@ jobs:
         env:
           # A push made with the default GITHUB_TOKEN does not trigger
           # further workflow runs (GitHub's anti-recursion rule) — so a
-          # merge performed with it would silently never fire ci.yml,
-          # codeql.yml, or the release pipeline on main. PAT_TOKEN is a
-          # real personal access token so the resulting push is
-          # attributed to an actual account and does trigger them.
+          # merge performed with it would not create downstream
+          # push-triggered workflow runs at all. PAT_TOKEN allows matching
+          # workflows to run; each workflow's own branch/path filters
+          # still apply as normal (e.g. auto_version_and_changelog.yml
+          # still only fires on a push to main touching packages/**).
           GITHUB_TOKEN: "${{ secrets.PAT_TOKEN }}"
           MERGE_LABELS: "autosubmit"
           MERGE_METHOD: "squash"
