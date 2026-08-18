@@ -8,27 +8,34 @@ on:
       - 'packages/**'
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
+
+concurrency:
+  group: auto-version-and-changelog-main
+  cancel-in-progress: false
 
 jobs:
   version_and_release:
     name: 📦 Semantic Version Bump & Changelog
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'chore(release):') && !contains(github.event.head_commit.message, '[skip ci]')"
+    permissions:
+      contents: write   # melos version pushes commits + release tags
 
     steps:
       - name: 📥 Checkout Repository (Full History)
-        uses: actions/checkout@v4
+        # zizmor: ignore[artipacked] persist-credentials must stay true —
+        # this job needs git push credentials for melos version --push
+        # below, not just read access.
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🛠️ Setup Dart & Flutter SDK
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
-          channel: stable
+          flutter-version: '3.47.0'
           cache: true
 
       - name: ⚡ Activate Melos
@@ -41,24 +48,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: 🚀 Run Melos Versioning & Changelog Generation
+      - name: 🚀 Version, changelog, tag & push (melos)
         id: melos_version
         run: |
-          # Melos automatically analyzes commits, bumps pubspec version, and generates CHANGELOG.md
-          if melos version --yes --no-git-tag-version; then
+          # Melos analyzes conventional commits since each package's last
+          # <name>-vX.Y.Z tag, bumps pubspec.yaml, writes CHANGELOG.md,
+          # commits as the bot, creates the release tag, and pushes both
+          # the commit and the tag — in one step, same as flutter/packages.
+          if melos version --all --yes --push; then
             echo "versioned=true" >> $GITHUB_OUTPUT
           else
             echo "versioned=false" >> $GITHUB_OUTPUT
             echo "No package changes requiring a version bump."
-          fi
-
-      - name: 💾 Commit & Push Version Bumps & Changelogs
-        if: steps.melos_version.outputs.versioned == 'true'
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git add packages/
-            git commit -m "chore(release): automated package version bumps and changelog updates [skip ci]"
-            git push origin main
-          else
-            echo "Working tree clean, no version changes to commit."
           fi

@@ -4,18 +4,31 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   dependabot:
+    name: 🤖 Approve & auto-merge Dependabot PRs
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
+    # zizmor: ignore[bot-conditions] this is the pattern zizmor's own docs
+    # recommend: github.actor reflects the *last* actor to touch the PR
+    # (spoofable), so checking it instead would be the less-safe choice.
+    # github.event.pull_request.user.login identifies who *created* the
+    # PR and 'dependabot[bot]' is a reserved identity nothing else can
+    # register as. This trigger is also plain pull_request, not
+    # pull_request_target, so there's no elevated-token risk to begin with.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      contents: write       # gh pr merge
+      pull-requests: write  # gh pr edit / gh pr review
     steps:
       - name: 🔍 Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 

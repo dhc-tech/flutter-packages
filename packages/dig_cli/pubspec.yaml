@@ -4,6 +4,13 @@ version: 1.8.0
 homepage: https://github.com/dhc-tech/flutter-packages/tree/main/packages/dig_cli
 repository: https://github.com/dhc-tech/flutter-packages
 issue_tracker: https://github.com/dhc-tech/flutter-packages/issues
+
+topics:
+  - cli
+  - developer-tools
+  - flutter-tools
+  - code-generator
+
 environment:
   sdk: ">=3.0.0 <4.0.0"
 
@@ -19,6 +26,7 @@ dependencies:
 
 dev_dependencies:
   lints: ^6.1.0
+  test: ^1.25.0
 
 executables:
   dg: dig_cli

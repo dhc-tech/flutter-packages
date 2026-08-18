@@ -1,21 +1,30 @@
 name: "🔍 Semantic PR Title"
 
-on:
+# pull_request_target so title validation runs with a real token even on
+# fork PRs. Mitigation: this action only reads the PR title/checks
+# semantics against the config below — it never checks out or executes
+# PR content.
+on: # zizmor: ignore[dangerous-triggers] mitigated as documented above
   pull_request_target:
     types:
       - opened
       - edited
       - synchronize
 
-permissions:
-  pull-requests: read
+concurrency:
+  group: semantic-pr-title-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
 
 jobs:
   main:
     name: Validate PR Title
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read  # reading the PR title to validate
     steps:
-      - uses: amannn/action-semantic-pull-request@v5
+      - uses: amannn/action-semantic-pull-request@e32d7e603df1aa1ba07e981f2a23455dee596825 # v5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -38,4 +47,6 @@ jobs:
             deps
             repo
             infra
+            ci
+            ai
           requireScope: false

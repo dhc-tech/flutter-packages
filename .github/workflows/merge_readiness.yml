@@ -1,0 +1,124 @@
+# Posts (and keeps updated) a single "why can't this merge" summary
+# comment on every open PR — so a contributor never has to go dig
+# through the Checks tab to find out what's blocking them.
+#
+# Triggers whenever any of the required checks finish, and also on
+# review submission, so the summary reflects the latest state either way.
+#
+# Security note on the workflow_run trigger: this is normally risky
+# because it runs with base-repo secrets/permissions even for a
+# fork's PR. This workflow mitigates that by never checking out or
+# executing any PR content — every step below only reads data via the
+# GitHub API (check runs, reviews, branch protection) and posts a
+# comment; nothing from the PR's source is ever run.
+
+name: 🚦 Merge Readiness Summary
+
+on: # zizmor: ignore[dangerous-triggers] mitigated as documented above
+  workflow_run:
+    workflows:
+      - "CI Matrix Pipeline"
+      - "🛡️ CodeQL Security Analysis"
+      - "🛡️ GitHub Actions Security Scan"
+    types: [completed]
+  pull_request_review:
+    types: [submitted, dismissed]
+
+concurrency:
+  group: merge-readiness-${{ github.event.workflow_run.head_sha || github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  summarize:
+    name: 📋 Post merge-readiness summary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read        # branch protection lookup needs repo metadata
+      pull-requests: write  # posting/updating the summary comment
+      checks: read          # reading check-run conclusions for the PR's SHA
+      actions: read         # resolving the workflow_run event's source PR
+    steps:
+      - name: 🔍 Find the PR for this SHA
+        id: find_pr
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const sha = context.payload.workflow_run
+              ? context.payload.workflow_run.head_sha
+              : context.payload.pull_request.head.sha;
+            const { data } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              commit_sha: sha,
+            });
+            const open = data.find(pr => pr.state === 'open');
+            core.setOutput('number', open ? open.number : '');
+            core.setOutput('sha', sha);
+
+      - name: 📋 Build & upsert summary comment
+        if: steps.find_pr.outputs.number != ''
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          # Passed via env, not templated into the script string: GitHub
+          # expands ${{ }} into the script text before it's parsed, so
+          # interpolating directly is unsafe even for our own step outputs.
+          PR_NUMBER: ${{ steps.find_pr.outputs.number }}
+          HEAD_SHA: ${{ steps.find_pr.outputs.sha }}
+        with:
+          script: |
+            const prNumber = Number(process.env.PR_NUMBER);
+            const sha = process.env.HEAD_SHA;
+            const { owner, repo } = context.repo;
+
+            const [{ data: checkRuns }, { data: statuses }, { data: reviews }, protection] = await Promise.all([
+              github.rest.checks.listForRef({ owner, repo, ref: sha, per_page: 100 }),
+              github.rest.repos.getCombinedStatusForRef({ owner, repo, ref: sha }),
+              github.rest.pulls.listReviews({ owner, repo, pull_number: prNumber }),
+              github.rest.repos.getBranchProtection({ owner, repo, branch: 'main' }).catch(() => null),
+            ]);
+
+            const requiredContexts = protection?.data?.required_status_checks?.contexts ?? [];
+            const requiredApprovals = protection?.data?.required_pull_request_reviews?.required_approving_review_count ?? 0;
+
+            const results = checkRuns.check_runs.map(r => ({
+              name: r.name, status: r.status, conclusion: r.conclusion, url: r.html_url,
+            }));
+
+            const failing = results.filter(r =>
+              r.status === 'completed' && !['success', 'neutral', 'skipped'].includes(r.conclusion)
+            );
+            const pending = results.filter(r => r.status !== 'completed');
+
+            const latestReviewByUser = new Map();
+            for (const rv of reviews) latestReviewByUser.set(rv.user.login, rv.state);
+            const approvals = [...latestReviewByUser.values()].filter(s => s === 'APPROVED').length;
+            const changesRequested = [...latestReviewByUser.values()].some(s => s === 'CHANGES_REQUESTED');
+
+            const blockers = [];
+            for (const f of failing) blockers.push(`- ❌ **${f.name}** failed — [view logs](${f.url})`);
+            for (const p of pending) blockers.push(`- ⏳ **${p.name}** still running`);
+            if (changesRequested) blockers.push(`- 🔴 A reviewer requested changes`);
+            if (approvals < requiredApprovals) {
+              blockers.push(`- 👥 Needs ${requiredApprovals - approvals} more approving review(s)`);
+            }
+            const missingRequired = requiredContexts.filter(c => !results.some(r => r.name === c && r.conclusion === 'success'));
+
+            const ready = blockers.length === 0;
+            const marker = '<!-- merge-readiness-summary -->';
+            const body = marker + '\n' + (ready
+              ? '## 🚦 Merge Readiness: ✅ Ready to merge\n\nAll required checks are green and review requirements are met.'
+              : '## 🚦 Merge Readiness: ❌ Blocked\n\n**This PR cannot merge yet. Here\'s why:**\n\n' + blockers.join('\n') +
+                (missingRequired.length ? `\n\n_Still waiting on required check(s): ${missingRequired.join(', ')}_` : ''));
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner, repo, issue_number: prNumber, per_page: 100,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
+            }
