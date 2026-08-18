@@ -69,6 +69,14 @@ jobs:
       # approval, etc. — everything MERGE_RETRIES was exhausted trying
       # to resolve above), pull the label back off and say why, instead
       # of leaving it silently sitting there implying "still queued."
+      #
+      # This workflow has multiple triggers (pull_request_target,
+      # check_suite, status) that can fire within seconds of each other
+      # for the same underlying event, each running its own full set of
+      # retries independently. Without a guard, every one of them posts
+      # its own copy of this comment. Checking whether the label is
+      # still actually present first makes this idempotent: whichever
+      # run gets here first does the work, every other one is a no-op.
       - name: 🏷️ Remove autosubmit label if not ready
         if: steps.automerge.outputs.mergeResult == 'not_ready' || steps.automerge.outputs.mergeResult == 'merge_failed'
         env:
@@ -79,6 +87,11 @@ jobs:
         run: |
           if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "0" ]; then
             echo "No PR number from automerge-action output; skipping."
+            exit 0
+          fi
+          has_label=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json labels --jq '[.labels[].name] | contains(["autosubmit"])')
+          if [ "$has_label" != "true" ]; then
+            echo "autosubmit label already removed by a concurrent run; skipping duplicate comment."
             exit 0
           fi
           gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "autosubmit" || true
