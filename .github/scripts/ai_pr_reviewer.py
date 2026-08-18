@@ -1,89 +1,242 @@
 #!/usr/bin/env python3
+"""Gemini-powered PR review.
+
+Posts a real GitHub PR *review* (not just an issue comment):
+  - No issues found  -> APPROVE, with a short "no issues found" summary.
+  - Issues found      -> REQUEST_CHANGES, with one inline comment per
+                         issue anchored to its file/line, plus a summary.
+
+Gemini is asked to return strict JSON so the result can drive the
+review verdict and inline comments programmatically instead of being
+pasted as a single freeform blob.
+"""
 import os
+import re
 import json
 import urllib.request
+import urllib.error
 import subprocess
 
+
+def gemini_generate(api_key, prompt):
+    url = (
+        "https://generativelanguage.googleapis.com/v1beta/models/"
+        f"gemini-2.5-pro:generateContent?key={api_key}"
+    )
+    payload = {
+        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.1,
+            "maxOutputTokens": 4096,
+            "responseMimeType": "application/json",
+        },
+    }
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=90) as res:
+        raw = json.loads(res.read().decode("utf-8"))
+        return raw["candidates"][0]["content"]["parts"][0]["text"]
+
+
+def parse_diff_files(diff):
+    """Map changed file -> set of valid RIGHT-side line numbers (added/context
+    lines within added hunks), so inline comments only anchor to lines
+    GitHub will actually accept for this diff."""
+    files = {}
+    current_file = None
+    new_line = None
+    for line in diff.splitlines():
+        if line.startswith("+++ b/"):
+            current_file = line[6:]
+            files.setdefault(current_file, set())
+            continue
+        m = re.match(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@", line)
+        if m:
+            new_line = int(m.group(1))
+            continue
+        if current_file is None or new_line is None:
+            continue
+        if line.startswith("+") and not line.startswith("+++"):
+            files[current_file].add(new_line)
+            new_line += 1
+        elif line.startswith("-") and not line.startswith("---"):
+            pass  # removed line, doesn't consume a new_line number
+        else:
+            new_line += 1
+    return files
+
+
+def post_review(repo, token, pr_number, head_sha, event, summary, comments):
+    url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}/reviews"
+    payload = {
+        "commit_id": head_sha,
+        "body": summary,
+        "event": event,
+    }
+    if comments:
+        payload["comments"] = comments
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "Flutter-AI-Reviewer",
+        },
+    )
+    try:
+        with urllib.request.urlopen(req) as res:
+            print(f"Posted {event} review with {len(comments)} inline comment(s).")
+            return True
+    except urllib.error.HTTPError as e:
+        body = e.read().decode("utf-8", errors="ignore")
+        print(f"Review API failed ({e.code}): {body}")
+        return False
+
+
+def post_issue_comment(repo, token, pr_number, body):
+    url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
+    req = urllib.request.Request(
+        url,
+        data=json.dumps({"body": body}).encode("utf-8"),
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "Flutter-AI-Reviewer",
+        },
+    )
+    with urllib.request.urlopen(req):
+        pass
+
+
 def main():
-    api_key = os.environ.get('GEMINI_API_KEY', '').strip()
-    token = os.environ.get('GITHUB_TOKEN', '').strip()
-    repo = os.environ.get('REPO', '').strip()
-    pr_number = os.environ.get('PR_NUMBER', '').strip()
-    base_sha = os.environ.get('BASE_SHA', '').strip()
-    head_sha = os.environ.get('HEAD_SHA', '').strip()
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    repo = os.environ.get("REPO", "").strip()
+    pr_number = os.environ.get("PR_NUMBER", "").strip()
+    base_sha = os.environ.get("BASE_SHA", "").strip()
+    head_sha = os.environ.get("HEAD_SHA", "").strip()
 
     if not api_key:
         print("ℹ️ GEMINI_API_KEY is not configured. Skipping AI review.")
         return
 
     try:
-        diff_bytes = subprocess.check_output(['git', 'diff', f'{base_sha}..{head_sha}'])
-        diff = diff_bytes.decode('utf-8', errors='ignore')[:30000]
+        diff = subprocess.check_output(
+            ["git", "diff", f"{base_sha}..{head_sha}"]
+        ).decode("utf-8", errors="ignore")
     except Exception as e:
         print(f"Could not get diff: {e}")
-        diff = ''
+        return
 
     if not diff.strip():
         print("No diff found to review.")
         return
 
+    valid_lines = parse_diff_files(diff[:60000])
+
     system_prompt = (
-        "You are a principal Flutter/Dart architect performing automated code review for "
-        "dhc-tech/flutter-packages (packages: white_label_kit, dig_cli, apple_sign_in_plugin).\n\n"
-        "Review this PR diff and structure your output in GitHub Markdown:\n"
-        "1. 🛡️ **Security & Secrets**: Verify NO private keys, credentials, or proprietary client names exist.\n"
-        "2. 💎 **Dart / Flutter Standards**: Strict typing, proper null safety, resource cleanup, async handling.\n"
-        "3. ⚠️ **Breaking Changes**: Check public API contracts and version compatibility.\n"
-        "4. 🧪 **Tests & Docs**: Ensure test coverage and docs are updated.\n\n"
-        "Be concise, objective, and highlight any required improvements with code snippets."
+        "You are a principal Flutter/Dart architect performing an automated code "
+        "review for dhc-tech/flutter-packages (packages: white_label_kit, dig_cli, "
+        "apple_sign_in_plugin).\n\n"
+        "Review the diff below for:\n"
+        "1. Security & secrets — private keys, credentials, proprietary client names.\n"
+        "2. Dart/Flutter standards — strict typing, null safety, resource cleanup, "
+        "async/await correctness, memory leaks (unclosed streams/controllers).\n"
+        "3. Breaking changes — public API contract or version compatibility.\n"
+        "4. Missing tests/docs for new public behavior.\n"
+        "5. Correctness bugs — logic errors, off-by-one, unhandled null/empty cases.\n\n"
+        "Be thorough — do not skip files. Only report REAL, concrete issues you can "
+        "point to a specific line for; do not invent nitpicks just to have something "
+        "to say.\n\n"
+        "Respond with STRICT JSON only, matching exactly this schema:\n"
+        "{\n"
+        '  "summary": "one short paragraph overview",\n'
+        '  "issues": [\n'
+        "    {\n"
+        '      "file": "path/exactly/as/in/diff.dart",\n'
+        '      "line": 123,\n'
+        '      "severity": "blocking|warning|nit",\n'
+        '      "comment": "what is wrong and how to fix it, with a code snippet if useful"\n'
+        "    }\n"
+        "  ]\n"
+        "}\n"
+        'If there are no real issues, return "issues": [].\n'
+        '"line" must be the exact line number of an ADDED or CONTEXT line in the diff '
+        "(the new-file line number), never a removed line."
     )
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
-    payload = {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [{"text": f"{system_prompt}\n\nDiff to review:\n```diff\n{diff}\n```"}]
-            }
-        ],
-        "generationConfig": {"temperature": 0.2, "maxOutputTokens": 1500}
-    }
-
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode('utf-8'),
-        headers={'Content-Type': 'application/json'}
-    )
     try:
-        with urllib.request.urlopen(req) as res:
-            raw = json.loads(res.read().decode('utf-8'))
-            review_text = raw['candidates'][0]['content']['parts'][0]['text']
+        raw_text = gemini_generate(api_key, f"{system_prompt}\n\nDiff to review:\n```diff\n{diff[:50000]}\n```")
     except Exception as e:
         print(f"Gemini API call failed: {e}")
         return
 
-    comment_body = (
-        f"## 🤖 Gemini AI PR Review\n\n"
-        f"{review_text}\n\n"
-        f"---\n"
-        f"*Automated review powered by Google Gemini.*"
-    )
-
-    comment_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
-    comment_req = urllib.request.Request(
-        comment_url,
-        data=json.dumps({'body': comment_body}).encode('utf-8'),
-        headers={
-            'Authorization': f'Bearer {token}',
-            'Accept': 'application/vnd.github+json',
-            'User-Agent': 'Flutter-AI-Reviewer'
-        }
-    )
     try:
-        with urllib.request.urlopen(comment_req):
-            print("Successfully posted Gemini AI review comment!")
+        result = json.loads(raw_text)
+        issues = result.get("issues", [])
+        summary = result.get("summary", "").strip()
     except Exception as e:
-        print(f"Failed to post PR comment: {e}")
+        print(f"Could not parse Gemini JSON response: {e}\nRaw: {raw_text[:500]}")
+        # Fall back to a plain comment so review feedback is never silently lost.
+        post_issue_comment(
+            repo, token, pr_number,
+            "## 🤖 Gemini AI PR Review\n\n"
+            "_Gemini's response could not be parsed as structured review output; "
+            "raw output below._\n\n" + raw_text[:3000],
+        )
+        return
 
-if __name__ == '__main__':
+    # Anchor only comments that land on a real diff line; downgrade the rest
+    # into the summary so nothing found is silently dropped.
+    inline_comments = []
+    unanchored = []
+    for issue in issues:
+        f = issue.get("file", "")
+        line = issue.get("line")
+        if f in valid_lines and line in valid_lines[f]:
+            severity_emoji = {"blocking": "🚫", "warning": "⚠️", "nit": "💡"}.get(
+                issue.get("severity", "warning"), "⚠️"
+            )
+            inline_comments.append({
+                "path": f,
+                "line": line,
+                "body": f"{severity_emoji} **{issue.get('severity', 'warning').upper()}** — {issue.get('comment', '')}",
+            })
+        else:
+            unanchored.append(issue)
+
+    blocking_count = sum(1 for i in issues if i.get("severity") == "blocking")
+
+    if not issues:
+        body = (
+            "## 🤖 Gemini AI PR Review\n\n✅ No issues found.\n\n"
+            + (summary and f"{summary}\n\n" or "")
+            + "---\n*Automated review powered by Google Gemini.*"
+        )
+        post_review(repo, token, pr_number, head_sha, "APPROVE", body, [])
+        return
+
+    extra = ""
+    if unanchored:
+        extra = "\n\n### Additional findings (outside the diff's changed lines)\n" + "\n".join(
+            f"- **{i.get('file', '?')}**: {i.get('comment', '')}" for i in unanchored
+        )
+
+    body = (
+        f"## 🤖 Gemini AI PR Review\n\n{summary}\n\n"
+        f"Found **{len(issues)}** issue(s), **{blocking_count}** blocking.{extra}\n\n"
+        "---\n*Automated review powered by Google Gemini.*"
+    )
+    event = "REQUEST_CHANGES" if blocking_count > 0 else "COMMENT"
+    ok = post_review(repo, token, pr_number, head_sha, event, body, inline_comments)
+    if not ok:
+        # Inline anchoring failed (e.g. stale diff) — still surface the findings.
+        post_issue_comment(repo, token, pr_number, body)
+
+
+if __name__ == "__main__":
     main()
