@@ -1,10 +1,7 @@
 # Release Architecture
 
-This repository's release system is modeled on [flutter/packages](https://github.com/flutter/packages)'
-architectural principles — layered, PR-gated release workflows with
-independent per-package versioning — sized for this repo's actual scope
-(3 packages), not a copy of flutter/packages' Cocoon/dashboard-scale
-infrastructure.
+Layered, PR-gated release workflows with independent per-package
+versioning, sized for this repo's actual scope (3 packages).
 
 ## Why packages are versioned independently
 
@@ -113,5 +110,5 @@ publishing:
   release path already accepts any package by name, with zero workflow
   changes needed to add a new package. A dedicated per-package workflow
   would add files without adding capability.
-- **Flutter's Cocoon/dashboard infrastructure** — built for a much
-  larger, higher-traffic monorepo; not proportionate here.
+- **A dedicated release dashboard/tracking service** — built for a
+  much larger, higher-traffic monorepo; not proportionate here.

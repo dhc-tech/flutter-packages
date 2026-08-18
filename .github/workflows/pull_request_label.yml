@@ -1,5 +1,4 @@
 # Applies labels to pull requests based on modified paths.
-# Based on official flutter/packages pull_request_label.yml standard.
 
 name: Pull Request Labeler
 

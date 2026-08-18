@@ -1,6 +1,6 @@
-# Batch release PR — the flutter/packages "batch_release_pr.yml"
-# concept: an explicit, maintainer-triggered release covering a chosen
-# set of packages (or all of them), prepared as one coordinated PR.
+# Batch release PR — an explicit, maintainer-triggered release covering
+# a chosen set of packages (or all of them), prepared as one
+# coordinated PR.
 #
 # "Batch" means "release these together in one PR", not "give them all
 # the same version" — each package's version is still computed

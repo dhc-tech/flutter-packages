@@ -1,5 +1,4 @@
-# Reusable release logic — the flutter/packages "reusable_release.yml"
-# concept, adapted: one centralized implementation of "compute
+# Reusable release logic — one centralized implementation of "compute
 # independent version bumps + changelogs for the requested packages,
 # then open (or update) one coordinated release PR", called by every
 # entry point that can start a release (release.yml on every merge to

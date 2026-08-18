@@ -1,6 +1,5 @@
-# Release from a specific branch — the flutter/packages
-# "release_from_branches.yml" concept: an explicit, maintainer-only
-# path to prepare a release from a ref OTHER than main (e.g. a hotfix
+# Release from a specific branch — an explicit, maintainer-only path
+# to prepare a release from a ref OTHER than main (e.g. a hotfix
 # branch cut from an older tag), for when a fix needs to ship without
 # including everything currently on main.
 #
