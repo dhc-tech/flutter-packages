@@ -30,8 +30,10 @@ jobs:
     permissions:
       contents: write        # performing the actual merge
       pull-requests: write   # reading/updating PR state (labels, mergeability)
+      issues: write          # posting the "removed autosubmit" explanation comment
     steps:
       - name: 🚀 Auto-merge if Approved & CI Green
+        id: automerge
         uses: pascalgn/automerge-action@7961b8b5eec56cc088c140b56d864285eabd3f67 # v0.16.4
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
@@ -41,3 +43,23 @@ jobs:
           MERGE_FORKS: "false"
           MERGE_RETRIES: "6"
           MERGE_RETRY_SLEEP: "10000"
+
+      # Mirrors flutter/packages' auto-submit bot: if the PR was labeled
+      # autosubmit but wasn't actually ready (checks failing, missing
+      # approval, etc. — everything MERGE_RETRIES was exhausted trying
+      # to resolve above), pull the label back off and say why, instead
+      # of leaving it silently sitting there implying "still queued."
+      - name: 🏷️ Remove autosubmit label if not ready
+        if: steps.automerge.outputs.mergeResult == 'not_ready' || steps.automerge.outputs.mergeResult == 'merge_failed'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.automerge.outputs.pullRequestNumber }}
+          MERGE_RESULT: ${{ steps.automerge.outputs.mergeResult }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "0" ]; then
+            echo "No PR number from automerge-action output; skipping."
+            exit 0
+          fi
+          gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "autosubmit" || true
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "🤖 Removed the \`autosubmit\` label — merge attempt result: \`$MERGE_RESULT\`. Please fix the issues identified (failing checks, missing approval, or a merge conflict) or deflake, then re-apply the \`autosubmit\` label."
