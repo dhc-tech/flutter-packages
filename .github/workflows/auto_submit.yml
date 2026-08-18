@@ -31,6 +31,7 @@ jobs:
       contents: write        # performing the actual merge
       pull-requests: write   # reading/updating PR state (labels, mergeability)
       issues: write          # posting the "removed autosubmit" explanation comment
+      workflows: write       # merging any PR that touches .github/workflows/** needs this specifically — contents: write alone is not sufficient and returns "Resource not accessible" otherwise
     steps:
       # Closes the loop fully: a human never has to manually add the
       # autosubmit label. Approving the PR IS the "please merge this"
@@ -49,14 +50,28 @@ jobs:
         id: automerge
         uses: pascalgn/automerge-action@7961b8b5eec56cc088c140b56d864285eabd3f67 # v0.16.4
         env:
-          # A push made with the default GITHUB_TOKEN does not trigger
-          # further workflow runs (GitHub's anti-recursion rule) — so a
-          # merge performed with it would not create downstream
-          # push-triggered workflow runs at all. PAT_TOKEN allows matching
-          # workflows to run; each workflow's own branch/path filters
-          # still apply as normal (e.g. auto_version_and_changelog.yml
-          # still only fires on a push to main touching packages/**).
-          GITHUB_TOKEN: "${{ secrets.PAT_TOKEN }}"
+          # Deliberately GITHUB_TOKEN, not PAT_TOKEN, per explicit
+          # instruction accepting the known tradeoff below.
+          #
+          # Tradeoff (confirmed empirically, not theoretical): a push
+          # made with the default GITHUB_TOKEN does not trigger further
+          # workflow runs on main at all (GitHub's anti-recursion rule).
+          # Verified directly this session — merging a PR via
+          # GITHUB_TOKEN-based automerge fired zero push-triggered
+          # workflows on main, including the entire release pipeline
+          # (auto_version_and_changelog.yml -> release_tag_on_merge.yml
+          # -> publish.yml). With GITHUB_TOKEN here, that chain will NOT
+          # fire automatically after a merge; auto_version_and_changelog.yml
+          # must be triggered manually (workflow_dispatch) after any
+          # package-code PR merges, until/unless this is revisited.
+          #
+          # The "Resource not accessible by personal access token" error
+          # this replaces was actually caused by a *different*, separate
+          # gap: merging a PR that touches .github/workflows/** requires
+          # the `workflows: write` permission specifically (added above)
+          # — contents: write alone doesn't cover workflow-file changes,
+          # for GITHUB_TOKEN or PAT_TOKEN alike.
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           MERGE_LABELS: "autosubmit"
           MERGE_METHOD: "squash"
           MERGE_COMMIT_MESSAGE: "pull-request-title-and-description"
@@ -110,7 +125,7 @@ jobs:
               reason="CI checks aren't all green yet, or the required review/approval hasn't been fully satisfied. This is expected right after a push — CI takes a few minutes."
               ;;
             merge_failed)
-              reason="GitHub's merge API itself rejected the request after checks/approval looked satisfied. Common causes: (1) a merge conflict with the base branch, (2) the merge token lacks permission for this specific change — e.g. fine-grained PATs need the separate 'Workflows' repo permission to merge any PR that touches .github/workflows/**, contents-only access isn't enough, or (3) a required status check's exact name doesn't match what's configured in branch protection."
+              reason="GitHub's merge API itself rejected the request after checks/approval looked satisfied. Common causes: (1) a merge conflict with the base branch, (2) this PR touches .github/workflows/** and the job's token is missing the 'workflows: write' permission — contents: write alone isn't enough for workflow-file changes, or (3) a required status check's exact name doesn't match what's configured in branch protection."
               ;;
             *)
               reason="Unrecognized mergeResult: $MERGE_RESULT."
