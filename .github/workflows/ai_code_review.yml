@@ -87,6 +87,10 @@ jobs:
           # lot and exceeds context; truncate rather than fail outright.
           head -c 60000 pr.diff > pr_truncated.diff
           echo "truncated=$([ "$(wc -c < pr.diff)" -gt 60000 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          # head sha needed to anchor inline (per-line) review comments
+          # to the right commit.
+          commit_sha=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.head.sha')
+          echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
 
       - name: 🤖 Stream DHC AI review live
         if: steps.check_key.outputs.available == 'true'
@@ -97,6 +101,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           TRUNCATED: ${{ steps.diff.outputs.truncated }}
+          COMMIT_SHA: ${{ steps.diff.outputs.commit_sha }}
         run: |
           python3 - <<'PYEOF'
           import json
@@ -176,22 +181,26 @@ jobs:
                   "(unclosed StreamControllers/Timers/subscriptions), error "
                   "handling, and security (hardcoded secrets, unsafe shell "
                   "interpolation in scripts/workflows, script-injection risk).\n\n"
-                  "You MUST reply using EXACTLY this markdown template — copy "
-                  "it verbatim and fill in the {brackets}, do not add extra "
-                  "top-level sections, do not omit any of the four lines:\n\n"
-                  "{VERDICT_EMOJI} **Verdict**\n\n"
-                  "**Summary**\n"
-                  "{one_to_three_sentence_summary_of_what_the_pr_does}\n\n"
-                  "**Findings**\n"
-                  "{bullet_list_with_file_and_line_references_OR_the_literal_"
-                  "text 'No issues found — this looks good.' if there is "
-                  "truly nothing to flag. Never invent a finding just to "
-                  "have something to say.}\n\n"
-                  "**Thanks for the contribution!** {one_short_friendly_"
-                  "sentence_inviting_follow_up_questions}\n\n"
-                  "Where {VERDICT_EMOJI} is exactly one of: ✅ (nothing "
-                  "blocking), ⚠️ (suggestions worth addressing), ❌ (a real "
-                  "bug or security issue)."
+                  "Reply with ONLY a single JSON object (no markdown fences, "
+                  "no text before or after it) matching exactly this shape:\n"
+                  '{\n'
+                  '  "verdict": "✅" | "⚠️" | "❌",\n'
+                  '  "summary": "1-3 sentence summary of what the PR does",\n'
+                  '  "findings": [\n'
+                  '    {"file": "path/from/the/diff", "line": <new-file-line-number-as-integer-from-the-diff-hunk>, "comment": "specific, concise finding"}\n'
+                  '  ],\n'
+                  '  "closing": "one short friendly sentence thanking the '
+                  'contributor and inviting follow-up questions"\n'
+                  "}\n\n"
+                  "verdict is ✅ if nothing blocking was found, ⚠️ for "
+                  "suggestions worth addressing, ❌ for a real bug or "
+                  "security issue. findings MUST be an empty array [] if "
+                  "there is truly nothing to flag — never invent a finding "
+                  "just to have something to say. Each finding's \"line\" "
+                  "MUST be a line number that actually appears in the "
+                  "diff's hunk headers (the new-file side, after the '+' in "
+                  "'@@ -old,count +new,count @@') — never guess a line "
+                  "number outside what the diff shows."
               )
 
               user_prompt = f"PR title: {pr_title}\n\n"
@@ -254,7 +263,76 @@ jobs:
                   print("AI reviewer returned an empty review.")
                   return
 
-              body = HEADER + review_text
+              # The model is asked for JSON, but is not perfectly reliable
+              # about it — extract the first {...} block rather than
+              # requiring the whole response to be pure JSON, and fall
+              # back to posting its raw text if parsing still fails
+              # (same degraded-but-working behavior as before this
+              # feature existed, rather than losing the review entirely).
+              review = None
+              start, end = review_text.find("{"), review_text.rfind("}")
+              if start != -1 and end != -1 and end > start:
+                  try:
+                      review = json.loads(review_text[start:end + 1])
+                  except json.JSONDecodeError:
+                      review = None
+
+              if review is None:
+                  body = HEADER + review_text
+                  if len(body) > MAX_OUTPUT_CHARS:
+                      body = body[:MAX_OUTPUT_CHARS] + "\n\n*(truncated)*"
+                  gh_api("PATCH", f"/repos/{repo}/issues/comments/{comment_id}", {"body": body})
+                  return
+
+              verdict = review.get("verdict") or "⚠️"
+              summary = (review.get("summary") or "").strip()
+              closing = (review.get("closing") or "").strip()
+              findings = review.get("findings") or []
+              if not isinstance(findings, list):
+                  findings = []
+
+              # Inline, per-line review comments (like CodeRabbit) — each
+              # posted individually so one bad file/line reference from
+              # the model can't take the rest down with it. Failures are
+              # summarized in the main comment, never silently dropped.
+              commit_sha = os.environ.get("COMMIT_SHA", "").strip()
+              posted, failed = 0, 0
+              if commit_sha:
+                  for f in findings:
+                      if not isinstance(f, dict):
+                          continue
+                      path, line, comment = f.get("file"), f.get("line"), f.get("comment")
+                      if not path or not comment or not isinstance(line, int):
+                          failed += 1
+                          continue
+                      try:
+                          gh_api(
+                              "POST",
+                              f"/repos/{repo}/pulls/{pr_number}/comments",
+                              {
+                                  "commit_id": commit_sha,
+                                  "path": path,
+                                  "line": line,
+                                  "side": "RIGHT",
+                                  "body": comment,
+                              },
+                          )
+                          posted += 1
+                      except Exception:
+                          failed += 1  # e.g. line isn't part of the diff hunk
+              else:
+                  failed = len(findings)
+
+              lines = [f"{verdict} **Verdict**", "", "**Summary**", summary or "_(no summary provided)_", ""]
+              if not findings:
+                  lines += ["**Findings**", "No issues found — this looks good.", ""]
+              elif posted:
+                  lines += [f"**Findings**", f"Posted {posted} inline comment(s) below.", ""]
+              if failed:
+                  lines.append(f"_({failed} finding(s) couldn't be anchored to a diff line and are omitted.)_\n")
+              lines.append(f"**Thanks for the contribution!** {closing}" if closing else "**Thanks for the contribution!**")
+
+              body = HEADER + "\n".join(lines)
               if len(body) > MAX_OUTPUT_CHARS:
                   body = body[:MAX_OUTPUT_CHARS] + "\n\n*(truncated)*"
 
