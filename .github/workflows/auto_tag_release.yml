@@ -1,0 +1,52 @@
+# Auto-Tag Release
+#
+# Runs after every merge to `main`. For each package under packages/*,
+# compares the pubspec.yaml version to the last tag of the form
+# `<package>-vX.Y.Z`. If the version was bumped, it creates and pushes
+# a new tag automatically — no manual `git tag && git push` step required.
+#
+# That tag push is what triggers publish.yml, so merging a version bump
+# to main is the only action needed to ship a release.
+
+name: 🏷️ Auto-Tag Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    name: 🏷️ Tag bumped packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 📥 Checkout Monorepo
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Detect version bumps and tag
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          for pkg_dir in packages/*; do
+            [ -f "$pkg_dir/pubspec.yaml" ] || continue
+            pkg=$(basename "$pkg_dir")
+            version=$(grep '^version:' "$pkg_dir/pubspec.yaml" | awk '{print $2}')
+            tag="${pkg}-v${version}"
+
+            if git rev-parse "$tag" >/dev/null 2>&1; then
+              echo "➜ $pkg: $tag already exists, skipping."
+              continue
+            fi
+
+            echo "🏷️ $pkg: tagging $tag"
+            git tag -a "$tag" -m "Release $pkg $version"
+            git push origin "$tag"
+          done
