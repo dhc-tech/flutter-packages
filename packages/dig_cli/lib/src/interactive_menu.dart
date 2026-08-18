@@ -41,9 +41,8 @@ class InteractiveMenu {
   }
 
   String? _promptUser(String label, {String? defaultValue}) {
-    final displayDefault = defaultValue != null
-        ? ' (${_painter.textPen(defaultValue)})'
-        : '';
+    final displayDefault =
+        defaultValue != null ? ' (${_painter.textPen(defaultValue)})' : '';
     stdout.write('  $label$displayDefault: ');
     final input = stdin.readLineSync()?.trim();
     return (input == null || input.isEmpty) ? defaultValue : input;
@@ -58,9 +57,8 @@ class InteractiveMenu {
     while (true) {
       _clearScreen();
       final isFlutter = await isFlutterProject();
-      final status = isFlutter
-          ? 'Flutter Project Detected'
-          : 'No Flutter Project Found';
+      final status =
+          isFlutter ? 'Flutter Project Detected' : 'No Flutter Project Found';
       final statusPen = isFlutter ? (AnsiPen()..green()) : (AnsiPen()..red());
 
       _painter.drawHeader('DIG CLI DASHBOARD', width: _width);
@@ -391,13 +389,16 @@ class InteractiveMenu {
       stdout.write('  New version v$latest available. Install? (y/N): ');
       if (stdin.readLineSync()?.trim().toLowerCase() == 'y') {
         final verArg = beta ? latest : '';
-        await Process.start('dart', [
-          'pub',
-          'global',
-          'activate',
-          'dig_cli',
-          verArg,
-        ], mode: ProcessStartMode.inheritStdio);
+        await Process.start(
+            'dart',
+            [
+              'pub',
+              'global',
+              'activate',
+              'dig_cli',
+              verArg,
+            ],
+            mode: ProcessStartMode.inheritStdio);
       }
     } else {
       kLog('  You are on the latest version.', type: LogType.success);
