@@ -1,7 +1,12 @@
-# AI code review via DeepSeek — a standalone, independent reviewer
+# AI code review via OpenRouter — a standalone, independent reviewer
 # alongside Gemini Code Assist, Qodo/PR-Agent, and CodeRabbit. Purely
 # advisory: posts one comment, cannot approve, merge, or affect any
 # required status check.
+#
+# Routed through OpenRouter (not DeepSeek's own API directly) using a
+# free-tier model — DeepSeek's own API returned HTTP 402 Payment
+# Required (no billing configured on that account); OpenRouter's free
+# tier needs only an OpenRouter API key, no billing on either side.
 #
 # Plain pull_request (not pull_request_target): a fork PR gets no
 # repo secrets and only a read-only GITHUB_TOKEN under this trigger —
@@ -11,33 +16,27 @@
 # rather than as a separately-checked-out .py file: this workflow file
 # itself is already the trusted unit (a fork PR modifying any workflow
 # file requires maintainer approval before it can even run, a separate
-# GitHub-side gate), so there is nothing left to fetch from a ref. An
-# earlier version tried to sparse-checkout .github/scripts/
-# deepseek_review.py from the base branch instead — which cannot work
-# for a PR that is itself introducing that file (the base never has
-# it), and fails the exact same way for any future PR that renames or
-# moves the script before this workflow does. Inlining removes the
-# dependency on a separate file entirely.
+# GitHub-side gate), so there is nothing left to fetch from a ref.
 #
 # PR title/diff are still the only untrusted input, fetched as plain
 # text via the API (never executed, never checked out) and explicitly
 # framed to the model as data to review, not instructions to follow.
 
-name: 🐋 DeepSeek Code Review
+name: 🤖 AI Code Review (OpenRouter)
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
-  group: deepseek-review-${{ github.event.pull_request.number }}
+  group: openrouter-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions: {}
 
 jobs:
   review:
-    name: 🧠 DeepSeek Review
+    name: 🧠 OpenRouter Review
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: >-
@@ -50,13 +49,13 @@ jobs:
       - name: 🔑 Check API key availability
         id: check_key
         env:
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
         run: |
-          if [ -n "$DEEPSEEK_API_KEY" ]; then
+          if [ -n "$OPENROUTER_API_KEY" ]; then
             echo "available=true" >> "$GITHUB_OUTPUT"
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "⚠️ DEEPSEEK_API_KEY secret not configured. Skipping DeepSeek review."
+            echo "⚠️ OPENROUTER_API_KEY secret not configured. Skipping AI review."
           fi
 
       - name: 📥 Fetch PR diff
@@ -75,11 +74,11 @@ jobs:
           head -c 60000 pr.diff > pr_truncated.diff
           echo "truncated=$([ "$(wc -c < pr.diff)" -gt 60000 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
-      - name: 🐋 Run DeepSeek review
+      - name: 🤖 Run OpenRouter review
         if: steps.check_key.outputs.available == 'true'
         id: review
         env:
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           TRUNCATED: ${{ steps.diff.outputs.truncated }}
         run: |
@@ -89,18 +88,19 @@ jobs:
           import urllib.request
 
           MAX_OUTPUT_CHARS = 60000  # GitHub comment body limit is ~65536
+          MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
 
 
           def set_output(name, value):
-              delimiter = "GHADELIMITER_DEEPSEEK"
+              delimiter = "GHADELIMITER_OPENROUTER"
               with open(os.environ["GITHUB_OUTPUT"], "a") as f:
                   f.write(f"{name}<<{delimiter}\n{value}\n{delimiter}\n")
 
 
           def main():
-              api_key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+              api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
               if not api_key:
-                  print("ℹ️ DEEPSEEK_API_KEY is not configured. Skipping DeepSeek review.")
+                  print("ℹ️ OPENROUTER_API_KEY is not configured. Skipping AI review.")
                   return
 
               pr_title = os.environ.get("PR_TITLE", "")
@@ -139,21 +139,26 @@ jobs:
               user_prompt += f"```diff\n{diff}\n```"
 
               payload = {
-                  "model": "deepseek-chat",
+                  "model": MODEL,
                   "messages": [
                       {"role": "system", "content": system_prompt},
                       {"role": "user", "content": user_prompt},
                   ],
                   "temperature": 0.2,
                   "max_tokens": 2000,
+                  "stream": False,
               }
 
               req = urllib.request.Request(
-                  "https://api.deepseek.com/chat/completions",
+                  "https://openrouter.ai/api/v1/chat/completions",
                   data=json.dumps(payload).encode("utf-8"),
                   headers={
                       "Content-Type": "application/json",
                       "Authorization": f"Bearer {api_key}",
+                      # Required by OpenRouter for attribution/rate-limit
+                      # purposes on free-tier models.
+                      "HTTP-Referer": "https://github.com/dhc-tech/flutter-packages",
+                      "X-Title": "flutter-packages AI Code Review",
                   },
               )
 
@@ -162,14 +167,14 @@ jobs:
                       raw = json.loads(res.read().decode("utf-8"))
                   review_text = raw["choices"][0]["message"]["content"].strip()
               except Exception as e:
-                  print(f"DeepSeek API call failed: {e}")
+                  print(f"OpenRouter API call failed: {e}")
                   return
 
               if not review_text:
-                  print("DeepSeek returned an empty review.")
+                  print("OpenRouter returned an empty review.")
                   return
 
-              body = "## 🐋 DeepSeek Review\n\n" + review_text
+              body = "## 🤖 AI Review (via OpenRouter)\n\n" + review_text
               if len(body) > MAX_OUTPUT_CHARS:
                   body = body[:MAX_OUTPUT_CHARS] + "\n\n*(truncated)*"
 
