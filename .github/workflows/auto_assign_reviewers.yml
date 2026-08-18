@@ -25,7 +25,7 @@ jobs:
       pull-requests: write  # assigning reviewers/assignees to the PR
     steps:
       - name: 👥 Assign Reviewer
-        uses: kentaro-m/auto-assign-action@f4648c0a9fdb753479e9e75fc251f507ce17bb7e # v2.0.0
+        uses: kentaro-m/auto-assign-action@0a2c53d3721e4c5cfcce6afd4014aecc337979f6 # v2.0.2
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           configuration-path: ".github/auto_assign.yml"
