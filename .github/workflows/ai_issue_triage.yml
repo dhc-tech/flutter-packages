@@ -17,11 +17,10 @@ jobs:
     name: 🧠 Gemini Issue Triage
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    environment: GEMINI_API_KEY
     if: github.actor != 'dependabot[bot]' && github.actor != 'github-actions[bot]'
     permissions:
-      issues: write    # posting the triage comment/labels
-      contents: read   # checkout for the triager script
+      issues: write   # posting the triage label/comment on the issue
+      contents: read  # reading repo content for triage context
 
     steps:
       - name: 📥 Checkout Repository
@@ -35,9 +34,9 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           if [ -n "$GEMINI_API_KEY" ]; then
-            echo "available=true" >> $GITHUB_OUTPUT
+            echo "available=true" >> "$GITHUB_OUTPUT"
           else
-            echo "available=false" >> $GITHUB_OUTPUT
+            echo "available=false" >> "$GITHUB_OUTPUT"
             echo "⚠️ GEMINI_API_KEY secret not configured. Skipping AI issue triage."
           fi
 

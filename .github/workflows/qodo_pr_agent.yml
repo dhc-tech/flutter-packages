@@ -1,26 +1,5 @@
-# Qodo Merge (formerly PR-Agent) — open-source, free AI PR assistant.
-# https://github.com/qodo-ai/pr-agent
-#
-# Runs on top of Gemini Code Assist, not instead of it: Gemini Code Assist
-# gives a structured review against .gemini/styleguide.md; PR-Agent adds
-# an auto-generated PR description/summary, a broader code-suggestions
-# pass, and an /ask-style chat command usable from PR comments
-# (e.g. "/ask why is this safe?", "/improve", "/test").
-#
-# Uses the same GEMINI_API_KEY already configured for Gemini Code
-# Assist/the release pipeline — no new secret, no new app install.
-
 name: 🤖 Qodo Merge (PR-Agent)
 
-# NOTE: auto-run on every push (opened/synchronize) is disabled for now.
-# The /review and /describe commands were posting nothing on push-triggered
-# runs with no visible error (only /improve surfaced a clear
-# "Failed to generate code suggestions" failure), and the container log
-# for the model-call step gets truncated before the real cause is visible
-# via `gh run view --log`. Until that's root-caused from the full log in
-# the GitHub UI, this only runs on-demand via a PR comment — e.g.
-# "/review", "/describe", "/improve", "/ask <question>" — so it never
-# posts a cryptic half-failure unprompted.
 on:
   issue_comment:
     types: [created]
@@ -37,12 +16,12 @@ jobs:
     if: ${{ github.event.sender.type != 'Bot' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: GEMINI_API_KEY
     permissions:
-      contents: write        # PR-Agent may commit a generated description
-      pull-requests: write   # posting review/description/suggestion comments
-      issues: write          # PR comments are issue comments under the API
-      checks: write          # /test and similar tools can report check status
+      contents: write       # PR-Agent can push suggested-fix commits
+      pull-requests: write  # posting/updating review comments on the PR
+      issues: write         # PR-Agent's underlying API treats PRs as issues for comments
+      checks: write         # publishing its review as a check run
+
     steps:
       - name: 🤖 Run PR-Agent
         uses: the-pr-agent/pr-agent@f6af7d77554ff8d26adffded077e6461329e92fa # v0.42.0

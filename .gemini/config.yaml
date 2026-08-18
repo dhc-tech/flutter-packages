@@ -1,5 +1,5 @@
 # Gemini Code Review & Agent Configuration
-# Based on official flutter/packages .gemini/config.yaml standard.
+# Gemini Code Assist configuration.
 
 have_fun: false
 code_review:

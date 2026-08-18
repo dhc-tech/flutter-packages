@@ -1,7 +1,7 @@
 # .github/auto_assign.yml
 #
 # Auto-assign reviewers to pull requests based on modified package paths.
-# Mirrors the official flutter/packages contributor review model.
+# Assigns a reviewer/assignee based on which package paths changed.
 #
 # ─────────────────────────────────────────────────────────────
 # Usage: auto-assign-action (kentaro-m/auto-assign-action@v2)

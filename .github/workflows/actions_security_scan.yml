@@ -3,10 +3,8 @@
 # excessive permissions, unpinned third-party actions, secrets exposed to
 # pull_request_target, etc.
 #
-# This is the open-source equivalent of the internal
-# "Google GitHub Admin: Actions Workflow Security Scan" check seen on
-# flutter/packages PRs — zizmor is the tool Google itself publishes for
-# this purpose (github.com/zizmorcore/zizmor).
+# zizmor is Google's own published tool for this exact purpose
+# (github.com/zizmorcore/zizmor).
 
 name: 🛡️ GitHub Actions Security Scan
 

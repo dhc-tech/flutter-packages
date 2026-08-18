@@ -1,5 +1,4 @@
 # Auto-merges pull requests labeled with 'autosubmit' once CI checks pass and reviews are approved.
-# Based on official flutter/packages auto-submit pipeline standard.
 
 name: Auto Submit & Merge
 
@@ -31,7 +30,23 @@ jobs:
       contents: write        # performing the actual merge
       pull-requests: write   # reading/updating PR state (labels, mergeability)
       issues: write          # posting the "removed autosubmit" explanation comment
-      actions: read          # reading this job's own log to extract the real failure reason
+      # There is no `workflows:` key in the permissions: block — that's
+      # not a real GitHub Actions permission scope (it only exists as a
+      # PAT OAuth/fine-grained-token scope name). Adding it here isn't
+      # merely a no-op: GitHub's own workflow-file validator rejects the
+      # unknown key outright, which surfaced as a synthetic failed check
+      # named after this file's own path with no jobs at all. Confirmed
+      # by removing it and the check passing again.
+      #
+      # The real, structural constraint: GITHUB_TOKEN can never merge or
+      # push a change to .github/workflows/** — full stop, no permission
+      # setting grants this. Only a PAT with the classic 'workflow' OAuth
+      # scope, a fine-grained PAT with 'Workflows: Read and write', or a
+      # GitHub App installation token with that permission can. This
+      # workflow uses GITHUB_TOKEN per explicit instruction; the direct
+      # consequence is that THIS PR (and any future PR that touches
+      # .github/workflows/**) cannot be auto-merged by this workflow —
+      # it needs a manual merge (or a PAT specifically for that case).
     steps:
       # Closes the loop fully: a human never has to manually add the
       # autosubmit label. Approving the PR IS the "please merge this"
@@ -50,14 +65,28 @@ jobs:
         id: automerge
         uses: pascalgn/automerge-action@7961b8b5eec56cc088c140b56d864285eabd3f67 # v0.16.4
         env:
-          # A push made with the default GITHUB_TOKEN does not trigger
-          # further workflow runs (GitHub's anti-recursion rule) — so a
-          # merge performed with it would not create downstream
-          # push-triggered workflow runs at all. PAT_TOKEN allows matching
-          # workflows to run; each workflow's own branch/path filters
-          # still apply as normal (e.g. auto_version_and_changelog.yml
-          # still only fires on a push to main touching packages/**).
-          GITHUB_TOKEN: "${{ secrets.PAT_TOKEN }}"
+          # Deliberately GITHUB_TOKEN, not PAT_TOKEN, per explicit
+          # instruction accepting the known tradeoff below.
+          #
+          # Tradeoff (confirmed empirically, not theoretical): a push
+          # made with the default GITHUB_TOKEN does not trigger further
+          # workflow runs on main at all (GitHub's anti-recursion rule).
+          # Verified directly this session — merging a PR via
+          # GITHUB_TOKEN-based automerge fired zero push-triggered
+          # workflows on main, including the entire release pipeline
+          # (release.yml -> release_tag_on_merge.yml
+          # -> publish.yml). With GITHUB_TOKEN here, that chain will NOT
+          # fire automatically after a merge; release.yml
+          # must be triggered manually (workflow_dispatch) after any
+          # package-code PR merges, until/unless this is revisited.
+          #
+          # The "Resource not accessible" error this replaces was caused
+          # by a genuinely hard constraint, not a missing permission
+          # setting: neither GITHUB_TOKEN nor a PAT lacking the specific
+          # 'workflow'/'Workflows' scope can ever merge a PR touching
+          # .github/workflows/** — see the permissions: block comment
+          # above for the full explanation.
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           MERGE_LABELS: "autosubmit"
           MERGE_METHOD: "squash"
           MERGE_COMMIT_MESSAGE: "pull-request-title-and-description"
@@ -65,7 +94,7 @@ jobs:
           MERGE_RETRIES: "6"
           MERGE_RETRY_SLEEP: "10000"
 
-      # Mirrors flutter/packages' auto-submit bot: if the PR was labeled
+      # If the PR was labeled
       # autosubmit but wasn't actually ready (checks failing, missing
       # approval, etc. — everything MERGE_RETRIES was exhausted trying
       # to resolve above), pull the label back off and say why, instead
@@ -97,22 +126,29 @@ jobs:
             exit 0
           fi
 
-          # Pull the real reason out of this same job's own log instead of
-          # a generic template — automerge-action logs the exact GitHub
-          # API error (e.g. "Resource not accessible by personal access
-          # token", "not mergeable state: dirty", a specific failing
-          # check) on every retry. The last occurrence is the one that
-          # actually mattered.
-          reason=$(gh run view "$RUN_ID" --repo "$REPO" --log 2>/dev/null \
-            | grep -i "Failed to merge PR:\|Current PR status:" \
-            | tail -1 \
-            | sed -E 's/^[^\t]*\t[^\t]*\t[0-9TZ:.-]+ (INFO|ERROR)\s*//')
-          if [ -z "$reason" ]; then
-            reason="(no specific reason captured from the log — check the workflow run for details)"
-          fi
+          # A previous version of this step tried to grep this same job's
+          # own log for automerge-action's exact error line — that's not
+          # reliable: a job's log isn't finalized/fetchable via the API
+          # until the job itself completes, which it hasn't while this
+          # step is still running (confirmed: returned nothing, every
+          # time, on real failures). Using a static explanation per
+          # mergeResult value instead — less specific than the literal
+          # API error text, but always present and accurate for the
+          # common causes, unlike a log-scrape that returns nothing.
+          case "$MERGE_RESULT" in
+            not_ready)
+              reason="CI checks aren't all green yet, or the required review/approval hasn't been fully satisfied. This is expected right after a push — CI takes a few minutes."
+              ;;
+            merge_failed)
+              reason="GitHub's merge API itself rejected the request after checks/approval looked satisfied. Common causes: (1) a merge conflict with the base branch, (2) this PR touches .github/workflows/** — GITHUB_TOKEN structurally cannot merge those (no permission setting fixes it; needs a PAT with the 'workflow' scope specifically, or a manual merge), or (3) a required status check's exact name doesn't match what's configured in branch protection."
+              ;;
+            *)
+              reason="Unrecognized mergeResult: $MERGE_RESULT."
+              ;;
+          esac
 
           gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "autosubmit" || true
           body="🤖 Removed the \`autosubmit\` label — merge attempt result: \`$MERGE_RESULT\`"
-          body="$body"$'\n\n'"**Reason:** $reason"
-          body="$body"$'\n\n'"Fix the actual issue above, then re-apply the \`autosubmit\` label to retry. [Full run log](${GITHUB_SERVER_URL}/${REPO}/actions/runs/${RUN_ID})."
+          body="$body"$'\n\n'"**Likely reason:** $reason"
+          body="$body"$'\n\n'"Fix the underlying issue, then re-apply the \`autosubmit\` label to retry. [Full run log](${GITHUB_SERVER_URL}/${REPO}/actions/runs/${RUN_ID}) has the exact API error if you need it."
           gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$body"

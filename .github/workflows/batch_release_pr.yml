@@ -1,0 +1,41 @@
+# Batch release PR — an explicit, maintainer-triggered release covering
+# a chosen set of packages (or all of them), prepared as one
+# coordinated PR.
+#
+# "Batch" means "release these together in one PR", not "give them all
+# the same version" — each package's version is still computed
+# independently by melos from its own commit history. Uses the exact
+# same reusable_release.yml as the automatic per-merge release
+# (release.yml); this workflow only changes WHICH packages are
+# considered and WHEN it runs (on demand, not on every merge).
+
+name: 📦 Batch Release PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: >-
+          "all" to evaluate every publishable package, or a
+          comma-separated list of package names (e.g.
+          "dig_cli,white_label_kit"). A package with no release-worthy
+          commits since its last tag is skipped automatically either
+          way — this selects the candidate set, it doesn't force a
+          bump on a package that hasn't actually changed.
+        required: true
+        type: string
+        default: "all"
+
+permissions: {}
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare batch release PR
+    uses: ./.github/workflows/reusable_release.yml
+    with:
+      packages: ${{ inputs.packages }}
+      pr_title: "chore(release): batch version packages"
