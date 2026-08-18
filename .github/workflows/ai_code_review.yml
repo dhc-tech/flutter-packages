@@ -1,12 +1,7 @@
-# AI code review via OpenRouter — a standalone, independent reviewer
-# alongside Gemini Code Assist, Qodo/PR-Agent, and CodeRabbit. Purely
-# advisory: posts one comment, cannot approve, merge, or affect any
-# required status check.
-#
-# Routed through OpenRouter (not DeepSeek's own API directly) using a
-# free-tier model — DeepSeek's own API returned HTTP 402 Payment
-# Required (no billing configured on that account); OpenRouter's free
-# tier needs only an OpenRouter API key, no billing on either side.
+# DHC AI Reviewer — a standalone, independent code review bot alongside
+# Gemini Code Assist, Qodo/PR-Agent, and CodeRabbit. Purely advisory:
+# posts one comment, cannot approve, merge, or affect any required
+# status check.
 #
 # Plain pull_request (not pull_request_target): a fork PR gets no
 # repo secrets and only a read-only GITHUB_TOKEN under this trigger —
@@ -22,21 +17,21 @@
 # text via the API (never executed, never checked out) and explicitly
 # framed to the model as data to review, not instructions to follow.
 
-name: 🤖 AI Code Review (OpenRouter)
+name: 🤖 DHC AI Reviewer
 
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
 concurrency:
-  group: openrouter-review-${{ github.event.pull_request.number }}
+  group: dhc-ai-review-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 permissions: {}
 
 jobs:
   review:
-    name: 🧠 OpenRouter Review
+    name: 🧠 DHC AI Review
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: >-
@@ -74,7 +69,7 @@ jobs:
           head -c 60000 pr.diff > pr_truncated.diff
           echo "truncated=$([ "$(wc -c < pr.diff)" -gt 60000 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
-      - name: 🤖 Run OpenRouter review
+      - name: 🤖 Run DHC AI review
         if: steps.check_key.outputs.available == 'true'
         id: review
         env:
@@ -147,7 +142,7 @@ jobs:
                   "temperature": 0.2,
                   "max_tokens": 2000,
                   # This model only returns content reliably in
-                  # streaming mode on OpenRouter's free tier — a plain
+                  # streaming mode on the free tier — a plain
                   # (non-streaming) request came back empty. Concatenate
                   # the SSE delta chunks into the final review text.
                   "stream": True,
@@ -159,7 +154,7 @@ jobs:
                   headers={
                       "Content-Type": "application/json",
                       "Authorization": f"Bearer {api_key}",
-                      # Required by OpenRouter for attribution/rate-limit
+                      # Required by the provider for attribution/rate-limit
                       # purposes on free-tier models.
                       "HTTP-Referer": "https://github.com/dhc-tech/flutter-packages",
                       "X-Title": "flutter-packages AI Code Review",
@@ -185,16 +180,16 @@ jobs:
                           if piece:
                               chunks.append(piece)
               except Exception as e:
-                  print(f"OpenRouter API call failed: {e}")
+                  print(f"AI review call failed: {e}")
                   return
 
               review_text = "".join(chunks).strip()
 
               if not review_text:
-                  print("OpenRouter returned an empty review.")
+                  print("AI reviewer returned an empty review.")
                   return
 
-              body = "## 🤖 AI Review (via OpenRouter)\n\n" + review_text
+              body = "## 🤖 DHC AI Reviewer\n\n" + review_text
               if len(body) > MAX_OUTPUT_CHARS:
                   body = body[:MAX_OUTPUT_CHARS] + "\n\n*(truncated)*"
 
