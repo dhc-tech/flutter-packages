@@ -32,6 +32,19 @@ jobs:
       pull-requests: write   # reading/updating PR state (labels, mergeability)
       issues: write          # posting the "removed autosubmit" explanation comment
     steps:
+      # Closes the loop fully: a human never has to manually add the
+      # autosubmit label. Approving the PR IS the "please merge this"
+      # signal — the label step below just makes that explicit so the
+      # automerge-action step (which gates on MERGE_LABELS) picks it up
+      # in this same run.
+      - name: 🏷️ Add autosubmit label on approval
+        if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: gh pr edit "$PR_NUMBER" --repo "$REPO" --add-label "autosubmit"
+
       - name: 🚀 Auto-merge if Approved & CI Green
         id: automerge
         uses: pascalgn/automerge-action@7961b8b5eec56cc088c140b56d864285eabd3f67 # v0.16.4
