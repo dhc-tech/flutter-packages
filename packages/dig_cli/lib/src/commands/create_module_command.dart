@@ -107,8 +107,7 @@ class CreateModuleCommand extends Command {
     final file = File(
       p.join(dir.path, 'controller', '${slug}_controller.dart'),
     );
-    final content =
-        '''
+    final content = '''
 import '../../../utils/import.dart';
 
 class ${className}Controller extends GetxController {
@@ -124,8 +123,7 @@ class ${className}Controller extends GetxController {
     String slug,
   ) async {
     final file = File(p.join(dir.path, 'binding', '${slug}_binding.dart'));
-    final content =
-        '''
+    final content = '''
 import '../../../utils/import.dart';
 import '../controller/${slug}_controller.dart';
 
@@ -143,8 +141,7 @@ class ${className}Binding extends Bindings {
 
   Future<void> _createView(Directory dir, String className, String slug) async {
     final file = File(p.join(dir.path, 'view', '${slug}_view.dart'));
-    final content =
-        '''
+    final content = '''
 import '../../../utils/import.dart';
 import '../controller/${slug}_controller.dart';
 
@@ -173,8 +170,7 @@ class ${className}View extends GetView<${className}Controller> {
 
   Future<void> _createExport(Directory dir, String slug) async {
     final file = File(p.join(dir.path, '${slug}_export.dart'));
-    final content =
-        '''
+    final content = '''
 export 'binding/${slug}_binding.dart';
 export 'controller/${slug}_controller.dart';
 export 'view/${slug}_view.dart';
@@ -206,12 +202,10 @@ export 'splash/splash_export.dart';
     lines.add(exportLine);
 
     // Header and non-export lines
-    final headerLines = lines
-        .where((l) => !l.trim().startsWith('export'))
-        .toList();
-    final exportLines = lines
-        .where((l) => l.trim().startsWith('export'))
-        .toList();
+    final headerLines =
+        lines.where((l) => !l.trim().startsWith('export')).toList();
+    final exportLines =
+        lines.where((l) => l.trim().startsWith('export')).toList();
     exportLines.sort();
 
     final newContent =
@@ -239,8 +233,7 @@ abstract class AppRoute {
     final lastBraceIndex = content.lastIndexOf('}');
     if (lastBraceIndex == -1) return;
 
-    final updatedContent =
-        "${content.substring(0, lastBraceIndex)}"
+    final updatedContent = "${content.substring(0, lastBraceIndex)}"
         "  static const String $routeName = '/$className';\n"
         "${content.substring(lastBraceIndex)}";
 
@@ -278,8 +271,7 @@ abstract class AppPage {
     }
 
     if (!content.contains('AppRoute.$routeName')) {
-      final newPage =
-          '''
+      final newPage = '''
     GetPage(
       name: AppRoute.$routeName,
       page: () => const ${className}View(),
@@ -290,8 +282,7 @@ abstract class AppPage {
       final listEndIndex = content.lastIndexOf('];');
       if (listEndIndex == -1) return;
 
-      final updatedContent =
-          "${content.substring(0, listEndIndex)}"
+      final updatedContent = "${content.substring(0, listEndIndex)}"
           "$newPage"
           "${content.substring(listEndIndex)}";
 
