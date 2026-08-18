@@ -99,12 +99,10 @@ jobs:
           python3 - <<'PYEOF'
           import json
           import os
-          import time
           import urllib.request
 
           MAX_OUTPUT_CHARS = 60000  # GitHub comment body limit is ~65536
           MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
-          EDIT_INTERVAL_SECONDS = 5  # caps total edits, safe under API rate limits
           MARKER = "<!-- dhc-ai-reviewer:review -->"
           HEADER = MARKER + "\n## 🤖 DHC AI Reviewer\n\n"
 
@@ -226,9 +224,13 @@ jobs:
                   },
               )
 
+              # Deliberately no mid-stream partial edits: an earlier
+              # version PATCHed the comment every few seconds with
+              # partial text, which read as laggy/janky rather than a
+              # clean "typing" effect. Simpler and better: the
+              # placeholder above shows instantly, then exactly one
+              # edit swaps in the finished review — fewer API calls too.
               chunks = []
-              last_edit = time.monotonic()
-              last_partial = ""
               try:
                   with urllib.request.urlopen(req, timeout=120) as res:
                       for raw_line in res:
@@ -247,24 +249,8 @@ jobs:
                               continue  # e.g. a trailing usage-only chunk with no choices
                           delta = choices[0].get("delta", {})
                           piece = delta.get("content")
-                          if not piece:
-                              continue
-                          chunks.append(piece)
-
-                          now = time.monotonic()
-                          if now - last_edit >= EDIT_INTERVAL_SECONDS:
-                              partial = "".join(chunks)
-                              if partial != last_partial:
-                                  try:
-                                      gh_api(
-                                          "PATCH",
-                                          f"/repos/{repo}/issues/comments/{comment_id}",
-                                          {"body": HEADER + partial + " ▌"},
-                                      )
-                                      last_partial = partial
-                                  except Exception:
-                                      pass  # a missed intermediate edit isn't fatal
-                              last_edit = now
+                          if piece:
+                              chunks.append(piece)
               except Exception as e:
                   gh_api(
                       "PATCH",
@@ -352,17 +338,16 @@ jobs:
           PR_NUMBER: ${{ github.event.issue.number }}
           PR_TITLE: ${{ github.event.issue.title }}
           COMMENT_BODY: ${{ github.event.comment.body }}
+          COMMENT_ID: ${{ github.event.comment.id }}
           TRUNCATED: ${{ steps.diff.outputs.truncated }}
         run: |
           python3 - <<'PYEOF'
           import json
           import os
-          import time
           import urllib.request
 
           MAX_OUTPUT_CHARS = 60000
           MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
-          EDIT_INTERVAL_SECONDS = 5
           MARKER = "<!-- dhc-ai-reviewer:reply:" + os.environ.get("COMMENT_ID", "") + " -->"
           HEADER = MARKER + "\n## 🤖 DHC AI Reviewer\n\n"
 
@@ -452,9 +437,9 @@ jobs:
                   },
               )
 
+              # Deliberately no mid-stream partial edits — see the review
+              # job's comment for why (felt laggy, simpler is better).
               chunks = []
-              last_edit = time.monotonic()
-              last_partial = ""
               try:
                   with urllib.request.urlopen(req, timeout=120) as res:
                       for raw_line in res:
@@ -473,24 +458,8 @@ jobs:
                               continue  # e.g. a trailing usage-only chunk with no choices
                           delta = choices[0].get("delta", {})
                           piece = delta.get("content")
-                          if not piece:
-                              continue
-                          chunks.append(piece)
-
-                          now = time.monotonic()
-                          if now - last_edit >= EDIT_INTERVAL_SECONDS:
-                              partial = "".join(chunks)
-                              if partial != last_partial:
-                                  try:
-                                      gh_api(
-                                          "PATCH",
-                                          f"/repos/{repo}/issues/comments/{comment_id}",
-                                          {"body": HEADER + partial + " ▌"},
-                                      )
-                                      last_partial = partial
-                                  except Exception:
-                                      pass
-                              last_edit = now
+                          if piece:
+                              chunks.append(piece)
               except Exception as e:
                   gh_api(
                       "PATCH",
