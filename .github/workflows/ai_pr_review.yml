@@ -1,5 +1,5 @@
 # 100% Free AI-Powered Pull Request Reviewer using Google Gemini 2.0 Flash Free Tier.
-# Automatically reviews PR diffs across 'packages/' for Flutter/Dart standards, breaking changes, and zero-bug rules.
+# Automatically reviews PR diffs across the repository for Flutter/Dart standards, breaking changes, and zero-bug rules.
 # Gracefully skips if GEMINI_API_KEY secret is not present.
 
 name: 🤖 Free AI PR Reviewer
@@ -7,8 +7,6 @@ name: 🤖 Free AI PR Reviewer
 on:
   pull_request:
     types: [opened, synchronize]
-    paths:
-      - 'packages/**'
 
 permissions:
   contents: read
@@ -48,93 +46,64 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          # 1. Get git diff for packages only
-          DIFF=$(git diff $BASE_SHA..$HEAD_SHA -- 'packages/*' | head -c 30000)
-
-          if [ -z "$DIFF" ]; then
-            echo "No package diff to analyze."
-            exit 0
-          fi
-
-          # 2. Prepare AI prompt
-          cat << 'EOF' > prompt.json
-          {
-            "contents": [
-              {
-                "parts": [
-                  {
-                    "text": "You are a senior Flutter/Dart architect performing an automated PR review for the official flutter-packages monorepo (white_label_kit, dig_cli, apple_sign_in_plugin).\n\nReview the following Git Diff and provide a concise, high-value review:\n1. 🛡️ Security & Privacy: Ensure NO hardcoded credentials, secret keys, or proprietary brand names/bundle IDs.\n2. 💎 Dart/Flutter Standards: Effective Dart, type safety, error handling, null safety.\n3. ⚠️ Breaking Changes: Any public API modifications or migration notices needed.\n4. 📚 Documentation: README & doc comments sync.\n\nKeep the response concise and format in GitHub Markdown with clear recommendations.\n\nDiff:\n"
-                  },
-                  {
-                    "text": ""
-                  }
-                ]
-              }
-            ],
-            "generationConfig": {
-              "temperature": 0.2,
-              "maxOutputTokens": 1024
-            }
-          }
-          EOF
-
-          # Escape diff into JSON
           python3 -c "
-          import json, os
-          diff = '''$DIFF'''
-          with open('prompt.json', 'r') as f:
-              data = json.load(f)
-          data['contents'][0]['parts'][1]['text'] = diff
-          with open('payload.json', 'w') as f:
-              json.dump(data, f)
-          "
+          import os, json, urllib.request, subprocess
 
-          # 3. Call Gemini 2.0 Flash (Free Tier)
-          RESPONSE=$(curl -s -X POST \
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$GEMINI_API_KEY" \
-            -H "Content-Type: application/json" \
-            -d @payload.json)
-
-          REVIEW_TEXT=$(echo "$RESPONSE" | python3 -c "
-          import sys, json
-          try:
-              data = json.load(sys.stdin)
-              print(data['candidates'][0]['content']['parts'][0]['text'])
-          except Exception as e:
-              print('AI Review analysis could not be parsed: ' + str(e))
-          ")
-
-          # 4. Post comment to GitHub PR
-          COMMENT_BODY=$(cat << EOF
-          ## 🤖 Free AI PR Review (Gemini 2.0 Flash)
-
-          $REVIEW_TEXT
-
-          ---
-          *Automated review powered by Google Gemini Free Tier.*
-          EOF
-          )
-
-          python3 -c "
-          import os, json, urllib.request
+          api_key = os.environ['GEMINI_API_KEY']
           token = os.environ['GITHUB_TOKEN']
           repo = os.environ['REPO']
           pr_number = os.environ['PR_NUMBER']
-          body = '''$COMMENT_BODY'''
+          base_sha = os.environ['BASE_SHA']
+          head_sha = os.environ['HEAD_SHA']
 
-          url = f'https://api.github.com/repos/{repo}/issues/{pr_number}/comments'
-          req = urllib.request.Request(
-              url,
-              data=json.dumps({'body': body}).encode('utf-8'),
-              headers={
-                  'Authorization': f'Bearer {token}',
-                  'Accept': 'application/vnd.github+json',
-                  'User-Agent': 'Flutter-Packages-AI-Reviewer'
-              }
+          try:
+              diff_bytes = subprocess.check_output(['git', 'diff', f'{base_sha}..{head_sha}'])
+              diff = diff_bytes.decode('utf-8', errors='ignore')[:30000]
+          except Exception as e:
+              print('Could not get diff:', e)
+              diff = ''
+
+          if not diff.strip():
+              print('No diff found to review.')
+              exit(0)
+
+          system_prompt = '''You are a principal Flutter/Dart architect performing automated code review for dhc-tech/flutter-packages (packages: white_label_kit, dig_cli, apple_sign_in_plugin).
+
+Review this PR diff and structure your output in GitHub Markdown:
+1. 🛡️ **Security & Secrets**: Verify NO private keys, credentials, or proprietary client names exist.
+2. 💎 **Dart / Flutter Standards**: Strict typing, proper null safety, resource cleanup, async handling.
+3. ⚠️ **Breaking Changes**: Check public API contracts and version compatibility.
+4. 🧪 **Tests & Docs**: Ensure test coverage and docs are updated.
+
+Be concise, objective, and highlight any required improvements with code snippets.'''
+
+          url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}'
+          payload = {
+              'contents': [
+                  {'role': 'user', 'parts': [{'text': f'{system_prompt}\n\nDiff to review:\n```diff\n{diff}\n```'}]}
+              ],
+              'generationConfig': {'temperature': 0.2, 'maxOutputTokens': 1500}
+          }
+
+          req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
+          try:
+              res = urllib.request.urlopen(req)
+              raw = json.loads(res.read().decode('utf-8'))
+              review_text = raw['candidates'][0]['content']['parts'][0]['text']
+          except Exception as e:
+              print('Gemini API call failed:', e)
+              exit(0)
+
+          comment_body = f'## 🤖 Free AI PR Review (Gemini 2.0 Flash)\n\n{review_text}\n\n---\n*Automated review powered by Google Gemini Free Tier.*'
+          comment_url = f'https://api.github.com/repos/{repo}/issues/{pr_number}/comments'
+          comment_req = urllib.request.Request(
+              comment_url,
+              data=json.dumps({'body': comment_body}).encode('utf-8'),
+              headers={'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json', 'User-Agent': 'Flutter-AI-Reviewer'}
           )
           try:
-              urllib.request.urlopen(req)
-              print('Successfully posted AI review comment.')
+              urllib.request.urlopen(comment_req)
+              print('Successfully posted Gemini AI review comment!')
           except Exception as e:
-              print('Failed to post comment:', e)
+              print('Failed to post PR comment:', e)
           "
