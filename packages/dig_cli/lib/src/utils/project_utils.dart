@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
@@ -81,8 +82,9 @@ Future<String?> getAppLabel() async {
   final root = findProjectRoot();
   if (root == null) return null;
 
-  final manifest =
-      File(p.join(root.path, 'android/app/src/main/AndroidManifest.xml'));
+  final manifest = File(
+    p.join(root.path, 'android/app/src/main/AndroidManifest.xml'),
+  );
   if (!await manifest.exists()) return null;
 
   final content = await manifest.readAsString();

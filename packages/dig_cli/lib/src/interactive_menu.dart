@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:ansicolor/ansicolor.dart';
 import 'package:args/command_runner.dart';
+
 import 'utils/project_utils.dart';
 import 'commands/asset_command.dart';
 import 'commands/build_command.dart';
@@ -39,8 +41,9 @@ class InteractiveMenu {
   }
 
   String? _promptUser(String label, {String? defaultValue}) {
-    final displayDefault =
-        defaultValue != null ? ' (${_painter.textPen(defaultValue)})' : '';
+    final displayDefault = defaultValue != null
+        ? ' (${_painter.textPen(defaultValue)})'
+        : '';
     stdout.write('  $label$displayDefault: ');
     final input = stdin.readLineSync()?.trim();
     return (input == null || input.isEmpty) ? defaultValue : input;
@@ -55,8 +58,9 @@ class InteractiveMenu {
     while (true) {
       _clearScreen();
       final isFlutter = await isFlutterProject();
-      final status =
-          isFlutter ? 'Flutter Project Detected' : 'No Flutter Project Found';
+      final status = isFlutter
+          ? 'Flutter Project Detected'
+          : 'No Flutter Project Found';
       final statusPen = isFlutter ? (AnsiPen()..green()) : (AnsiPen()..red());
 
       _painter.drawHeader('DIG CLI DASHBOARD', width: _width);
@@ -76,8 +80,11 @@ class InteractiveMenu {
 
         _drawPrompt('1-6');
       } else {
-        _painter.drawMenuItem('1', 'Project Management (Create)',
-            width: _width);
+        _painter.drawMenuItem(
+          '1',
+          'Project Management (Create)',
+          width: _width,
+        );
         _painter.drawMenuItem('2', 'Utilities', width: _width);
         _painter.drawFooter(width: _width);
 
@@ -384,9 +391,13 @@ class InteractiveMenu {
       stdout.write('  New version v$latest available. Install? (y/N): ');
       if (stdin.readLineSync()?.trim().toLowerCase() == 'y') {
         final verArg = beta ? latest : '';
-        await Process.start(
-            'dart', ['pub', 'global', 'activate', 'dig_cli', verArg],
-            mode: ProcessStartMode.inheritStdio);
+        await Process.start('dart', [
+          'pub',
+          'global',
+          'activate',
+          'dig_cli',
+          verArg,
+        ], mode: ProcessStartMode.inheritStdio);
       }
     } else {
       kLog('  You are on the latest version.', type: LogType.success);

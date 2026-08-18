@@ -9,8 +9,7 @@ import '../utils/spinner.dart';
 
 class BuildCommand extends Command {
   @override
-  final name =
-      'create'; // Kept as 'create' for compatibility with previous version
+  final name = 'create'; // Kept as 'create' for compatibility with previous version
   @override
   final description = 'Builds the Flutter project into an APK or App Bundle.';
 
@@ -30,8 +29,9 @@ class BuildCommand extends Command {
 
   @override
   Future<void> run() async {
-    final buildType =
-        argResults?.rest.isNotEmpty == true ? argResults!.rest.first : 'apk';
+    final buildType = argResults?.rest.isNotEmpty == true
+        ? argResults!.rest.first
+        : 'apk';
     String? outputDir = argResults?['output'] as String?;
     String? customName = argResults?['name'] as String?;
     bool includeTimestamp = argResults?['timestamp'] as bool? ?? true;
@@ -45,7 +45,8 @@ class BuildCommand extends Command {
       }
 
       stdout.write(
-          'Enter custom name prefix (press enter to use project name): ');
+        'Enter custom name prefix (press enter to use project name): ',
+      );
       final nameInput = stdin.readLineSync()?.trim();
       if (nameInput != null && nameInput.isNotEmpty) {
         customName = nameInput;
@@ -171,8 +172,10 @@ class BuildCommand extends Command {
       final fileSize = await destFile.length();
       final sizeInMB = (fileSize / (1024 * 1024)).toStringAsFixed(2);
 
-      kLog('\n✅ $buildDisplayType created successfully!',
-          type: LogType.success);
+      kLog(
+        '\n✅ $buildDisplayType created successfully!',
+        type: LogType.success,
+      );
       kLog('-------------------------------------------');
       kLog('📁 Location: ${destFile.path}', type: LogType.success);
       kLog('📊 Size: ${sizeInMB}MB', type: LogType.info);

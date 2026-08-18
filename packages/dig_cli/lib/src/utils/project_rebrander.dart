@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
+
 import 'logger.dart';
 
 /// Helper class to handle project rebranding (renaming app, bundle ID, updating imports).
@@ -55,15 +57,21 @@ class ProjectRebrander {
         if (!await dir.exists()) continue;
         await _processDirectoryForImports(dir, oldSlug);
       }
-      await _processDirectoryForImports(Directory(absolutePath), oldSlug,
-          recursive: false);
+      await _processDirectoryForImports(
+        Directory(absolutePath),
+        oldSlug,
+        recursive: false,
+      );
     } catch (e) {
       kLog('Error in _updateDartImports: $e', type: LogType.error);
     }
   }
 
-  Future<void> _processDirectoryForImports(Directory dir, String? oldSlug,
-      {bool recursive = true}) async {
+  Future<void> _processDirectoryForImports(
+    Directory dir,
+    String? oldSlug, {
+    bool recursive = true,
+  }) async {
     try {
       final entities = dir.listSync(recursive: recursive);
       for (var entity in entities) {
@@ -81,7 +89,7 @@ class ProjectRebrander {
           '.rc',
           '.cpp',
           '.cc',
-          '.txt'
+          '.txt',
         }.contains(ext)) {
           try {
             String content = await entity.readAsString();
@@ -95,15 +103,19 @@ class ProjectRebrander {
 
             // Replace hardcoded package imports
             if (oldSlug != null && content.contains('package:$oldSlug/')) {
-              content =
-                  content.replaceAll('package:$oldSlug/', 'package:$newSlug/');
+              content = content.replaceAll(
+                'package:$oldSlug/',
+                'package:$newSlug/',
+              );
               changed = true;
             }
 
             // Fallback for common template names if oldSlug detection was insufficient
             if (content.contains('package:structure/')) {
-              content =
-                  content.replaceAll('package:structure/', 'package:$newSlug/');
+              content = content.replaceAll(
+                'package:structure/',
+                'package:$newSlug/',
+              );
               changed = true;
             }
 
@@ -119,11 +131,14 @@ class ProjectRebrander {
   Future<void> _updateAllAppNames() async {
     // Android Manifest
     final manifestFile = File(
-        p.join(projectDir.path, 'android/app/src/main/AndroidManifest.xml'));
+      p.join(projectDir.path, 'android/app/src/main/AndroidManifest.xml'),
+    );
     if (await manifestFile.exists()) {
       String content = await manifestFile.readAsString();
       content = content.replaceFirst(
-          RegExp(r'android:label="[^"]*"'), 'android:label="$newAppName"');
+        RegExp(r'android:label="[^"]*"'),
+        'android:label="$newAppName"',
+      );
       await manifestFile.writeAsString(content);
     }
 
@@ -156,12 +171,15 @@ class ProjectRebrander {
       );
       await macPlist.writeAsString(content);
     }
-    final macConfig =
-        File(p.join(projectDir.path, 'macos/Runner/Configs/AppInfo.xcconfig'));
+    final macConfig = File(
+      p.join(projectDir.path, 'macos/Runner/Configs/AppInfo.xcconfig'),
+    );
     if (await macConfig.exists()) {
       String content = await macConfig.readAsString();
       content = content.replaceFirst(
-          RegExp(r'PRODUCT_NAME = .*'), 'PRODUCT_NAME = $newAppName');
+        RegExp(r'PRODUCT_NAME = .*'),
+        'PRODUCT_NAME = $newAppName',
+      );
       await macConfig.writeAsString(content);
     }
 
@@ -169,15 +187,19 @@ class ProjectRebrander {
     final winRc = File(p.join(projectDir.path, 'windows/runner/Runner.rc'));
     if (await winRc.exists()) {
       String content = await winRc.readAsString();
-      content = content.replaceFirst(RegExp(r'VALUE "ProductName", "[^"]*"'),
-          'VALUE "ProductName", "$newAppName"');
+      content = content.replaceFirst(
+        RegExp(r'VALUE "ProductName", "[^"]*"'),
+        'VALUE "ProductName", "$newAppName"',
+      );
       await winRc.writeAsString(content);
     }
     final winCpp = File(p.join(projectDir.path, 'windows/runner/main.cpp'));
     if (await winCpp.exists()) {
       String content = await winCpp.readAsString();
-      content = content.replaceFirst(RegExp(r'window.CreateAndShow\(L"[^"]*"'),
-          'window.CreateAndShow(L"$newAppName"');
+      content = content.replaceFirst(
+        RegExp(r'window.CreateAndShow\(L"[^"]*"'),
+        'window.CreateAndShow(L"$newAppName"',
+      );
       await winCpp.writeAsString(content);
     }
 
@@ -185,8 +207,10 @@ class ProjectRebrander {
     final linCMake = File(p.join(projectDir.path, 'linux/CMakeLists.txt'));
     if (await linCMake.exists()) {
       String content = await linCMake.readAsString();
-      content = content.replaceFirst(RegExp(r'set\(BINARY_NAME "[^"]*"\)'),
-          'set(BINARY_NAME "$newAppName")');
+      content = content.replaceFirst(
+        RegExp(r'set\(BINARY_NAME "[^"]*"\)'),
+        'set(BINARY_NAME "$newAppName")',
+      );
       await linCMake.writeAsString(content);
     }
 
@@ -195,7 +219,9 @@ class ProjectRebrander {
     if (await webHtml.exists()) {
       String content = await webHtml.readAsString();
       content = content.replaceFirst(
-          RegExp(r'<title>[^<]*</title>'), '<title>$newAppName</title>');
+        RegExp(r'<title>[^<]*</title>'),
+        '<title>$newAppName</title>',
+      );
       content = content.replaceFirst(
         RegExp(r'content="[^"]*"\s+name="apple-mobile-web-app-title"'),
         'content="$newAppName" name="apple-mobile-web-app-title"',
@@ -206,15 +232,20 @@ class ProjectRebrander {
     if (await webManifest.exists()) {
       String content = await webManifest.readAsString();
       content = content.replaceFirst(
-          RegExp(r'"name": "[^"]*"'), '"name": "$newAppName"');
+        RegExp(r'"name": "[^"]*"'),
+        '"name": "$newAppName"',
+      );
       content = content.replaceFirst(
-          RegExp(r'"short_name": "[^"]*"'), '"short_name": "$newAppName"');
+        RegExp(r'"short_name": "[^"]*"'),
+        '"short_name": "$newAppName"',
+      );
       await webManifest.writeAsString(content);
     }
 
     // App Constants - Try to find standard appName definition
-    final appConstantFile =
-        File(p.join(projectDir.path, 'lib/app/constants/app_constant.dart'));
+    final appConstantFile = File(
+      p.join(projectDir.path, 'lib/app/constants/app_constant.dart'),
+    );
     if (await appConstantFile.exists()) {
       String content = await appConstantFile.readAsString();
       content = content.replaceFirst(
@@ -227,8 +258,9 @@ class ProjectRebrander {
 
   Future<void> _updateAllBundleIds() async {
     File? buildGradle;
-    final gradleKts =
-        File(p.join(projectDir.path, 'android/app/build.gradle.kts'));
+    final gradleKts = File(
+      p.join(projectDir.path, 'android/app/build.gradle.kts'),
+    );
     final gradle = File(p.join(projectDir.path, 'android/app/build.gradle'));
 
     if (await gradleKts.exists()) {
@@ -239,30 +271,37 @@ class ProjectRebrander {
 
     if (buildGradle != null) {
       String content = await buildGradle.readAsString();
-      final appIdMatch =
-          RegExp(r'applicationId\s*[=]?\s*"([^"]+)"').firstMatch(content);
+      final appIdMatch = RegExp(r'applicationId\s*[=]?\s*"([^"]+)"')
+          .firstMatch(content);
       final oldId = appIdMatch?.group(1);
 
-      content = content
-          .replaceAllMapped(RegExp(r'applicationId\s*(=)?\s*"[^"]+"'), (match) {
-        return match.group(1) != null
-            ? 'applicationId = "$newBundleId"'
-            : 'applicationId "$newBundleId"';
-      });
-      content = content.replaceAllMapped(RegExp(r'namespace\s*(=)?\s*"[^"]+"'),
-          (match) {
-        return match.group(1) != null
-            ? 'namespace = "$newBundleId"'
-            : 'namespace "$newBundleId"';
-      });
+      content = content.replaceAllMapped(
+        RegExp(r'applicationId\s*(=)?\s*"[^"]+"'),
+        (match) {
+          return match.group(1) != null
+              ? 'applicationId = "$newBundleId"'
+              : 'applicationId "$newBundleId"';
+        },
+      );
+      content = content.replaceAllMapped(
+        RegExp(r'namespace\s*(=)?\s*"[^"]+"'),
+        (match) {
+          return match.group(1) != null
+              ? 'namespace = "$newBundleId"'
+              : 'namespace "$newBundleId"';
+        },
+      );
 
       // Update package declaration in Manifest
       final manifestFile = File(
-          p.join(projectDir.path, 'android/app/src/main/AndroidManifest.xml'));
+        p.join(projectDir.path, 'android/app/src/main/AndroidManifest.xml'),
+      );
       if (await manifestFile.exists()) {
         String mContent = await manifestFile.readAsString();
         mContent = mContent.replaceAll(
-            RegExp(r'package="[^"]*"'), 'package="$newBundleId"');
+          RegExp(r'package="[^"]*"'),
+          'package="$newBundleId"',
+        );
         await manifestFile.writeAsString(mContent);
       }
 
@@ -277,22 +316,26 @@ class ProjectRebrander {
     }
 
     // iOS and macOS Project
-    final iosProj =
-        File(p.join(projectDir.path, 'ios/Runner.xcodeproj/project.pbxproj'));
+    final iosProj = File(
+      p.join(projectDir.path, 'ios/Runner.xcodeproj/project.pbxproj'),
+    );
     if (await iosProj.exists()) {
       String content = await iosProj.readAsString();
       content = content.replaceAll(
-          RegExp(r'PRODUCT_BUNDLE_IDENTIFIER = [^;]+;'),
-          'PRODUCT_BUNDLE_IDENTIFIER = $newBundleId;');
+        RegExp(r'PRODUCT_BUNDLE_IDENTIFIER = [^;]+;'),
+        'PRODUCT_BUNDLE_IDENTIFIER = $newBundleId;',
+      );
       await iosProj.writeAsString(content);
     }
-    final macProj =
-        File(p.join(projectDir.path, 'macos/Runner.xcodeproj/project.pbxproj'));
+    final macProj = File(
+      p.join(projectDir.path, 'macos/Runner.xcodeproj/project.pbxproj'),
+    );
     if (await macProj.exists()) {
       String content = await macProj.readAsString();
       content = content.replaceAll(
-          RegExp(r'PRODUCT_BUNDLE_IDENTIFIER = [^;]+;'),
-          'PRODUCT_BUNDLE_IDENTIFIER = $newBundleId;');
+        RegExp(r'PRODUCT_BUNDLE_IDENTIFIER = [^;]+;'),
+        'PRODUCT_BUNDLE_IDENTIFIER = $newBundleId;',
+      );
       await macProj.writeAsString(content);
     }
 
@@ -334,7 +377,7 @@ class ProjectRebrander {
             '.json',
             '.gradle',
             '.kts',
-            '.html'
+            '.html',
           }.contains(ext)) {
             try {
               String content = await entity.readAsString();

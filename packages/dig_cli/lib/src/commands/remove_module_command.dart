@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as p;
+
 import '../utils/logger.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
@@ -14,15 +16,20 @@ class RemoveModuleCommand extends Command {
       'Removes an existing GetX module and unregisters its routes.';
 
   RemoveModuleCommand() {
-    argParser.addOption('name',
-        abbr: 'n', help: 'The name of the module to remove (e.g., "auth")');
+    argParser.addOption(
+      'name',
+      abbr: 'n',
+      help: 'The name of the module to remove (e.g., "auth")',
+    );
   }
 
   @override
   Future<void> run() async {
     if (!await isFlutterProject()) {
-      kLog('❗ This command must be run inside a Flutter project.',
-          type: LogType.error);
+      kLog(
+        '❗ This command must be run inside a Flutter project.',
+        type: LogType.error,
+      );
       return;
     }
 
@@ -43,9 +50,9 @@ class RemoveModuleCommand extends Command {
 
     final cleanModuleName = moduleName
         .replaceAll(
-            RegExp(r'_?(View|Controller|Binding|Module)$',
-                caseSensitive: false),
-            '')
+          RegExp(r'_?(View|Controller|Binding|Module)$', caseSensitive: false),
+          '',
+        )
         .trim();
 
     final slug = _toSnakeCase(cleanModuleName);
@@ -57,27 +64,33 @@ class RemoveModuleCommand extends Command {
       return;
     }
 
-    await runWithSpinner('🗑️  Removing $className module components...',
-        () async {
-      // 1. Delete Module Directory
-      if (await moduleDir.exists()) {
-        await moduleDir.delete(recursive: true);
-        kLog('  - Deleted module directory: ${moduleDir.path}',
-            type: LogType.success);
-      } else {
-        kLog('  - Module directory already gone: ${moduleDir.path}',
-            type: LogType.warning);
-      }
+    await runWithSpinner(
+      '🗑️  Removing $className module components...',
+      () async {
+        // 1. Delete Module Directory
+        if (await moduleDir.exists()) {
+          await moduleDir.delete(recursive: true);
+          kLog(
+            '  - Deleted module directory: ${moduleDir.path}',
+            type: LogType.success,
+          );
+        } else {
+          kLog(
+            '  - Module directory already gone: ${moduleDir.path}',
+            type: LogType.warning,
+          );
+        }
 
-      // 2. Unregister Module Export
-      await _unregisterModuleExport(slug);
+        // 2. Unregister Module Export
+        await _unregisterModuleExport(slug);
 
-      // 3. Unregister Route
-      await _unregisterRoute(className, slug);
+        // 3. Unregister Route
+        await _unregisterRoute(className, slug);
 
-      // 4. Unregister Page
-      await _unregisterPage(className, slug);
-    });
+        // 4. Unregister Page
+        await _unregisterPage(className, slug);
+      },
+    );
 
     final painter = BoxPainter();
     print('');
@@ -87,24 +100,30 @@ class RemoveModuleCommand extends Command {
     painter.drawRow('Route', 'AppRoute.${_toCamelCase(slug)}', width: 50);
     painter.drawFooter(width: 50);
 
-    kLog('\n✅ Module $className has been completely removed!',
-        type: LogType.success);
     kLog(
-        '💡 Note: You may need to run "flutter pub get" if imports are lingering.',
-        type: LogType.info);
+      '\n✅ Module $className has been completely removed!',
+      type: LogType.success,
+    );
+    kLog(
+      '💡 Note: You may need to run "flutter pub get" if imports are lingering.',
+      type: LogType.info,
+    );
   }
 
   Future<void> _unregisterModuleExport(String slug) async {
-    final exportFile =
-        File(p.join('lib', 'app', 'module', 'module_export.dart'));
+    final exportFile = File(
+      p.join('lib', 'app', 'module', 'module_export.dart'),
+    );
     if (!await exportFile.exists()) return;
 
     final content = await exportFile.readAsString();
     final exportLine = "export '$slug/${slug}_export.dart';";
 
     if (!content.contains(exportLine)) {
-      kLog('  - Export line not found in module_export.dart',
-          type: LogType.warning);
+      kLog(
+        '  - Export line not found in module_export.dart',
+        type: LogType.warning,
+      );
       return;
     }
 
@@ -122,8 +141,10 @@ class RemoveModuleCommand extends Command {
     final routeName = _toCamelCase(slug);
 
     if (!content.contains(routeName)) {
-      kLog('  - Route definition not found in app_route.dart',
-          type: LogType.warning);
+      kLog(
+        '  - Route definition not found in app_route.dart',
+        type: LogType.warning,
+      );
       return;
     }
 
@@ -142,8 +163,10 @@ class RemoveModuleCommand extends Command {
     final blockId = 'AppRoute.$routeName';
 
     if (!content.contains(blockId)) {
-      kLog('  - GetPage block not found in app_page.dart',
-          type: LogType.warning);
+      kLog(
+        '  - GetPage block not found in app_page.dart',
+        type: LogType.warning,
+      );
       return;
     }
 
@@ -198,18 +221,24 @@ class RemoveModuleCommand extends Command {
       content = content.replaceAll(RegExp(r'\n\s*\n'), '\n');
 
       await file.writeAsString(content);
-      kLog('  - Surgically removed GetPage block from app_page.dart',
-          type: LogType.success);
+      kLog(
+        '  - Surgically removed GetPage block from app_page.dart',
+        type: LogType.success,
+      );
     } else {
-      kLog('  - Could not safely calculate block bounds for $routeName',
-          type: LogType.warning);
+      kLog(
+        '  - Could not safely calculate block bounds for $routeName',
+        type: LogType.warning,
+      );
     }
   }
 
   String _toSnakeCase(String input) {
     return input
         .replaceAllMapped(
-            RegExp(r'([A-Z])'), (match) => '_${match.group(1)!.toLowerCase()}')
+          RegExp(r'([A-Z])'),
+          (match) => '_${match.group(1)!.toLowerCase()}',
+        )
         .replaceAll(RegExp(r'^\_'), '')
         .toLowerCase();
   }

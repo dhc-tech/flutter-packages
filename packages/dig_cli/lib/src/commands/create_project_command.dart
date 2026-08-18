@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+
 import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as p;
 import 'package:http/http.dart' as http;
 import 'package:archive/archive.dart';
+
 import '../utils/logger.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
@@ -24,25 +26,42 @@ class CreateProjectCommand extends Command {
       'Creates a new Flutter project from a template and sets up signing.';
 
   CreateProjectCommand() {
-    argParser.addOption('name',
-        abbr: 'n',
-        help: 'The name of the new project folder/slug (e.g., "my_app")');
-    argParser.addOption('app-name',
-        abbr: 'a', help: 'The app display name (e.g., "My Awesome App")');
-    argParser.addOption('bundle-id',
-        abbr: 'b', help: 'The bundle ID/package name (e.g., com.example.app)');
-    argParser.addOption('output',
-        abbr: 'o', help: 'The directory where the project should be created');
-    argParser.addFlag('github',
-        abbr: 'g',
-        help:
-            'Fetch the template from GitHub (always gets the latest version).',
-        defaultsTo: false);
-    argParser.addOption('github-repo',
-        help: 'GitHub repository to fetch template from (user/repo)',
-        defaultsTo: 'Digvijaysinh2204/dig_template');
-    argParser.addOption('github-branch',
-        help: 'Branch to fetch template from', defaultsTo: 'main');
+    argParser.addOption(
+      'name',
+      abbr: 'n',
+      help: 'The name of the new project folder/slug (e.g., "my_app")',
+    );
+    argParser.addOption(
+      'app-name',
+      abbr: 'a',
+      help: 'The app display name (e.g., "My Awesome App")',
+    );
+    argParser.addOption(
+      'bundle-id',
+      abbr: 'b',
+      help: 'The bundle ID/package name (e.g., com.example.app)',
+    );
+    argParser.addOption(
+      'output',
+      abbr: 'o',
+      help: 'The directory where the project should be created',
+    );
+    argParser.addFlag(
+      'github',
+      abbr: 'g',
+      help: 'Fetch the template from GitHub (always gets the latest version).',
+      defaultsTo: false,
+    );
+    argParser.addOption(
+      'github-repo',
+      help: 'GitHub repository to fetch template from (user/repo)',
+      defaultsTo: 'Digvijaysinh2204/dig_template',
+    );
+    argParser.addOption(
+      'github-branch',
+      help: 'Branch to fetch template from',
+      defaultsTo: 'main',
+    );
   }
 
   @override
@@ -67,8 +86,10 @@ class CreateProjectCommand extends Command {
     }
 
     // Slugify the project name for safety
-    final slug =
-        projectName.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_');
+    final slug = projectName.toLowerCase().replaceAll(
+      RegExp(r'[^a-z0-9_]'),
+      '_',
+    );
 
     String? appName = argResults?['app-name'] as String?;
     if (appName == null || appName.isEmpty) {
@@ -89,8 +110,9 @@ class CreateProjectCommand extends Command {
         !RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z][a-zA-Z0-9_]*)*$')
             .hasMatch(bundleId)) {
       kLog(
-          '❗ Valid bundle ID is required (e.g., com.example.app or com.example).',
-          type: LogType.error);
+        '❗ Valid bundle ID is required (e.g., com.example.app or com.example).',
+        type: LogType.error,
+      );
       return;
     }
 
@@ -108,8 +130,10 @@ class CreateProjectCommand extends Command {
         : Directory(p.join(Directory.current.path, slug));
 
     if (await targetDir.exists()) {
-      kLog('❗ Directory ${targetDir.path} already exists.',
-          type: LogType.error);
+      kLog(
+        '❗ Directory ${targetDir.path} already exists.',
+        type: LogType.error,
+      );
       return;
     }
 
@@ -117,8 +141,9 @@ class CreateProjectCommand extends Command {
     String? templatePath = await _findTemplatePath();
     if (templatePath == null) {
       kLog(
-          '❗ Template structure not found. Please ensure you are running the command from a valid installation.',
-          type: LogType.error);
+        '❗ Template structure not found. Please ensure you are running the command from a valid installation.',
+        type: LogType.error,
+      );
       return;
     }
 
@@ -211,8 +236,9 @@ class CreateProjectCommand extends Command {
       // 7. Cleanup & Finish
       await runWithSpinner('🧹 Cleaning up...', () async {
         // Ensure sample.jks is gone if it somehow got copied
-        final sampleJks =
-            File(p.join(targetDir.path, 'android', 'app', 'sample.jks'));
+        final sampleJks = File(
+          p.join(targetDir.path, 'android', 'app', 'sample.jks'),
+        );
         if (await sampleJks.exists()) {
           await sampleJks.delete();
         }
@@ -220,16 +246,20 @@ class CreateProjectCommand extends Command {
         // Run pub get
         final result = await Process.run('flutter', ['pub', 'get']);
         if (result.exitCode != 0) {
-          kLog('⚠️  flutter pub get failed, you might need to run it manually.',
-              type: LogType.warning);
+          kLog(
+            '⚠️  flutter pub get failed, you might need to run it manually.',
+            type: LogType.warning,
+          );
         }
 
         // Run asset generation
         try {
           await buildAssets();
         } catch (e) {
-          kLog('⚠️  Initial asset generation failed: $e',
-              type: LogType.warning);
+          kLog(
+            '⚠️  Initial asset generation failed: $e',
+            type: LogType.warning,
+          );
         }
       });
 
@@ -246,8 +276,10 @@ class CreateProjectCommand extends Command {
       painter.drawFooter(width: 60);
 
       kLog('\n🚀 Summary:', type: LogType.success);
-      kLog('   • Your project is ready for development!',
-          type: LogType.success);
+      kLog(
+        '   • Your project is ready for development!',
+        type: LogType.success,
+      );
       kLog('   • Run "cd $slug && flutter run" to start.', type: LogType.info);
     } catch (e) {
       kLog('❌ An error occurred: $e', type: LogType.error);
@@ -263,62 +295,68 @@ class CreateProjectCommand extends Command {
     try {
       final repo = _githubRepo;
       final branch = _githubBranch;
-      final url =
-          Uri.parse('https://github.com/$repo/archive/refs/heads/$branch.zip');
+      final url = Uri.parse(
+        'https://github.com/$repo/archive/refs/heads/$branch.zip',
+      );
 
       return await runWithSpinner(
-          '🌐 Downloading latest template from GitHub ($repo)...', () async {
-        final response = await http.get(url);
-        if (response.statusCode != 200) {
-          throw Exception(
-              'Failed to download template. Status: ${response.statusCode}');
-        }
-
-        final bytes = response.bodyBytes;
-        final archive = ZipDecoder().decodeBytes(bytes);
-
-        final tempDir =
-            await Directory.systemTemp.createTemp('dig_cli_template_');
-
-        for (final file in archive) {
-          final filename = file.name;
-          if (file.isFile) {
-            final data = file.content as List<int>;
-            File(p.join(tempDir.path, filename))
-              ..createSync(recursive: true)
-              ..writeAsBytesSync(data);
-          } else {
-            Directory(p.join(tempDir.path, filename))
-                .createSync(recursive: true);
+        '🌐 Downloading latest template from GitHub ($repo)...',
+        () async {
+          final response = await http.get(url);
+          if (response.statusCode != 200) {
+            throw Exception(
+              'Failed to download template. Status: ${response.statusCode}',
+            );
           }
-        }
 
-        // GitHub zip has a root folder named {repo_name}-{branch_name}
-        // Inside it, the code is now at the root
-        // GitHub zip has a root folder named {repo_name}-{branch_name}
-        final rootFolderName = archive.first.name.split('/').first;
-        final templatePath = p.join(tempDir.path, rootFolderName);
+          final bytes = response.bodyBytes;
+          final archive = ZipDecoder().decodeBytes(bytes);
 
-        String? detectedPath;
-        if (await File(p.join(templatePath, 'pubspec.yaml')).exists()) {
-          detectedPath = templatePath;
-        } else {
-          // Fallback search: Look for the first directory that contains pubspec.yaml
-          await for (var entity in tempDir.list(recursive: true)) {
-            if (entity is File && p.basename(entity.path) == 'pubspec.yaml') {
-              detectedPath = p.dirname(entity.path);
-              break;
+          final tempDir = await Directory.systemTemp.createTemp(
+            'dig_cli_template_',
+          );
+
+          for (final file in archive) {
+            final filename = file.name;
+            if (file.isFile) {
+              final data = file.content as List<int>;
+              File(p.join(tempDir.path, filename))
+                ..createSync(recursive: true)
+                ..writeAsBytesSync(data);
+            } else {
+              Directory(p.join(tempDir.path, filename))
+                  .createSync(recursive: true);
             }
           }
-        }
 
-        if (detectedPath != null) {
-          return detectedPath;
-        } else {
-          throw Exception(
-              'Template structure not found in the downloaded archive.');
-        }
-      });
+          // GitHub zip has a root folder named {repo_name}-{branch_name}
+          // Inside it, the code is now at the root
+          // GitHub zip has a root folder named {repo_name}-{branch_name}
+          final rootFolderName = archive.first.name.split('/').first;
+          final templatePath = p.join(tempDir.path, rootFolderName);
+
+          String? detectedPath;
+          if (await File(p.join(templatePath, 'pubspec.yaml')).exists()) {
+            detectedPath = templatePath;
+          } else {
+            // Fallback search: Look for the first directory that contains pubspec.yaml
+            await for (var entity in tempDir.list(recursive: true)) {
+              if (entity is File && p.basename(entity.path) == 'pubspec.yaml') {
+                detectedPath = p.dirname(entity.path);
+                break;
+              }
+            }
+          }
+
+          if (detectedPath != null) {
+            return detectedPath;
+          } else {
+            throw Exception(
+              'Template structure not found in the downloaded archive.',
+            );
+          }
+        },
+      );
     } catch (e) {
       kLog('❌ Error downloading template: $e', type: LogType.error);
       return null;
@@ -326,7 +364,9 @@ class CreateProjectCommand extends Command {
   }
 
   Future<void> _overlayTemplateFiles(
-      Directory source, Directory destination) async {
+    Directory source,
+    Directory destination,
+  ) async {
     await destination.create(recursive: true);
     await for (var entity in source.list(recursive: false)) {
       final base = p.basename(entity.path);
@@ -363,8 +403,7 @@ class CreateProjectCommand extends Command {
     if (await readmeFile.exists()) {
       content = await readmeFile.readAsString();
       if (!content.contains('DIG CLI')) {
-        content +=
-            '\n\n---\nGenerated by [DIG CLI](https://pub.dev/packages/dig_cli) 🚀';
+        content += '\n\n---\nGenerated by [DIG CLI](https://pub.dev/packages/dig_cli) 🚀';
       }
     } else {
       content = '''# 📱 $projectName
@@ -421,18 +460,25 @@ Generated by [DIG CLI](https://pub.dev/packages/dig_cli) 🚀
   }
 
   Future<void> _mergePubspec(
-      Directory projectDir, String templatePath, String slug) async {
+    Directory projectDir,
+    String templatePath,
+    String slug,
+  ) async {
     final targetPubspec = File(p.join(projectDir.path, 'pubspec.yaml'));
     final templatePubspec = File(p.join(templatePath, 'pubspec.yaml'));
 
     if (await targetPubspec.exists() && await templatePubspec.exists()) {
       String templateContent = await templatePubspec.readAsString();
       // Update name to match the new project slug
-      templateContent =
-          templateContent.replaceFirst(RegExp(r'name:\s+.*'), 'name: $slug');
+      templateContent = templateContent.replaceFirst(
+        RegExp(r'name:\s+.*'),
+        'name: $slug',
+      );
       // Update description
       templateContent = templateContent.replaceFirst(
-          RegExp(r'description:\s+.*'), 'description: Created using DIG CLI');
+        RegExp(r'description:\s+.*'),
+        'description: Created using DIG CLI',
+      );
 
       // Write the template's pubspec (with updated name) to the target,
       // effectively "merging" by overwriting with our desired structure.
@@ -443,8 +489,9 @@ Generated by [DIG CLI](https://pub.dev/packages/dig_cli) 🚀
 
   Future<void> _configureAndroidSigning(Directory projectDir) async {
     // Inject signing config into android/app/build.gradle
-    final buildGradle =
-        File(p.join(projectDir.path, 'android', 'app', 'build.gradle'));
+    final buildGradle = File(
+      p.join(projectDir.path, 'android', 'app', 'build.gradle'),
+    );
     if (await buildGradle.exists()) {
       String content = await buildGradle.readAsString();
 
@@ -474,14 +521,18 @@ if (keystorePropertiesFile.exists()) {
     }
 ''';
         // Insert at start of android { block
-        content =
-            content.replaceFirst('android {', 'android {\n$signingConfig');
+        content = content.replaceFirst(
+          'android {',
+          'android {\n$signingConfig',
+        );
       }
 
       // 3. Apply signingConfig to release buildType
       if (!content.contains('signingConfig signingConfigs.release')) {
-        content = content.replaceFirst('buildTypes {\n        release {',
-            'buildTypes {\n        release {\n            signingConfig signingConfigs.release');
+        content = content.replaceFirst(
+          'buildTypes {\n        release {',
+          'buildTypes {\n        release {\n            signingConfig signingConfigs.release',
+        );
       }
 
       await buildGradle.writeAsString(content);
@@ -499,8 +550,10 @@ if (keystorePropertiesFile.exists()) {
       String content = await envFile.readAsString();
       // Replace existing API key or append if missing
       if (content.contains('API_KEY=')) {
-        content =
-            content.replaceFirst(RegExp(r'API_KEY=.*'), 'API_KEY=$secureKey');
+        content = content.replaceFirst(
+          RegExp(r'API_KEY=.*'),
+          'API_KEY=$secureKey',
+        );
       } else {
         content += '\nAPI_KEY=$secureKey';
       }

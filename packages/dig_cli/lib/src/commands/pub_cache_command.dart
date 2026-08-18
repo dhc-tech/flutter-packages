@@ -21,17 +21,16 @@ class PubCacheCommand extends Command {
 /// Repairs the pub cache by running `flutter pub cache repair`
 Future<void> repairPubCache() async {
   kLog('\n🔧 Repairing Pub Cache...', type: LogType.info);
-  kLog('💡 This may take a few minutes depending on cache size.\n',
-      type: LogType.info);
+  kLog(
+    '💡 This may take a few minutes depending on cache size.\n',
+    type: LogType.info,
+  );
 
   try {
     final result = await runWithSpinner(
       '🔄 Running pub cache repair...',
-      () => Process.run(
-        'flutter',
-        ['pub', 'cache', 'repair'],
-        runInShell: true,
-      ),
+      () =>
+          Process.run('flutter', ['pub', 'cache', 'repair'], runInShell: true),
     );
 
     if (result.exitCode != 0) {

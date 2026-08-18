@@ -18,8 +18,10 @@ class IgnoreRules {
   static IgnoreRules fromGitignore() {
     final file = File('.gitignore');
     if (!file.existsSync()) {
-      kLog('⚠️ .gitignore not found. ZIP may include unnecessary files.',
-          type: LogType.warning);
+      kLog(
+        '⚠️ .gitignore not found. ZIP may include unnecessary files.',
+        type: LogType.warning,
+      );
       return IgnoreRules({}, {}, {});
     }
 
@@ -88,21 +90,25 @@ class ZipCommand extends Command {
     final root = findProjectRoot();
 
     if (root == null) {
-      kLog('❗ This command must be run inside a Flutter project.',
-          type: LogType.error);
+      kLog(
+        '❗ This command must be run inside a Flutter project.',
+        type: LogType.error,
+      );
       exit(1);
     }
     Directory.current = root;
 
     try {
       // Run 'flutter clean' before starting zip
-      await runWithSpinner('🧹 Running flutter clean before zipping...',
-          () async {
-        final cleanResult = await Process.run('flutter', ['clean']);
-        if (cleanResult.exitCode != 0) {
-          throw Exception('flutter clean failed: ${cleanResult.stderr}');
-        }
-      });
+      await runWithSpinner(
+        '🧹 Running flutter clean before zipping...',
+        () async {
+          final cleanResult = await Process.run('flutter', ['clean']);
+          if (cleanResult.exitCode != 0) {
+            throw Exception('flutter clean failed: ${cleanResult.stderr}');
+          }
+        },
+      );
 
       final projectName = await getProjectName() ?? 'project';
 
@@ -131,8 +137,10 @@ class ZipCommand extends Command {
         encoder.create(outputPath);
         final rules = IgnoreRules.fromGitignore();
         final projectDir = Directory.current;
-        final entities =
-            projectDir.listSync(recursive: true, followLinks: false);
+        final entities = projectDir.listSync(
+          recursive: true,
+          followLinks: false,
+        );
 
         for (final entity in entities) {
           final relativePath = p.relative(entity.path, from: projectDir.path);

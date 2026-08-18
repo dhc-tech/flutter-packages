@@ -1,3 +1,8 @@
+## 1.3.0
+- **Dependency Upgrade**: Upgraded `sign_in_with_apple` to `^8.1.0` with full support for modern Gradle 8+ namespaces and latest Apple AuthenticationServices.
+- **Cross-Platform**: Enhanced token verification and session revocation across iOS, macOS, Android, and Web.
+- **Quality & Health**: 100% test coverage and full compliance with strict analyzer (`--fatal-infos`).
+
 ## 1.2.6
 - **Build**: Enforced strict `dart format` to satisfy CI/CD publishing requirements.
 - **Release**: Final verified build.

@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:jose/jose.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 export 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
 import 'jwt_decoder.dart';
 
 /// **Apple Sign-In Plugin**
@@ -68,7 +69,8 @@ class AppleSignInPlugin {
         teamId.contains('YOUR_TEAM_ID') ||
         bundleId.contains('YOUR_BUNDLE_ID')) {
       throw ArgumentError(
-          '⚠️ PLACEHOLDER DETECTED: You must replace "YOUR_..." in main.dart with your actual Apple Developer credentials (Key ID, Team ID, Bundle ID).');
+        '⚠️ PLACEHOLDER DETECTED: You must replace "YOUR_..." in main.dart with your actual Apple Developer credentials (Key ID, Team ID, Bundle ID).',
+      );
     }
     _pemKeyPath = pemKeyPath;
     _keyId = keyId;
@@ -125,14 +127,13 @@ class AppleSignInPlugin {
   /// **Parameters:**
   /// * [authorizationCode]: The short-lived code returned from the native sign-in flow.
   static Future<Map<String, dynamic>> _getTokens(
-      String authorizationCode) async {
+    String authorizationCode,
+  ) async {
     try {
       final clientSecret = await _generateClientSecret(300);
       final response = await http.post(
         Uri.parse(tokenUrl),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: {
           'client_id': _clientId,
           'client_secret': clientSecret,
@@ -167,7 +168,9 @@ class AppleSignInPlugin {
   /// Parses standard Apple error codes and throws a user-friendly exception.
   /// Returns [Never] to indicate this function always throws.
   static Never _handleAppleError(
-      Map<String, dynamic> errorBody, String? reasonPhrase) {
+    Map<String, dynamic> errorBody,
+    String? reasonPhrase,
+  ) {
     final errorCode = errorBody['error'] ?? 'unknown_error';
     final errorDescription = errorBody['error_description'] ?? reasonPhrase;
 
@@ -193,8 +196,9 @@ class AppleSignInPlugin {
     }
 
     _log(
-        content: '$friendlyMessage \nRaw Description: $errorDescription',
-        title: 'Error');
+      content: '$friendlyMessage \nRaw Description: $errorDescription',
+      title: 'Error',
+    );
     throw Exception(friendlyMessage);
   }
 
@@ -210,9 +214,7 @@ class AppleSignInPlugin {
 
     final response = await http.post(
       Uri.parse(revokeUrl),
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: {
         'client_id': _clientId,
         'client_secret': clientSecret,
@@ -226,9 +228,10 @@ class AppleSignInPlugin {
       _storage.erase();
     } else {
       _log(
-          content:
-              'Failed to revoke token: ${response.statusCode} ${response.reasonPhrase}',
-          title: 'Error');
+        content:
+            'Failed to revoke token: ${response.statusCode} ${response.reasonPhrase}',
+        title: 'Error',
+      );
       _log(content: 'Response body: ${response.body}', title: 'Error');
     }
   }
@@ -261,8 +264,9 @@ class AppleSignInPlugin {
             await _revokeAppleToken(refreshToken);
           } catch (e) {
             _log(
-                content: 'Failed to revoke previous token: $e',
-                title: 'Warning');
+              content: 'Failed to revoke previous token: $e',
+              title: 'Warning',
+            );
           } finally {
             // Always clear storage even if revocation fails
             _storage.remove('refreshToken');
@@ -286,8 +290,9 @@ class AppleSignInPlugin {
 
       String? email = credential.email;
       if (email == null && credential.identityToken != null) {
-        var decodedToken =
-            JwtDecoder.decode(credential.identityToken.toString());
+        var decodedToken = JwtDecoder.decode(
+          credential.identityToken.toString(),
+        );
         email = decodedToken['email'];
       }
 

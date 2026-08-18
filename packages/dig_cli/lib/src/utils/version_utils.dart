@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:pub_semver/pub_semver.dart';
+
 import '../version_helper.dart';
 
 class VersionUtils {
