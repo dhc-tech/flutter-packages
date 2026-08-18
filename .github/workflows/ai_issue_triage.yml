@@ -1,8 +1,10 @@
-name: 🤖 Free AI Issue Triage
+name: 🤖 AI Issue Triager (Gemini)
 
 on:
   issues:
     types: [opened]
+  issue_comment:
+    types: [created]
 
 permissions:
   issues: write
@@ -13,12 +15,24 @@ jobs:
     name: 🧠 Gemini Issue Triage
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    if: github.actor != 'dependabot[bot]' && github.actor != 'github-actions[bot]'
 
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
-      - name: 🚀 Run AI Issue Triage Script
+      - name: 🔑 Check API Key Availability
+        id: check_key
+        run: |
+          if [ -n "${{ secrets.GEMINI_API_KEY }}" ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+            echo "⚠️ GEMINI_API_KEY secret not configured. Skipping AI issue triage."
+          fi
+
+      - name: 🚀 Run Gemini Issue Triager
+        if: steps.check_key.outputs.available == 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
