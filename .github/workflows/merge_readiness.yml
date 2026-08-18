@@ -4,6 +4,13 @@
 #
 # Triggers whenever any of the required checks finish, and also on
 # review submission, so the summary reflects the latest state either way.
+#
+# Security note on the workflow_run trigger: this is normally risky
+# because it runs with base-repo secrets/permissions even for a
+# fork's PR. This workflow mitigates that by never checking out or
+# executing any PR content — every step below only reads data via the
+# GitHub API (check runs, reviews, branch protection) and posts a
+# comment; nothing from the PR's source is ever run.
 
 name: 🚦 Merge Readiness Summary
 
@@ -17,17 +24,18 @@ on:
   pull_request_review:
     types: [submitted, dismissed]
 
-permissions:
-  contents: read
-  pull-requests: write
-  checks: read
-  actions: read
+permissions: {}
 
 jobs:
   summarize:
     name: 📋 Post merge-readiness summary
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read        # branch protection lookup needs repo metadata
+      pull-requests: write  # posting/updating the summary comment
+      checks: read          # reading check-run conclusions for the PR's SHA
+      actions: read         # resolving the workflow_run event's source PR
     steps:
       - name: 🔍 Find the PR for this SHA
         id: find_pr

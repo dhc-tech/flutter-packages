@@ -12,17 +12,24 @@
 
 name: 🤖 Qodo Merge (PR-Agent)
 
+# NOTE: auto-run on every push (opened/synchronize) is disabled for now.
+# The /review and /describe commands were posting nothing on push-triggered
+# runs with no visible error (only /improve surfaced a clear
+# "Failed to generate code suggestions" failure), and the container log
+# for the model-call step gets truncated before the real cause is visible
+# via `gh run view --log`. Until that's root-caused from the full log in
+# the GitHub UI, this only runs on-demand via a PR comment — e.g.
+# "/review", "/describe", "/improve", "/ask <question>" — so it never
+# posts a cryptic half-failure unprompted.
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
   issue_comment:
     types: [created]
 
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  checks: write
+permissions: {}
+
+concurrency:
+  group: pr-agent-${{ github.event.issue.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   pr_agent:
@@ -31,6 +38,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: GEMINI_API_KEY
+    permissions:
+      contents: write        # PR-Agent may commit a generated description
+      pull-requests: write   # posting review/description/suggestion comments
+      issues: write          # PR comments are issue comments under the API
+      checks: write          # /test and similar tools can report check status
     steps:
       - name: 🤖 Run PR-Agent
         uses: the-pr-agent/pr-agent@main
@@ -40,14 +52,5 @@ jobs:
           config.model: "gemini/gemini-2.0-flash"
           config.fallback_models: '["gemini/gemini-2.0-flash"]'
           config.git_provider: "github"
-          github_action_config.auto_review: "true"
-          github_action_config.auto_describe: "true"
-          github_action_config.auto_improve: "true"
-          # Without these two, PR-Agent only ever runs on the PR's initial
-          # 'opened' event and silently no-ops on every subsequent push
-          # ("Skipping action: synchronize") — confirmed happening on our
-          # first run.
-          github_action_config.handle_push_trigger: "true"
-          github_action_config.push_commands: '["/review", "/describe", "/improve"]'
           pr_reviewer.num_code_suggestions: "4"
           pr_reviewer.inline_code_comments: "true"
