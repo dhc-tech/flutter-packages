@@ -34,10 +34,6 @@ on:
   issue_comment:
     types: [created]
 
-concurrency:
-  group: dhc-ai-review-${{ github.event.pull_request.number || github.event.issue.number }}
-  cancel-in-progress: true
-
 permissions: {}
 
 jobs:
@@ -50,6 +46,15 @@ jobs:
       github.event.pull_request.draft == false &&
       github.actor != 'dependabot[bot]' &&
       github.actor != 'github-actions[bot]'
+    # Job-level, not workflow-level: an unrelated PR comment (issue_comment
+    # event, e.g. CodeRabbit's own review) shares no group with this job,
+    # so it can no longer cancel an in-progress review mid-stream —
+    # confirmed happening on a real run before this was scoped per-job
+    # (GitHub cancels on group match before a job's own `if:` is even
+    # evaluated, so the other run's jobs correctly skipping didn't help).
+    concurrency:
+      group: dhc-ai-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     permissions:
       pull-requests: write  # posting/editing the review comment
     steps:
@@ -100,7 +105,8 @@ jobs:
           MAX_OUTPUT_CHARS = 60000  # GitHub comment body limit is ~65536
           MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
           EDIT_INTERVAL_SECONDS = 5  # caps total edits, safe under API rate limits
-          HEADER = "## 🤖 DHC AI Reviewer\n\n"
+          MARKER = "<!-- dhc-ai-reviewer:review -->"
+          HEADER = MARKER + "\n## 🤖 DHC AI Reviewer\n\n"
 
 
           def gh_api(method, path, payload=None):
@@ -141,15 +147,23 @@ jobs:
                   print("Empty diff — nothing to review.")
                   return
 
-              # Placeholder posted immediately, before the model has said
-              # anything — so something shows up right away instead of
-              # nothing until the whole review is generated.
-              comment = gh_api(
-                  "POST",
-                  f"/repos/{repo}/issues/{pr_number}/comments",
-                  {"body": HEADER + "_🔄 Analyzing this PR..._"},
-              )
-              comment_id = comment["id"]
+              # Reuse a prior run's own comment (identified by the hidden
+              # marker) if one exists on this PR, instead of always
+              # posting a new one — keeps one running comment per PR
+              # across pushes, and self-heals a comment a cancelled
+              # earlier run left stuck on "Analyzing...".
+              comment_id = None
+              existing = gh_api("GET", f"/repos/{repo}/issues/{pr_number}/comments?per_page=100")
+              for c in existing:
+                  if isinstance(c, dict) and c.get("body", "").startswith(MARKER):
+                      comment_id = c["id"]
+
+              placeholder = {"body": HEADER + "_🔄 Analyzing this PR..._"}
+              if comment_id is not None:
+                  gh_api("PATCH", f"/repos/{repo}/issues/comments/{comment_id}", placeholder)
+              else:
+                  comment = gh_api("POST", f"/repos/{repo}/issues/{pr_number}/comments", placeholder)
+                  comment_id = comment["id"]
 
               system_prompt = (
                   "You are an automated code reviewer for a Dart/Flutter monorepo "
@@ -293,6 +307,12 @@ jobs:
       github.actor != 'dependabot[bot]' &&
       github.actor != 'github-actions[bot]' &&
       contains(github.event.comment.body, '@dhc-ai-reviewer')
+    # Keyed on the comment id, not the PR number — so this never
+    # collides with (and can't cancel) the review job's group, and
+    # distinct mentions don't cancel each other either.
+    concurrency:
+      group: dhc-ai-reply-${{ github.event.comment.id }}
+      cancel-in-progress: true
     permissions:
       pull-requests: write  # posting/editing the reply comment
     steps:
@@ -340,7 +360,8 @@ jobs:
           MAX_OUTPUT_CHARS = 60000
           MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
           EDIT_INTERVAL_SECONDS = 5
-          HEADER = "## 🤖 DHC AI Reviewer\n\n"
+          MARKER = "<!-- dhc-ai-reviewer:reply:" + os.environ.get("COMMENT_ID", "") + " -->"
+          HEADER = MARKER + "\n## 🤖 DHC AI Reviewer\n\n"
 
 
           def gh_api(method, path, payload=None):
