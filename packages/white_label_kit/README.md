@@ -31,12 +31,21 @@ Managing multiple flavors or white-label client apps in Flutter usually means:
 
 ## 🚀 Getting Started
 
-### 1. Add Dependency
-Add `white_label_kit` to your Flutter project:
+### 1. Add Dev Dependency
+Add `white_label_kit` to your Flutter project's `dev_dependencies`:
 
 ```bash
-flutter pub add white_label_kit
+flutter pub add --dev white_label_kit
 ```
+
+Or manually in `pubspec.yaml`:
+
+```yaml
+dev_dependencies:
+  white_label_kit: ^0.0.2
+```
+
+> **Note:** `white_label_kit` generates self-contained, typed code (`lib/white_label.g.dart`) and manages native Gradle/Xcode files at build time, keeping your production app binary lightweight with zero runtime overhead.
 
 ### 2. Initialize Configuration
 Generate a starter `white_label.yaml` in your project root:
