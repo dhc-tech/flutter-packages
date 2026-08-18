@@ -195,16 +195,14 @@ class HashKeyCommand extends Command {
         await keytoolProc.stdout.pipe(sha1Proc.stdin);
         await sha1Proc.stdout.pipe(base64Proc.stdin);
 
-        final hashResult = await base64Proc.stdout
-            .transform(const Utf8Decoder())
-            .join();
+        final hashResult =
+            await base64Proc.stdout.transform(const Utf8Decoder()).join();
         final keytoolExit = await keytoolProc.exitCode;
         final sha1Exit = await sha1Proc.exitCode;
         final base64Exit = await base64Proc.exitCode;
 
-        final stderrOutput = await keytoolProc.stderr
-            .transform(const Utf8Decoder())
-            .join();
+        final stderrOutput =
+            await keytoolProc.stderr.transform(const Utf8Decoder()).join();
 
         final finalExitCode = (keytoolExit != 0)
             ? keytoolExit

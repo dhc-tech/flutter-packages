@@ -271,8 +271,8 @@ class ProjectRebrander {
 
     if (buildGradle != null) {
       String content = await buildGradle.readAsString();
-      final appIdMatch = RegExp(r'applicationId\s*[=]?\s*"([^"]+)"')
-          .firstMatch(content);
+      final appIdMatch =
+          RegExp(r'applicationId\s*[=]?\s*"([^"]+)"').firstMatch(content);
       final oldId = appIdMatch?.group(1);
 
       content = content.replaceAllMapped(
