@@ -109,7 +109,7 @@ jobs:
           import urllib.request
 
           MAX_OUTPUT_CHARS = 60000  # GitHub comment body limit is ~65536
-          MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
+          MODEL = "openai/gpt-oss-20b:free"
           MARKER = "<!-- dhc-ai-reviewer:review -->"
           HEADER = MARKER + "\n## 🤖 DHC AI Reviewer\n\n"
 
@@ -246,17 +246,33 @@ jobs:
               # No streaming: the placeholder above already gives an
               # instant "something is happening" signal, so a plain
               # request is simpler and needs no SSE parsing at all.
+              #
+              # On failure, surface the actual API error body (truncated)
+              # rather than just a Python exception name/type — 'choices'
+              # (a bare KeyError) told us nothing about *why* a response
+              # had no choices (rate limit? model unavailable? bad
+              # param?) on a real failure.
               try:
                   with urllib.request.urlopen(req, timeout=120) as res:
                       raw = json.loads(res.read().decode("utf-8"))
                   review_text = raw["choices"][0]["message"]["content"].strip()
-              except Exception as e:
+              except urllib.error.HTTPError as e:
+                  detail = e.read().decode("utf-8", errors="replace")[:500]
                   gh_api(
                       "PATCH",
                       f"/repos/{repo}/issues/comments/{comment_id}",
-                      {"body": HEADER + f"_⚠️ Review failed: {e}_"},
+                      {"body": HEADER + f"_⚠️ Review failed (HTTP {e.code}): {detail}_"},
                   )
-                  print(f"AI review call failed: {e}")
+                  print(f"AI review call failed (HTTP {e.code}): {detail}")
+                  return
+              except Exception as e:
+                  detail = str(locals().get("raw", ""))[:500] or str(e)
+                  gh_api(
+                      "PATCH",
+                      f"/repos/{repo}/issues/comments/{comment_id}",
+                      {"body": HEADER + f"_⚠️ Review failed ({e}): {detail}_"},
+                  )
+                  print(f"AI review call failed ({e}): {detail}")
                   return
 
               if not review_text:
@@ -420,7 +436,7 @@ jobs:
           import urllib.request
 
           MAX_OUTPUT_CHARS = 60000
-          MODEL = "nvidia/nemotron-3-ultra-550b-a55b:free"
+          MODEL = "openai/gpt-oss-20b:free"
           MARKER = "<!-- dhc-ai-reviewer:reply:" + os.environ.get("COMMENT_ID", "") + " -->"
           HEADER = MARKER + "\n## 🤖 DHC AI Reviewer\n\n"
 
@@ -516,13 +532,23 @@ jobs:
                   with urllib.request.urlopen(req, timeout=120) as res:
                       raw = json.loads(res.read().decode("utf-8"))
                   reply_text = raw["choices"][0]["message"]["content"].strip()
-              except Exception as e:
+              except urllib.error.HTTPError as e:
+                  detail = e.read().decode("utf-8", errors="replace")[:500]
                   gh_api(
                       "PATCH",
                       f"/repos/{repo}/issues/comments/{comment_id}",
-                      {"body": HEADER + f"_⚠️ Reply failed: {e}_"},
+                      {"body": HEADER + f"_⚠️ Reply failed (HTTP {e.code}): {detail}_"},
                   )
-                  print(f"AI reply call failed: {e}")
+                  print(f"AI reply call failed (HTTP {e.code}): {detail}")
+                  return
+              except Exception as e:
+                  detail = str(locals().get("raw", ""))[:500] or str(e)
+                  gh_api(
+                      "PATCH",
+                      f"/repos/{repo}/issues/comments/{comment_id}",
+                      {"body": HEADER + f"_⚠️ Reply failed ({e}): {detail}_"},
+                  )
+                  print(f"AI reply call failed ({e}): {detail}")
                   return
               if not reply_text:
                   gh_api(
