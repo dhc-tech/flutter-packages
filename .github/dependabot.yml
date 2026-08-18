@@ -6,4 +6,39 @@ updates:
       interval: "weekly"
     labels:
       - "infra: workflows"
-      - "autosubmit"
+    # Not labeling "autosubmit" here — dependabot_auto_merge.yml decides
+    # whether to add it based on the update's actual severity
+    # (major vs. minor/patch, via dependabot/fetch-metadata's
+    # update-type output). Pre-applying it here would let a major
+    # version bump bypass that check entirely, since auto_submit.yml's
+    # merge trigger only looks at whether the label is present, not who
+    # added it or why.
+
+  # Dependabot's "pub" ecosystem requires one entry per directory
+  # containing a pubspec.yaml — it doesn't support a monorepo-wide glob.
+  # These three were previously entirely absent: Dependabot has never
+  # once checked this repo's actual Dart/Flutter package dependencies,
+  # only its GitHub Actions versions.
+  - package-ecosystem: "pub"
+    directory: "/packages/apple_sign_in_plugin"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "p: apple_sign_in_plugin"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/dig_cli"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "p: dig_cli"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/white_label_kit"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "p: white_label_kit"
+      - "infra: dependencies"
