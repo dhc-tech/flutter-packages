@@ -38,4 +38,6 @@ jobs:
             deps
             repo
             infra
+            ci
+            ai
           requireScope: false
