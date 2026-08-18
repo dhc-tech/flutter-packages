@@ -1,0 +1,33 @@
+# Release preparation — the flutter/packages "release.yml" concept:
+# on every merge to main that touches package code, detect whether any
+# package needs a release and, if so, prepare it. This workflow does
+# NOT contain the release implementation itself (see
+# reusable_release.yml) and does NOT publish anything (see publish.yml)
+# — its only job is deciding "does a release need preparing right now"
+# and invoking the shared logic that does the actual preparing.
+
+name: 🚀 Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/**'
+
+permissions: {}
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare release PR
+    # Never re-trigger from the release PR's own merge commit, or this
+    # workflow would loop: merge -> release PR -> merge release PR ->
+    # this workflow fires again -> another release PR -> ...
+    if: "!contains(github.event.head_commit.message, 'chore(release):') && !contains(github.event.head_commit.message, '[skip ci]')"
+    uses: ./.github/workflows/reusable_release.yml
+    with:
+      packages: all

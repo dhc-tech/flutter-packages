@@ -1,6 +1,6 @@
 name: 🏷️ Push Release Tag(s) After Merge
 
-# Stage 2 of the release pipeline (see auto_version_and_changelog.yml
+# Stage 2 of the release pipeline (see release.yml
 # for stage 1). Once a "chore(release): version packages" PR actually
 # merges to main, this creates and pushes a <package>-vX.Y.Z tag for
 # every package whose pubspec.yaml version doesn't already have one —

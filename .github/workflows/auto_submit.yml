@@ -75,9 +75,9 @@ jobs:
           # Verified directly this session — merging a PR via
           # GITHUB_TOKEN-based automerge fired zero push-triggered
           # workflows on main, including the entire release pipeline
-          # (auto_version_and_changelog.yml -> release_tag_on_merge.yml
+          # (release.yml -> release_tag_on_merge.yml
           # -> publish.yml). With GITHUB_TOKEN here, that chain will NOT
-          # fire automatically after a merge; auto_version_and_changelog.yml
+          # fire automatically after a merge; release.yml
           # must be triggered manually (workflow_dispatch) after any
           # package-code PR merges, until/unless this is revisited.
           #
