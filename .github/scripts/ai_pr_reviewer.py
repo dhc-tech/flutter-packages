@@ -13,16 +13,16 @@ pasted as a single freeform blob.
 import os
 import re
 import json
+import time
 import urllib.request
 import urllib.error
 import subprocess
 
 
 def gemini_generate(api_key, prompt):
-    url = (
-        "https://generativelanguage.googleapis.com/v1beta/models/"
-        f"gemini-2.5-pro:generateContent?key={api_key}"
-    )
+    """Call Gemini, preferring 2.5-pro for review quality but falling back to
+    2.0-flash (much higher free-tier quota) on rate limiting, and retrying
+    transient 429/5xx errors with backoff before giving up."""
     payload = {
         "contents": [{"role": "user", "parts": [{"text": prompt}]}],
         "generationConfig": {
@@ -31,14 +31,33 @@ def gemini_generate(api_key, prompt):
             "responseMimeType": "application/json",
         },
     }
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req, timeout=90) as res:
-        raw = json.loads(res.read().decode("utf-8"))
-        return raw["candidates"][0]["content"]["parts"][0]["text"]
+    last_err = None
+    for model in ("gemini-2.5-pro", "gemini-2.0-flash"):
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{model}:generateContent?key={api_key}"
+        )
+        for attempt in range(3):
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=90) as res:
+                    raw = json.loads(res.read().decode("utf-8"))
+                    return raw["candidates"][0]["content"]["parts"][0]["text"]
+            except urllib.error.HTTPError as e:
+                last_err = e
+                if e.code == 429 or e.code >= 500:
+                    time.sleep(2 ** attempt * 5)  # 5s, 10s, 20s
+                    continue
+                raise  # non-retryable (4xx other than 429)
+            except Exception as e:
+                last_err = e
+                time.sleep(2 ** attempt * 5)
+        print(f"{model} exhausted retries ({last_err}); trying next model.")
+    raise last_err
 
 
 def parse_diff_files(diff):
@@ -173,6 +192,15 @@ def main():
         raw_text = gemini_generate(api_key, f"{system_prompt}\n\nDiff to review:\n```diff\n{diff[:50000]}\n```")
     except Exception as e:
         print(f"Gemini API call failed: {e}")
+        # Never fail silently — the PR should always show *something* rather
+        # than a missing review with no explanation.
+        post_issue_comment(
+            repo, token, pr_number,
+            "## 🤖 Gemini AI PR Review\n\n"
+            f"⚠️ Review could not be generated right now ({e}). "
+            "This will retry automatically on the next push to this PR.\n\n"
+            "---\n*Automated review powered by Google Gemini.*",
+        )
         return
 
     try:
