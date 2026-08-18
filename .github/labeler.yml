@@ -1,0 +1,19 @@
+'p: white_label_kit':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/white_label_kit/**/*
+
+'p: dig_cli':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/dig_cli/**/*
+
+'p: apple_sign_in_plugin':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/apple_sign_in_plugin/**/*
+
+'infra: workflows':
+  - changed-files:
+    - any-glob-to-any-file:
+      - .github/**/*

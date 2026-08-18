@@ -29,7 +29,11 @@ flutter-packages/
 │   │   └── feature_request.yml        # 💡 Feature request submission form
 │   ├── workflows/
 │   │   ├── ci.yml                     # 🔍 Formatting, static analysis & test matrix
+│   │   ├── pull_request_label.yml     # 🏷️ Automatic package path PR labeler
+│   │   ├── auto_submit.yml            # 🤖 Automated PR merge & submit pipeline
 │   │   └── publish.yml                # 🚀 Pub.dev automated publishing workflow
+│   ├── dependabot.yml                 # 🔄 Automated weekly dependency maintenance
+│   ├── labeler.yml                    # 🏷️ Package-to-label mapping configuration
 │   └── pull_request_template.md       # 📋 PR quality & zero-bug checklist
 │
 ├── packages/                          # 📦 Published Dart & Flutter packages

@@ -1,0 +1,22 @@
+# Applies labels to pull requests based on modified paths.
+# Based on official flutter/packages pull_request_label.yml standard.
+
+name: Pull Request Labeler
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    name: 🏷️ Label PR by Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          repo-token: "${{ secrets.GITHUB_TOKEN }}"
+          sync-labels: true
