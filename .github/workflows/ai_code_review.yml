@@ -17,11 +17,13 @@
 # text via the API (never executed, never checked out) and explicitly
 # framed to the model as data to review, not instructions to follow.
 #
-# "Live typing" feel: a placeholder comment is posted the instant the
-# job starts, then edited in place every few seconds as the model
-# streams — never per-token (that would be one API call per streamed
-# chunk, easily 100+ calls and a real rate-limit risk). The interval
-# below caps total edits to roughly a dozen even for a long review.
+# A placeholder comment is posted the instant the job starts, then
+# swapped for the finished review in one edit once the model responds
+# — no streaming, no mid-stream partial edits (tried both; streaming's
+# non-streaming fallback returned empty content on this model without
+# "reasoning": {"enabled": true} explicitly set, and mid-stream partial
+# edits read as laggy rather than a clean effect). Two API calls total
+# per review: post placeholder, then one final edit.
 
 name: 🤖 DHC AI Reviewer
 
@@ -205,10 +207,13 @@ jobs:
                   ],
                   "temperature": 0.2,
                   "max_tokens": 2000,
-                  # This model only returns content reliably in
-                  # streaming mode on the free tier — a plain
-                  # (non-streaming) request came back empty.
-                  "stream": True,
+                  # A plain (non-streaming) request came back with empty
+                  # content on this model until reasoning was explicitly
+                  # enabled — per OpenRouter's docs, this model needs
+                  # "reasoning": {"enabled": true} to populate the final
+                  # message content synchronously.
+                  "reasoning": {"enabled": True},
+                  "stream": False,
               }
 
               req = urllib.request.Request(
@@ -224,33 +229,13 @@ jobs:
                   },
               )
 
-              # Deliberately no mid-stream partial edits: an earlier
-              # version PATCHed the comment every few seconds with
-              # partial text, which read as laggy/janky rather than a
-              # clean "typing" effect. Simpler and better: the
-              # placeholder above shows instantly, then exactly one
-              # edit swaps in the finished review — fewer API calls too.
-              chunks = []
+              # No streaming: the placeholder above already gives an
+              # instant "something is happening" signal, so a plain
+              # request is simpler and needs no SSE parsing at all.
               try:
                   with urllib.request.urlopen(req, timeout=120) as res:
-                      for raw_line in res:
-                          line = raw_line.decode("utf-8", errors="replace").strip()
-                          if not line.startswith("data:"):
-                              continue
-                          data = line[len("data:"):].strip()
-                          if data == "[DONE]":
-                              break
-                          try:
-                              event = json.loads(data)
-                          except json.JSONDecodeError:
-                              continue
-                          choices = event.get("choices") or []
-                          if not choices:
-                              continue  # e.g. a trailing usage-only chunk with no choices
-                          delta = choices[0].get("delta", {})
-                          piece = delta.get("content")
-                          if piece:
-                              chunks.append(piece)
+                      raw = json.loads(res.read().decode("utf-8"))
+                  review_text = raw["choices"][0]["message"]["content"].strip()
               except Exception as e:
                   gh_api(
                       "PATCH",
@@ -259,8 +244,6 @@ jobs:
                   )
                   print(f"AI review call failed: {e}")
                   return
-
-              review_text = "".join(chunks).strip()
 
               if not review_text:
                   gh_api(
@@ -423,7 +406,8 @@ jobs:
                   ],
                   "temperature": 0.2,
                   "max_tokens": 1500,
-                  "stream": True,
+                  "reasoning": {"enabled": True},
+                  "stream": False,
               }
 
               req = urllib.request.Request(
@@ -437,29 +421,11 @@ jobs:
                   },
               )
 
-              # Deliberately no mid-stream partial edits — see the review
-              # job's comment for why (felt laggy, simpler is better).
-              chunks = []
+              # No streaming — see the review job's comment for why.
               try:
                   with urllib.request.urlopen(req, timeout=120) as res:
-                      for raw_line in res:
-                          line = raw_line.decode("utf-8", errors="replace").strip()
-                          if not line.startswith("data:"):
-                              continue
-                          data = line[len("data:"):].strip()
-                          if data == "[DONE]":
-                              break
-                          try:
-                              event = json.loads(data)
-                          except json.JSONDecodeError:
-                              continue
-                          choices = event.get("choices") or []
-                          if not choices:
-                              continue  # e.g. a trailing usage-only chunk with no choices
-                          delta = choices[0].get("delta", {})
-                          piece = delta.get("content")
-                          if piece:
-                              chunks.append(piece)
+                      raw = json.loads(res.read().decode("utf-8"))
+                  reply_text = raw["choices"][0]["message"]["content"].strip()
               except Exception as e:
                   gh_api(
                       "PATCH",
@@ -468,8 +434,6 @@ jobs:
                   )
                   print(f"AI reply call failed: {e}")
                   return
-
-              reply_text = "".join(chunks).strip()
               if not reply_text:
                   gh_api(
                       "PATCH",
