@@ -1,3 +1,12 @@
+## 0.0.3
+
+ - **FIX**(ci): melos release pipeline has never actually run — pin melos 6.x (#6).
+ - **FIX**: clean example and linter hints for 100% 160/160 pana score.
+ - **FEAT**: initial commit for flutter-packages monorepo with white_label_kit v0.0.1.
+ - **DOCS**(white_label_kit): clarify dev_dependencies installation in README.
+ - **DOCS**: standardize MIT license headers and holders across all monorepo packages.
+ - **DOCS**: rewrite README with clear user guide and achieve 160/160 pana score for v0.0.2.
+
 # Changelog
 
 All notable changes to `white_label_kit` will be documented in this file.
