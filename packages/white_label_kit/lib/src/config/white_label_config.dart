@@ -474,15 +474,16 @@ class WhiteLabelConfig {
       return null;
     }
     final buildNumberResult = ConfigValidator.buildNumber(buildNumber);
-    if (buildNumberResult is Invalid)
+    if (buildNumberResult is Invalid) {
       errors.add('$path: ${buildNumberResult.message}');
+    }
 
     if (nameResult is Invalid || buildNumberResult is Invalid) return null;
     return TenantVersion(name: name, buildNumber: buildNumber);
   }
 }
 
-/// Thrown by [WhiteLabelConfig.load]/[parse]. Carries every validation error
+/// Thrown by [WhiteLabelConfig.load]/[WhiteLabelConfig.parse]. Carries every validation error
 /// found (not just the first), so a CLI can print them all at once instead
 /// of forcing a fix-one-rerun-fix-next loop.
 class WhiteLabelConfigException implements Exception {

@@ -207,11 +207,9 @@ bool _run(_Step step, Directory root, Logger log) {
   return true;
 }
 
-/// Clones an existing tenant's `.xcscheme` rather than hand-authoring XML:
-/// the only tenant-specific bits are the five `buildConfiguration="...-
-/// <tenant>"` attributes (BuildableReference/Blueprint fields all point at
-/// the shared Runner target, identical across every tenant), so a straight
-/// string substitution is correct and safe.
+/// Clones an existing tenant's `.xcscheme` rather than hand-authoring XML.
+/// The only tenant-specific bits are the five `buildConfiguration` attributes,
+/// so a straight string substitution is correct and safe.
 void _cloneXcodeScheme(
   String tenantId,
   Directory root,

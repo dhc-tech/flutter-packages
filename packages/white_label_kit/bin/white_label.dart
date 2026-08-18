@@ -196,7 +196,7 @@ Future<void> runCli(List<String> args) async {
 /// config/isolation layer — see lib/src/config), always marking which one
 /// is `default_tenant` so it's never ambiguous which tenant a bare
 /// `--tenant`-less command would act on. Prints both a top-line
-/// "Default tenant: <id>" summary AND a per-tenant `(default)` marker —
+/// "Default tenant: `<id>`" summary AND a per-tenant `(default)` marker —
 /// intentionally redundant so it's unmissable either way you're scanning.
 void _listTenants() {
   final config = _tryLoadWhiteLabelConfig();
@@ -404,7 +404,7 @@ int _init(List<String> args) {
 /// generates both from one command; a developer is never expected to write
 /// YAML by hand or `mkdir` a tenant folder themselves.
 ///
-/// Usage: add-tenant <id> "<Name>" <bundleId> [--logo <path>] [--default]
+/// Usage: `add-tenant <id> "<Name>" <bundleId> [--logo <path>] [--default]`
 ///
 /// Rolls back everything it wrote (the yaml edit AND the created folder) if
 /// the resulting config fails to validate — never leaves the project in a
@@ -486,7 +486,7 @@ int _generate(List<String> args) {
   return 0;
 }
 
-/// Finds the `    <id>:\n...` block for tenant [id] inside raw
+/// Finds the `tenantId:` block for tenant [id] inside raw
 /// `white_label.yaml` [text] — from its own line up to (but not including)
 /// the next line at the same 4-space tenant-key indent, or end of file.
 /// Shared by `update-tenant`/`remove-tenant` so both edit exactly the same
@@ -957,12 +957,11 @@ white_label:
 const _placeholderPngBase64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
 
-/// `build --tenant <id> [--platform ..] [--mode ..] [--dry-run] [--verbose]
-/// [--clean]` — the GENERIC (white_label.yaml) build path. Only reached when
-/// main() has already determined this isn't the host app's own `build`
-/// (see the routing comment in main()). Stages the resolved tenant's assets
-/// into an isolated `.generated/<tenant>` directory; does not invoke a real
-/// `flutter build` — see the CLI usage text for scope.
+/// The generic white_label.yaml build path.
+///
+/// Usage: `build --tenant <id> [--platform ..] [--mode ..] [--dry-run] [--verbose] [--clean]`
+///
+/// Stages the resolved tenant's assets into an isolated `.generated/<tenant>` directory.
 Future<int> _genericBuild(List<String> args) async {
   String? tenantId;
   var platform = 'android';
@@ -1257,11 +1256,9 @@ String? _findBuiltArtifact({
   return null;
 }
 
-/// `run [--tenant <id>]` — resolves + stages a tenant (same as `build` in
-/// debug mode) but deliberately does NOT invoke `flutter run` itself: that
-/// command is interactive/long-running, which is the wrong thing for a
-/// script to launch on the developer's behalf. Instead it prints the exact
-/// command to copy-paste.
+/// Resolves and stages a tenant in debug mode.
+///
+/// Usage: `run [--tenant <id>]`
 Future<int> _run(List<String> args) async {
   String? tenantId;
 
@@ -1320,12 +1317,12 @@ Future<int> _run(List<String> args) async {
   return 0;
 }
 
-/// `configure [--tenant <id>] [--platform android|ios|all] [--dry-run]
-/// [--skip-generate] [--verbose]` — the zero-touch setup
-/// command. Equivalent to `dart run flutter_flavorizr` but for
-/// `white_label.yaml`: patches Android `build.gradle.kts` and the iOS Xcode
-/// project for every declared tenant (or a single named one) so that
-/// `flutter build --flavor <id>` just works without any manual file editing.
+/// The configuration setup command.
+///
+/// Usage: `configure [--tenant <id>] [--platform android|ios|all] [--dry-run] [--skip-generate] [--verbose]`
+///
+/// Patches Android `build.gradle.kts` and the iOS Xcode project for every declared tenant
+/// so that `flutter build --flavor <id>` just works without any manual file editing.
 ///
 /// What it does, in order, for each tenant:
 ///  1. [generateAndroidFlavor] — idempotent productFlavors block in
@@ -1569,8 +1566,9 @@ List<String> _resolveArgs(
       final fields = ['tenant_id', 'display_name', 'bundle_id', 'api_base_url'];
       for (var i = resolved.length; i < fields.length; i++) {
         final value = config[fields[i]];
-        if (value == null)
+        if (value == null) {
           break; // stop at the first missing field, don't leave gaps
+        }
         resolved.add(value);
       }
       return resolved;

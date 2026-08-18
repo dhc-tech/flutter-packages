@@ -1,8 +1,8 @@
 name: white_label_kit
 description: >-
-  Zero-touch white-label tenant isolation for Flutter: define tenants in
-  white_label.yaml, run configure, and Android Gradle + iOS Xcode are patched automatically.
-version: 0.0.1
+  A complete multi-tenant white-label and flavor management toolkit for Flutter
+  apps. Automatically configures Android Gradle and iOS Xcode schemes from a single YAML file.
+version: 0.0.2
 homepage: https://github.com/dhc-tech/flutter-packages/tree/main/packages/white_label_kit
 repository: https://github.com/dhc-tech/flutter-packages
 issue_tracker: https://github.com/dhc-tech/flutter-packages/issues
@@ -24,9 +24,9 @@ executables:
   configure: configure
   generate: generate
   list: list
-  add-tenant: add-tenant
-  update-tenant: update-tenant
-  remove-tenant: remove-tenant
+  add-tenant: add_tenant
+  update-tenant: update_tenant
+  remove-tenant: remove_tenant
   doctor: doctor
   validate: validate
   run: run

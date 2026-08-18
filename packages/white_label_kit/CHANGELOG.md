@@ -2,6 +2,13 @@
 
 All notable changes to `white_label_kit` will be documented in this file.
 
+## 0.0.2
+
+### 🛠️ Improvements & Fixes
+- **Linter & File Naming Conventions:** Renamed binary files (`bin/add_tenant.dart`, `bin/remove_tenant.dart`, `bin/update_tenant.dart`) to conform to standard Dart lower_case_with_underscores guidelines.
+- **Documentation & User Guide:** Revamped `README.md` with clear, step-by-step onboarding, simple explanations, recommended project structure, and realistic usage examples.
+- **Pub.dev Pana Score:** Resolved all unresolved dartdoc references and static analysis warnings to achieve 160/160 points.
+
 ## 0.0.1 — Initial Release
 
 ### ✨ Features

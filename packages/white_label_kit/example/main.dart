@@ -38,7 +38,10 @@ class ExampleApp extends StatelessWidget {
             children: [
               Text(
                 'Active Tenant: ${runtime.id}',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               Text('API Base URL: ${runtime.apiBaseUrl}'),
