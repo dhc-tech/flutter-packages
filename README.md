@@ -13,6 +13,8 @@ A centralized monorepo of production-grade Dart & Flutter packages, plugins, and
 | Package | Version | Description | Status |
 |---|---|---|---|
 | **[`white_label_kit`](packages/white_label_kit)** | [![white_label_kit](https://img.shields.io/badge/version-0.0.2-green.svg)](packages/white_label_kit/CHANGELOG.md) | Multi-tenant white-label and flavor management toolkit for Flutter applications. | ✅ Stable |
+| **[`dig_cli`](packages/dig_cli)** | [![dig_cli](https://img.shields.io/badge/version-1.8.0-green.svg)](packages/dig_cli/CHANGELOG.md) | CLI utility for Flutter code generation, asset path indexing, and project scaffolding. | ✅ Stable |
+| **[`apple_sign_in_plugin`](packages/apple_sign_in_plugin)** | [![apple_sign_in_plugin](https://img.shields.io/badge/version-0.0.1-green.svg)](packages/apple_sign_in_plugin/CHANGELOG.md) | Streamlined Sign in with Apple authentication with JWT decoding and token validation. | ✅ Stable |
 | **`theme_kit`** | *(Upcoming)* | Dynamic multi-palette design token engine with runtime switching and persistent theme state. | 🚧 In Planning |
 | **`network_kit`** | *(Upcoming)* | Resilient offline-first networking client with automatic queueing, retry mechanisms, and cache interceptors. | 🚧 In Planning |
 | **`analytics_kit`** | *(Upcoming)* | Unified telemetry & event dispatcher supporting multi-provider routing (Firebase, Mixpanel, Custom). | 🚧 In Planning |
