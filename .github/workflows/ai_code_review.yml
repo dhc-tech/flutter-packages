@@ -181,8 +181,13 @@ jobs:
                   "(unclosed StreamControllers/Timers/subscriptions), error "
                   "handling, and security (hardcoded secrets, unsafe shell "
                   "interpolation in scripts/workflows, script-injection risk).\n\n"
-                  "Reply with ONLY a single JSON object (no markdown fences, "
-                  "no text before or after it) matching exactly this shape:\n"
+                  "You may reason/think through the diff first, as much as "
+                  "you need — that's expected and fine. But once you're "
+                  "done thinking, you MUST end your entire response with "
+                  "the exact line ===JSON_ANSWER=== followed immediately "
+                  "by ONLY a single JSON object and nothing else after it "
+                  "(no markdown fences, no trailing commentary), matching "
+                  "exactly this shape:\n"
                   '{\n'
                   '  "verdict": "✅" | "⚠️" | "❌",\n'
                   '  "summary": "1-3 sentence summary of what the PR does",\n'
@@ -215,7 +220,7 @@ jobs:
                       {"role": "user", "content": user_prompt},
                   ],
                   "temperature": 0.2,
-                  "max_tokens": 2000,
+                  "max_tokens": 4000,  # reasoning + JSON needs more room than plain prose did
                   # A plain (non-streaming) request came back with empty
                   # content on this model until reasoning was explicitly
                   # enabled — per OpenRouter's docs, this model needs
@@ -263,17 +268,24 @@ jobs:
                   print("AI reviewer returned an empty review.")
                   return
 
-              # The model is asked for JSON, but is not perfectly reliable
-              # about it — extract the first {...} block rather than
-              # requiring the whole response to be pure JSON, and fall
-              # back to posting its raw text if parsing still fails
-              # (same degraded-but-working behavior as before this
-              # feature existed, rather than losing the review entirely).
+              # This model puts its reasoning directly in `content`
+              # rather than a separate field, unprompted — confirmed on
+              # a real run: raw thinking-out-loud text ("Let me check
+              # the line numbers...") leaked into the posted comment
+              # instead of JSON. The ===JSON_ANSWER=== delimiter in the
+              # prompt gives it room to think freely while still giving
+              # us a reliable anchor: only look for JSON after it,
+              # rather than brace-matching over prose that can itself
+              # contain stray { or } (e.g. diff hunk headers).
+              json_part = review_text
+              if "===JSON_ANSWER===" in review_text:
+                  json_part = review_text.split("===JSON_ANSWER===", 1)[1]
+
               review = None
-              start, end = review_text.find("{"), review_text.rfind("}")
+              start, end = json_part.find("{"), json_part.rfind("}")
               if start != -1 and end != -1 and end > start:
                   try:
-                      review = json.loads(review_text[start:end + 1])
+                      review = json.loads(json_part[start:end + 1])
                   except json.JSONDecodeError:
                       review = None
 
@@ -483,7 +495,7 @@ jobs:
                       {"role": "user", "content": user_prompt},
                   ],
                   "temperature": 0.2,
-                  "max_tokens": 1500,
+                  "max_tokens": 3000,
                   "reasoning": {"enabled": True},
                   "stream": False,
               }
