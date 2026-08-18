@@ -1,5 +1,4 @@
-# Root analysis options for Flutter Packages Monorepo.
-# Matches official flutter/packages analysis_options.yaml standard.
+# Root analysis options for DHC Tech Flutter Packages.
 
 include: package:flutter_lints/flutter.yaml
 

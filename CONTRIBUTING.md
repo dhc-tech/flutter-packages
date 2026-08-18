@@ -1,6 +1,6 @@
-# Contributing to Flutter Packages
+# Contributing to DHC Tech Flutter Packages
 
-We welcome contributions to Flutter Packages!
+We welcome contributions to DHC Tech Flutter Packages!
 
 ## Getting Started
 

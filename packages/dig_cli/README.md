@@ -98,7 +98,7 @@ class AppAssets {
 
 ---
 
-## 🤝 Part of Flutter Packages Monorepo
+## 🤝 Part of DHC Tech Packages Monorepo
 
 `dig_cli` is maintained under the **[dhc-tech/flutter-packages](https://github.com/dhc-tech/flutter-packages)** monorepo.
 

@@ -1,12 +1,12 @@
-# Flutter Packages Style Guide
+# DHC Tech Packages Engineering & Style Guide
 
 ## Introduction
 
-This style guide outlines the coding conventions for contributions to the `dhc-tech/flutter-packages` repository.
+This style guide outlines the engineering conventions and quality standards for contributions across all packages in this repository.
 
 ## Best Practices
 
-- **Strict Type Safety:** Code must pass `dart analyze --fatal-infos` with zero warnings.
+- **Strict Type Safety:** Code must pass `dart analyze --fatal-infos` / `flutter analyze --fatal-infos` with zero warnings.
 - **Tested Code:** Every feature or bugfix must be accompanied by comprehensive tests under `test/`.
 - **Zero Proprietary Data:** Never hardcode sensitive brand names, private bundle identifiers, or credentials. Always use neutral test values (`com.example.acme`, `Acme App`).
 - **Pub.dev Standards:** Packages must achieve maximum Pana points (160/160).
