@@ -242,7 +242,10 @@ jobs:
                               event = json.loads(data)
                           except json.JSONDecodeError:
                               continue
-                          delta = event.get("choices", [{}])[0].get("delta", {})
+                          choices = event.get("choices") or []
+                          if not choices:
+                              continue  # e.g. a trailing usage-only chunk with no choices
+                          delta = choices[0].get("delta", {})
                           piece = delta.get("content")
                           if not piece:
                               continue
@@ -465,7 +468,10 @@ jobs:
                               event = json.loads(data)
                           except json.JSONDecodeError:
                               continue
-                          delta = event.get("choices", [{}])[0].get("delta", {})
+                          choices = event.get("choices") or []
+                          if not choices:
+                              continue  # e.g. a trailing usage-only chunk with no choices
+                          delta = choices[0].get("delta", {})
                           piece = delta.get("content")
                           if not piece:
                               continue
