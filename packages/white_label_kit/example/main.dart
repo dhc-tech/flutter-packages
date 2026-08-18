@@ -1,58 +1,37 @@
-import 'package:flutter/material.dart';
 import 'package:white_label_kit/white_label_kit.dart';
 
 void main() {
-  // Access the compiled tenant runtime metadata
-  final runtime = whiteLabelRuntime;
+  // Example 1: Loading and validating tenant configuration from YAML
+  const sampleYaml = '''
+white_label:
+  default_tenant: acme
+  tenants:
+    acme:
+      name: "Acme App"
+      android:
+        application_id: "com.example.acme"
+      ios:
+        bundle_id: "com.example.acme"
+      theme:
+        primary_color: "#1E88E5"
+      environment:
+        api_base_url: "https://api.example.com"
+      features:
+        enable_push_notifications: true
+''';
 
-  runApp(ExampleApp(runtime: runtime));
-}
+  final config = WhiteLabelConfig.parse(sampleYaml);
+  final defaultTenant = config.tenants[config.defaultTenant]!;
 
-class ExampleApp extends StatelessWidget {
-  final WhiteLabelRuntime runtime;
+  print('Loaded Tenant: ${defaultTenant.name}');
+  print('Application ID: ${defaultTenant.android.applicationId}');
+  print('Primary Color: ${defaultTenant.theme.primaryColor}');
+  print('API Base URL: ${defaultTenant.environment.apiBaseUrl}');
 
-  const ExampleApp({super.key, required this.runtime});
+  // Example 2: Creating runtime metadata from configuration
+  final runtime = WhiteLabelRuntime.fromConfig(defaultTenant);
 
-  @override
-  Widget build(BuildContext context) {
-    // Parse hex primary color from tenant configuration safely
-    final primaryColor = Color(
-      int.parse(runtime.primaryColor.replaceFirst('#', '0xFF')),
-    );
-
-    return MaterialApp(
-      title: runtime.name,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: primaryColor),
-        useMaterial3: true,
-      ),
-      home: Scaffold(
-        appBar: AppBar(
-          title: Text(runtime.name),
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-        ),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Active Tenant: ${runtime.id}',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text('API Base URL: ${runtime.apiBaseUrl}'),
-              const SizedBox(height: 12),
-              Text(
-                'Push Notifications: ${runtime.featureEnabled("enable_push_notifications") ? "Enabled" : "Disabled"}',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  print('\nRuntime Tenant ID: ${runtime.tenantId}');
+  print('Runtime Name: ${runtime.tenantName}');
+  print('Push Notifications: ${runtime.features["enable_push_notifications"] ?? false}');
 }

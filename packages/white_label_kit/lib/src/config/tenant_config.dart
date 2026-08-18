@@ -136,8 +136,8 @@ class TenantAssets {
 
   Iterable<String> get all => [
     logo,
-    if (icon != null) icon!,
-    if (splash != null) splash!,
+    ?icon,
+    ?splash,
   ];
 }
 
@@ -162,8 +162,8 @@ class TenantFirebaseConfig {
   final String? googleServiceInfoPlist;
 
   Iterable<String> get all => [
-    if (googleServicesJson != null) googleServicesJson!,
-    if (googleServiceInfoPlist != null) googleServiceInfoPlist!,
+    ?googleServicesJson,
+    ?googleServiceInfoPlist,
   ];
 }
 

@@ -76,12 +76,12 @@ void main() {
     const tenant = TenantConfig(
       id: 'acme',
       name: 'Acme',
-      android: const AndroidTenantConfig(
+      android: AndroidTenantConfig(
         applicationId: 'com.example.acme',
         appName: 'Acme',
       ),
-      ios: const IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme'),
-      assets: const TenantAssets(logo: 'tenants/acme/assets/logo.png'),
+      ios: IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme'),
+      assets: TenantAssets(logo: 'tenants/acme/assets/logo.png'),
     );
 
     expect(

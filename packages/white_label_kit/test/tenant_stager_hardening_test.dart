@@ -32,15 +32,15 @@ void main() {
       const evil = TenantConfig(
         id: 'acme',
         name: 'Acme',
-        android: const AndroidTenantConfig(
+        android: AndroidTenantConfig(
           applicationId: 'com.example.acme',
           appName: 'Acme',
         ),
-        ios: const IosTenantConfig(
+        ios: IosTenantConfig(
           bundleId: 'com.example.acme',
           appName: 'Acme',
         ),
-        assets: const TenantAssets(logo: '../secret_outside/leak.png'),
+        assets: TenantAssets(logo: '../secret_outside/leak.png'),
       );
 
       expect(
@@ -60,12 +60,12 @@ void main() {
     const tenant = TenantConfig(
       id: 'acme',
       name: 'Acme',
-      android: const AndroidTenantConfig(
+      android: AndroidTenantConfig(
         applicationId: 'com.example.acme',
         appName: 'Acme',
       ),
-      ios: const IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme'),
-      assets: const TenantAssets(
+      ios: IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme'),
+      assets: TenantAssets(
         logo: 'tenants/acme/assets/logo.png',
         icon: 'tenants/acme/assets/icon.png',
       ),
@@ -107,15 +107,15 @@ void main() {
       const tenant = TenantConfig(
         id: 'acme',
         name: 'Acme',
-        android: const AndroidTenantConfig(
+        android: AndroidTenantConfig(
           applicationId: 'com.example.acme',
           appName: 'Acme',
         ),
-        ios: const IosTenantConfig(
+        ios: IosTenantConfig(
           bundleId: 'com.example.acme',
           appName: 'Acme',
         ),
-        assets: const TenantAssets(
+        assets: TenantAssets(
           logo: 'tenants/acme/assets/logo.png',
           icon: 'tenants/acme/icon/logo.png', // collides on basename with logo
         ),

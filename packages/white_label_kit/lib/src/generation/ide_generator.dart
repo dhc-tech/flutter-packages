@@ -323,7 +323,7 @@ class IdeGenerator {
   }) {
     final args = [
       '--dart-define=TENANT_ID=$flavor',
-      if (extraArgs != null) extraArgs,
+      ?extraArgs,
     ].join(' ');
 
     return '''<component name="ProjectRunConfigurationManager">
