@@ -1,7 +1,3 @@
-# 100% Free AI Issue Triage using Google Gemini 2.0 Flash.
-# Automatically analyzes new issues, tags them with the relevant package label,
-# and provides an instant helpful first response. Gracefully skips if GEMINI_API_KEY is not set.
-
 name: 🤖 Free AI Issue Triage
 
 on:
@@ -19,20 +15,10 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: 🔍 Check Gemini API Key
-        id: check_key
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          if [ -z "$GEMINI_API_KEY" ]; then
-            echo "has_key=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ GEMINI_API_KEY secret is not configured. Skipping AI issue triage."
-          else
-            echo "has_key=true" >> $GITHUB_OUTPUT
-          fi
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: 🚀 Run AI Triage & Response
-        if: steps.check_key.outputs.has_key == 'true'
+      - name: 🚀 Run AI Issue Triage Script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -41,64 +27,4 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           REPO: ${{ github.repository }}
         run: |
-          # 1. Prepare JSON prompt for Gemini
-          python3 -c "
-          import json, os, urllib.request
-
-          api_key = os.environ['GEMINI_API_KEY']
-          token = os.environ['GITHUB_TOKEN']
-          repo = os.environ['REPO']
-          issue_number = os.environ['ISSUE_NUMBER']
-          title = os.environ.get('ISSUE_TITLE', '')
-          body = os.environ.get('ISSUE_BODY', '')
-
-          prompt = f'''You are an AI triage bot for the flutter-packages monorepo (containing: white_label_kit, dig_cli, apple_sign_in_plugin).
-
-          Issue Title: {title}
-          Issue Body: {body}
-
-          Task:
-          1. Identify target package (one of: 'p: white_label_kit', 'p: dig_cli', 'p: apple_sign_in_plugin', or 'question').
-          2. Generate a helpful, concise initial response explaining next steps, troubleshooting tips, or asking for reproduction code if missing.
-
-          Return JSON with schema:
-          {{
-            \"label\": \"<chosen_label>\",
-            \"reply\": \"<markdown_reply_text>\"
-          }}
-          '''
-
-          url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}'
-          payload = {
-              'contents': [{'parts': [{'text': prompt}]}],
-              'generationConfig': {'temperature': 0.2, 'responseMimeType': 'application/json'}
-          }
-
-          req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
-          try:
-              res = urllib.request.urlopen(req)
-              raw = json.loads(res.read().decode('utf-8'))
-              ai_content = json.loads(raw['candidates'][0]['content']['parts'][0]['text'])
-
-              label = ai_content.get('label', '')
-              reply = ai_content.get('reply', '')
-
-              # Apply label to Issue
-              if label:
-                  label_url = f'https://api.github.com/repos/{repo}/issues/{issue_number}/labels'
-                  label_req = urllib.request.Request(label_url, data=json.dumps({'labels': [label]}).encode('utf-8'), headers={'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json', 'User-Agent': 'AI-Triage-Bot'})
-                  try:
-                      urllib.request.urlopen(label_req)
-                  except Exception as e:
-                      print('Failed to apply label:', e)
-
-              # Post Reply Comment
-              if reply:
-                  comment_body = f'## 🤖 Free AI Assistant (Gemini 2.0 Flash)\n\n{reply}\n\n---\n*Automated triage response powered by Google Gemini Free Tier.*'
-                  comment_url = f'https://api.github.com/repos/{repo}/issues/{issue_number}/comments'
-                  comment_req = urllib.request.Request(comment_url, data=json.dumps({'body': comment_body}).encode('utf-8'), headers={'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json', 'User-Agent': 'AI-Triage-Bot'})
-                  urllib.request.urlopen(comment_req)
-                  print('Successfully triaged and commented on issue.')
-          except Exception as e:
-              print('AI Triage error:', e)
-          "
+          python3 .github/scripts/ai_issue_triager.py

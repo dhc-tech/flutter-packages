@@ -1,7 +1,3 @@
-# 100% Free AI-Powered Pull Request Reviewer using Google Gemini 2.0 Flash Free Tier.
-# Automatically reviews PR diffs across the repository for Flutter/Dart standards, breaking changes, and zero-bug rules.
-# Gracefully skips if GEMINI_API_KEY secret is not present.
-
 name: 🤖 Free AI PR Reviewer
 
 on:
@@ -24,20 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔍 Check Gemini API Key
-        id: check_key
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          if [ -z "$GEMINI_API_KEY" ]; then
-            echo "has_key=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ GEMINI_API_KEY secret is not configured. Skipping AI review."
-          else
-            echo "has_key=true" >> $GITHUB_OUTPUT
-          fi
-
-      - name: 🚀 Run AI Review
-        if: steps.check_key.outputs.has_key == 'true'
+      - name: 🚀 Run AI Review Script
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -46,64 +29,4 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          python3 -c "
-          import os, json, urllib.request, subprocess
-
-          api_key = os.environ['GEMINI_API_KEY']
-          token = os.environ['GITHUB_TOKEN']
-          repo = os.environ['REPO']
-          pr_number = os.environ['PR_NUMBER']
-          base_sha = os.environ['BASE_SHA']
-          head_sha = os.environ['HEAD_SHA']
-
-          try:
-              diff_bytes = subprocess.check_output(['git', 'diff', f'{base_sha}..{head_sha}'])
-              diff = diff_bytes.decode('utf-8', errors='ignore')[:30000]
-          except Exception as e:
-              print('Could not get diff:', e)
-              diff = ''
-
-          if not diff.strip():
-              print('No diff found to review.')
-              exit(0)
-
-          system_prompt = '''You are a principal Flutter/Dart architect performing automated code review for dhc-tech/flutter-packages (packages: white_label_kit, dig_cli, apple_sign_in_plugin).
-
-Review this PR diff and structure your output in GitHub Markdown:
-1. 🛡️ **Security & Secrets**: Verify NO private keys, credentials, or proprietary client names exist.
-2. 💎 **Dart / Flutter Standards**: Strict typing, proper null safety, resource cleanup, async handling.
-3. ⚠️ **Breaking Changes**: Check public API contracts and version compatibility.
-4. 🧪 **Tests & Docs**: Ensure test coverage and docs are updated.
-
-Be concise, objective, and highlight any required improvements with code snippets.'''
-
-          url = f'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}'
-          payload = {
-              'contents': [
-                  {'role': 'user', 'parts': [{'text': f'{system_prompt}\n\nDiff to review:\n```diff\n{diff}\n```'}]}
-              ],
-              'generationConfig': {'temperature': 0.2, 'maxOutputTokens': 1500}
-          }
-
-          req = urllib.request.Request(url, data=json.dumps(payload).encode('utf-8'), headers={'Content-Type': 'application/json'})
-          try:
-              res = urllib.request.urlopen(req)
-              raw = json.loads(res.read().decode('utf-8'))
-              review_text = raw['candidates'][0]['content']['parts'][0]['text']
-          except Exception as e:
-              print('Gemini API call failed:', e)
-              exit(0)
-
-          comment_body = f'## 🤖 Free AI PR Review (Gemini 2.0 Flash)\n\n{review_text}\n\n---\n*Automated review powered by Google Gemini Free Tier.*'
-          comment_url = f'https://api.github.com/repos/{repo}/issues/{pr_number}/comments'
-          comment_req = urllib.request.Request(
-              comment_url,
-              data=json.dumps({'body': comment_body}).encode('utf-8'),
-              headers={'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json', 'User-Agent': 'Flutter-AI-Reviewer'}
-          )
-          try:
-              urllib.request.urlopen(comment_req)
-              print('Successfully posted Gemini AI review comment!')
-          except Exception as e:
-              print('Failed to post PR comment:', e)
-          "
+          python3 .github/scripts/ai_pr_reviewer.py
