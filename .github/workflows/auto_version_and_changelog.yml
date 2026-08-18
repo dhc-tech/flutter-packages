@@ -40,22 +40,19 @@ jobs:
 
       - name: ⚡ Activate Melos
         run: |
-          # Pinned to melos 6.x deliberately — melos 8+ requires the
-          # directory to be a native Dart pub workspace (root pubspec.yaml
-          # with a workspace: field, each member package's own
-          # pubspec.yaml opting in via resolution: workspace) to discover
-          # any packages at all. Adding resolution: workspace to a
-          # *published* package's pubspec.yaml would break `dart pub get`
-          # for anyone depending on it outside this monorepo — not
-          # acceptable. Melos 6.x discovers packages purely from
-          # melos.yaml's glob, no native workspace needed.
+          # melos 8+ requires the directory to be a native Dart pub
+          # workspace to discover any packages at all. The root
+          # pubspec.yaml now declares one (workspace: field), and each
+          # package opts in via resolution: workspace — stripped again
+          # right before dart pub publish in publish.yml so the field
+          # never reaches pub.dev / external consumers of the packages.
           #
-          # This was silently broken from the start: every prior run of
-          # this workflow hit "not a melos workspace", `melos version`
-          # exited non-zero, and the `if` below quietly treated that as
-          # "no version changes" — the release pipeline had never
-          # actually worked, on any package, ever.
-          dart pub global activate melos 6.3.3
+          # This step was silently broken before that workspace existed:
+          # every prior run hit "not a melos workspace", melos version
+          # exited non-zero, and the version-bump step's own error
+          # handling quietly treated that as "no version changes" — the
+          # release pipeline had never actually worked, on any package.
+          dart pub global activate melos
           echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
 
       - name: 📦 Bootstrap workspace

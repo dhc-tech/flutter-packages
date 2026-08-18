@@ -16,6 +16,13 @@ analyzer:
     - '**/*.mocks.dart'
     - '**/build/**'
     - '**/.dart_tool/**'
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 
 linter:
   rules:

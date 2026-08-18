@@ -127,6 +127,27 @@ jobs:
             fi
           fi
 
+      # ── Strip workspace-only metadata before publishing ────────────────────
+      # `resolution: workspace` in each package's pubspec.yaml is required
+      # for melos 8+/native pub workspaces to discover packages in this
+      # monorepo — but dart pub publish packages the file verbatim. If
+      # that line reached pub.dev, `dart pub get` would break for every
+      # consumer outside this repo (their pub tool looks for a workspace
+      # root that doesn't exist for them). This is a plain, uncommitted
+      # local edit made right before publish — never pushed anywhere.
+      - name: 🧹 Strip resolution:workspace before publish
+        shell: bash
+        env:
+          TARGET_PACKAGE: ${{ steps.target.outputs.package }}
+        run: |
+          pkg="packages/$TARGET_PACKAGE"
+          sed -i '/^resolution: workspace$/d' "$pkg/pubspec.yaml"
+          grep -q "resolution: workspace" "$pkg/pubspec.yaml" && {
+            echo "❌ Failed to strip resolution: workspace — aborting publish."
+            exit 1
+          }
+          echo "✅ Confirmed resolution: workspace is not present in the package to be published."
+
       # ── Publish (OIDC — no stored token needed) ───────────────────────────
       - name: 🚀 Publish to Pub.dev (OIDC)
         shell: bash
