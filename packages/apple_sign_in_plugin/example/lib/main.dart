@@ -244,8 +244,8 @@ class _SignInPageState extends State<SignInPage> {
             child: Text(
               token != null
                   ? (token.length > 20
-                      ? '${token.substring(0, 20)}...[truncated]'
-                      : token)
+                        ? '${token.substring(0, 20)}...[truncated]'
+                        : token)
                   : 'Not available',
               style: const TextStyle(fontFamily: 'Courier', fontSize: 12),
             ),
