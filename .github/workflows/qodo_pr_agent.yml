@@ -1,0 +1,47 @@
+# Qodo Merge (formerly PR-Agent) — open-source, free AI PR assistant.
+# https://github.com/qodo-ai/pr-agent
+#
+# Runs on top of Gemini Code Assist, not instead of it: Gemini Code Assist
+# gives a structured review against .gemini/styleguide.md; PR-Agent adds
+# an auto-generated PR description/summary, a broader code-suggestions
+# pass, and an /ask-style chat command usable from PR comments
+# (e.g. "/ask why is this safe?", "/improve", "/test").
+#
+# Uses the same GEMINI_API_KEY already configured for Gemini Code
+# Assist/the release pipeline — no new secret, no new app install.
+
+name: 🤖 Qodo Merge (PR-Agent)
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: write
+
+jobs:
+  pr_agent:
+    name: 🧠 PR-Agent Review
+    if: ${{ github.event.sender.type != 'Bot' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: GEMINI_API_KEY
+    steps:
+      - name: 🤖 Run PR-Agent
+        uses: the-pr-agent/pr-agent@main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          config.model: "gemini/gemini-2.0-flash"
+          config.fallback_models: '["gemini/gemini-2.0-flash"]'
+          config.git_provider: "github"
+          github_action_config.auto_review: "true"
+          github_action_config.auto_describe: "true"
+          github_action_config.auto_improve: "true"
+          pr_reviewer.num_code_suggestions: "4"
+          pr_reviewer.inline_code_comments: "true"
