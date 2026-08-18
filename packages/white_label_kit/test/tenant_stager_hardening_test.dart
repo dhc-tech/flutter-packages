@@ -36,10 +36,7 @@ void main() {
           applicationId: 'com.example.acme',
           appName: 'Acme',
         ),
-        ios: IosTenantConfig(
-          bundleId: 'com.example.acme',
-          appName: 'Acme',
-        ),
+        ios: IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme'),
         assets: TenantAssets(logo: '../secret_outside/leak.png'),
       );
 
@@ -111,10 +108,7 @@ void main() {
           applicationId: 'com.example.acme',
           appName: 'Acme',
         ),
-        ios: IosTenantConfig(
-          bundleId: 'com.example.acme',
-          appName: 'Acme',
-        ),
+        ios: IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme'),
         assets: TenantAssets(
           logo: 'tenants/acme/assets/logo.png',
           icon: 'tenants/acme/icon/logo.png', // collides on basename with logo

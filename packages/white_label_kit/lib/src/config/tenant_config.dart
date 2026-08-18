@@ -134,11 +134,7 @@ class TenantAssets {
   final String? icon;
   final String? splash;
 
-  Iterable<String> get all => [
-    logo,
-    ?icon,
-    ?splash,
-  ];
+  Iterable<String> get all => [logo, ?icon, ?splash];
 }
 
 /// Optional per-tenant Firebase config files. Both paths are nullable
@@ -161,10 +157,7 @@ class TenantFirebaseConfig {
   /// on iOS.
   final String? googleServiceInfoPlist;
 
-  Iterable<String> get all => [
-    ?googleServicesJson,
-    ?googleServiceInfoPlist,
-  ];
+  Iterable<String> get all => [?googleServicesJson, ?googleServiceInfoPlist];
 }
 
 class TenantTheme {

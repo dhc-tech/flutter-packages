@@ -33,5 +33,7 @@ white_label:
 
   print('\nRuntime Tenant ID: ${runtime.tenantId}');
   print('Runtime Name: ${runtime.tenantName}');
-  print('Push Notifications: ${runtime.features["enable_push_notifications"] ?? false}');
+  print(
+    'Push Notifications: ${runtime.features["enable_push_notifications"] ?? false}',
+  );
 }
