@@ -222,7 +222,28 @@ jobs:
           TARGET_PACKAGE: ${{ steps.target.outputs.package }}
         run: |
           pkg="packages/$TARGET_PACKAGE"
-          (cd "$pkg" && dart pub publish --dry-run)
+          # `dart pub publish --dry-run` exits 65 for warnings-only (not
+          # a real problem) vs. any other nonzero exit for a genuine
+          # validation error. Exit 65 is actually *expected* here every
+          # single time: the previous step intentionally leaves
+          # pubspec.yaml modified relative to git (stripping
+          # resolution: workspace), which pub always flags as "checked-
+          # in files are modified in git" — a real error would need
+          # letting through, but that specific, permanent, by-design
+          # warning must never fail this job.
+          set +e
+          output=$(cd "$pkg" && dart pub publish --dry-run 2>&1)
+          exit_code=$?
+          set -e
+          echo "$output"
+          if [ $exit_code -eq 0 ]; then
+            echo "✅ Dry-run clean, no warnings."
+          elif [ $exit_code -eq 65 ]; then
+            echo "⚠️ Dry-run has warnings only (expected — see comment above) — continuing."
+          else
+            echo "❌ Dry-run failed with a real error (exit $exit_code) — aborting publish."
+            exit 1
+          fi
 
       # ── Publish (OIDC — no stored token needed) ───────────────────────────
       - name: 🚀 Publish to Pub.dev (OIDC)
