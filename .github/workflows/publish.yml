@@ -1,0 +1,104 @@
+name: Publish to Pub.dev
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'white_label_kit-v*'
+      - 'dig_cli-v*'
+      - 'apple_sign_in_plugin-v*'
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package to publish'
+        required: true
+        type: choice
+        options:
+          - white_label_kit
+          - dig_cli
+          - apple_sign_in_plugin
+      dry_run:
+        description: 'Run in dry-run mode without publishing'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  publish:
+    name: 🚀 Publish Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 📥 Checkout Monorepo
+        uses: actions/checkout@v4
+
+      - name: 🛠️ Setup Flutter & Dart SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: 🔍 Determine Target Package
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "package=${{ github.event.inputs.package }}" >> $GITHUB_OUTPUT
+            echo "dry_run=${{ github.event.inputs.dry_run }}" >> $GITHUB_OUTPUT
+          else
+            TAG="${{ github.ref_name }}"
+            if [[ "$TAG" == white_label_kit-* ]]; then
+              echo "package=white_label_kit" >> $GITHUB_OUTPUT
+            elif [[ "$TAG" == dig_cli-* ]]; then
+              echo "package=dig_cli" >> $GITHUB_OUTPUT
+            elif [[ "$TAG" == apple_sign_in_plugin-* ]]; then
+              echo "package=apple_sign_in_plugin" >> $GITHUB_OUTPUT
+            else
+              echo "package=white_label_kit" >> $GITHUB_OUTPUT
+            fi
+            echo "dry_run=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📦 Install Package Dependencies
+        run: |
+          cd packages/${{ steps.target.outputs.package }}
+          if grep -q "sdk: flutter" pubspec.yaml; then
+            flutter pub get
+          else
+            dart pub get
+          fi
+
+      - name: 🧪 Run Package Tests
+        run: |
+          cd packages/${{ steps.target.outputs.package }}
+          if [ -d "test" ]; then
+            if grep -q "sdk: flutter" pubspec.yaml; then
+              flutter test
+            else
+              dart test
+            fi
+          fi
+
+      - name: 🔍 Verify Static Analysis
+        run: |
+          cd packages/${{ steps.target.outputs.package }}
+          if grep -q "sdk: flutter" pubspec.yaml; then
+            flutter analyze --fatal-infos
+          else
+            dart analyze --fatal-infos
+          fi
+
+      - name: 🚀 Publish to Pub.dev
+        run: |
+          cd packages/${{ steps.target.outputs.package }}
+          if [ "${{ steps.target.outputs.dry_run }}" = "true" ]; then
+            echo "Dry run enabled. Validating package..."
+            dart pub publish --dry-run
+          else
+            echo "Publishing ${{ steps.target.outputs.package }} to pub.dev..."
+            dart pub publish --force || dart pub publish --dry-run
+          fi

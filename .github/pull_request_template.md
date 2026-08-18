@@ -5,6 +5,8 @@
 
 ## 📦 Impacted Packages
 - [ ] `packages/white_label_kit`
+- [ ] `packages/dig_cli`
+- [ ] `packages/apple_sign_in_plugin`
 - [ ] Other: <!-- specify package name -->
 
 ---

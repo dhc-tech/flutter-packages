@@ -15,10 +15,10 @@ body:
       description: Which package would benefit from this feature?
       options:
         - white_label_kit
-        - theme_kit
-        - network_kit
-        - analytics_kit
+        - dig_cli
+        - apple_sign_in_plugin
         - new package proposal
+        - other
     validations:
       required: true
 

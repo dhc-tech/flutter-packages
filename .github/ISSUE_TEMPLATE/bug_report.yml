@@ -15,9 +15,8 @@ body:
       description: Which package in this monorepo has the bug?
       options:
         - white_label_kit
-        - theme_kit
-        - network_kit
-        - analytics_kit
+        - dig_cli
+        - apple_sign_in_plugin
         - other
     validations:
       required: true
