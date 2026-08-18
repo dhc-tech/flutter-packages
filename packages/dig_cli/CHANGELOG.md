@@ -1,3 +1,13 @@
+## 1.9.0
+
+ - **FIX**(ci): melos release pipeline has never actually run — pin melos 6.x (#6).
+ - **FEAT**(infra): add Multi-OS test matrix (Linux, macOS, Windows) and comprehensive unit tests across all packages.
+ - **FEAT**(apple_sign_in_plugin): upgrade sign_in_with_apple to ^8.1.0 and bump version to 1.3.0 (#3).
+ - **FEAT**(packages): add dig_cli and apple_sign_in_plugin to monorepo.
+ - **DOCS**: customize all headers and style guides to DHC Tech Packages.
+ - **DOCS**: standardize MIT license headers and holders across all monorepo packages.
+ - **DOCS**: standardize all README files to official Flutter packages format.
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
