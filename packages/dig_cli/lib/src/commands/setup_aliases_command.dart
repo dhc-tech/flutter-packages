@@ -72,7 +72,8 @@ class SetupAliasesCommand extends Command {
     String aliasesBlock = '';
 
     if (Platform.isWindows) {
-      aliasesBlock = '''
+      aliasesBlock =
+          '''
 
 # --- DIG CLI Custom Aliases ---
 function ${prefix}p { dg create-project \$args }
@@ -85,7 +86,8 @@ function ${prefix}apk { dg create apk \$args }
 # ------------------------------
 ''';
     } else {
-      aliasesBlock = '''
+      aliasesBlock =
+          '''
 
 # --- DIG CLI Custom Aliases ---
 alias ${prefix}p="dg create-project"
