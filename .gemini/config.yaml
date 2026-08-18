@@ -1,0 +1,13 @@
+# Gemini Code Review & Agent Configuration
+# Based on official flutter/packages .gemini/config.yaml standard.
+
+have_fun: false
+code_review:
+  comment_severity_threshold: MEDIUM
+  pull_request_opened:
+    help: false
+    summary: false
+    include_drafts: false
+ignore_patterns:
+  - '**/*.g.dart'
+  - '**/*.mocks.dart'
