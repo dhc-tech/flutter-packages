@@ -28,6 +28,9 @@ jobs:
     # workflow would loop: merge -> release PR -> merge release PR ->
     # this workflow fires again -> another release PR -> ...
     if: "!contains(github.event.head_commit.message, 'chore(release):') && !contains(github.event.head_commit.message, '[skip ci]')"
+    permissions:
+      contents: write        # pushing the release branch (needed by the called workflow)
+      pull-requests: write   # opening/updating the release PR (needed by the called workflow)
     uses: ./.github/workflows/reusable_release.yml
     with:
       packages: all
