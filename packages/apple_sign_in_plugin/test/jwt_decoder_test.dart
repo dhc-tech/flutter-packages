@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:apple_sign_in_plugin/jwt_decoder.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -22,12 +23,14 @@ void main() {
   group('JwtDecoder Tests', () {
     test('decode decodes valid JWT token correctly', () {
       final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      final token = _createTestJwt(payload: {
-        'sub': 'user_12345',
-        'email': 'user@example.com',
-        'exp': nowSec + 3600,
-        'iat': nowSec,
-      });
+      final token = _createTestJwt(
+        payload: {
+          'sub': 'user_12345',
+          'email': 'user@example.com',
+          'exp': nowSec + 3600,
+          'iat': nowSec,
+        },
+      );
 
       final decoded = JwtDecoder.decode(token);
       expect(decoded['sub'], equals('user_12345'));
@@ -41,26 +44,32 @@ void main() {
       expect(() => JwtDecoder.decode('a.b.c.d'), throwsFormatException);
     });
 
-    test('tryDecode returns Map for valid token and null for invalid token',
-        () {
-      final token = _createTestJwt(payload: {'name': 'Test User'});
-      expect(JwtDecoder.tryDecode(token), isNotNull);
-      expect(JwtDecoder.tryDecode('bad.token.signature'), isNull);
-      expect(JwtDecoder.tryDecode(''), isNull);
-    });
+    test(
+      'tryDecode returns Map for valid token and null for invalid token',
+      () {
+        final token = _createTestJwt(payload: {'name': 'Test User'});
+        expect(JwtDecoder.tryDecode(token), isNotNull);
+        expect(JwtDecoder.tryDecode('bad.token.signature'), isNull);
+        expect(JwtDecoder.tryDecode(''), isNull);
+      },
+    );
 
     test('isExpired detects active vs expired tokens', () {
       final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      final expiredToken = _createTestJwt(payload: {
-        'sub': 'user_expired',
-        'exp': nowSec - 300, // 5 minutes in the past
-      });
+      final expiredToken = _createTestJwt(
+        payload: {
+          'sub': 'user_expired',
+          'exp': nowSec - 300, // 5 minutes in the past
+        },
+      );
 
-      final activeToken = _createTestJwt(payload: {
-        'sub': 'user_active',
-        'exp': nowSec + 3600, // 1 hour in the future
-      });
+      final activeToken = _createTestJwt(
+        payload: {
+          'sub': 'user_active',
+          'exp': nowSec + 3600, // 1 hour in the future
+        },
+      );
 
       expect(JwtDecoder.isExpired(expiredToken), isTrue);
       expect(JwtDecoder.isExpired(activeToken), isFalse);
@@ -69,10 +78,9 @@ void main() {
     test('getExpirationDate and getRemainingTime calculate correctly', () {
       final nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final targetExp = nowSec + 1000;
-      final token = _createTestJwt(payload: {
-        'exp': targetExp,
-        'iat': nowSec - 50,
-      });
+      final token = _createTestJwt(
+        payload: {'exp': targetExp, 'iat': nowSec - 50},
+      );
 
       final expDate = JwtDecoder.getExpirationDate(token);
       expect(expDate, isNotNull);

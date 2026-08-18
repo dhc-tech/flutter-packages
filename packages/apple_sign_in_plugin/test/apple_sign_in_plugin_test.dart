@@ -66,37 +66,38 @@ void main() {
     });
 
     test(
-        'initialize throws ArgumentError when placeholder credentials are used',
-        () async {
-      expect(
-        () => AppleSignInPlugin.initialize(
-          pemKeyPath: 'assets/apple.pem',
-          keyId: 'YOUR_KEY_ID',
-          teamId: 'XYZ1234567',
-          bundleId: 'com.example.app',
-        ),
-        throwsA(isA<ArgumentError>()),
-      );
+      'initialize throws ArgumentError when placeholder credentials are used',
+      () async {
+        expect(
+          () => AppleSignInPlugin.initialize(
+            pemKeyPath: 'assets/apple.pem',
+            keyId: 'YOUR_KEY_ID',
+            teamId: 'XYZ1234567',
+            bundleId: 'com.example.app',
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
 
-      expect(
-        () => AppleSignInPlugin.initialize(
-          pemKeyPath: 'assets/apple.pem',
-          keyId: 'ABC1234567',
-          teamId: 'YOUR_TEAM_ID',
-          bundleId: 'com.example.app',
-        ),
-        throwsA(isA<ArgumentError>()),
-      );
+        expect(
+          () => AppleSignInPlugin.initialize(
+            pemKeyPath: 'assets/apple.pem',
+            keyId: 'ABC1234567',
+            teamId: 'YOUR_TEAM_ID',
+            bundleId: 'com.example.app',
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
 
-      expect(
-        () => AppleSignInPlugin.initialize(
-          pemKeyPath: 'assets/apple.pem',
-          keyId: 'ABC1234567',
-          teamId: 'XYZ1234567',
-          bundleId: 'YOUR_BUNDLE_ID',
-        ),
-        throwsA(isA<ArgumentError>()),
-      );
-    });
+        expect(
+          () => AppleSignInPlugin.initialize(
+            pemKeyPath: 'assets/apple.pem',
+            keyId: 'ABC1234567',
+            teamId: 'XYZ1234567',
+            bundleId: 'YOUR_BUNDLE_ID',
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+      },
+    );
   });
 }

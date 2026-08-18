@@ -19,17 +19,26 @@ void main() {
     test('BoxPainter draw methods execute without throwing', () {
       final painter = BoxPainter();
       expect(
-          () => painter.drawHeader('DHC Tech CLI', width: 60), returnsNormally);
-      expect(() => painter.drawRow('Version', '1.8.0', width: 60),
-          returnsNormally);
+        () => painter.drawHeader('DHC Tech CLI', width: 60),
+        returnsNormally,
+      );
       expect(
-          () => painter.drawRow('Long Key With Value',
-              'A very long value string that exceeds standard width to test truncation',
-              width: 40),
-          returnsNormally);
+        () => painter.drawRow('Version', '1.8.0', width: 60),
+        returnsNormally,
+      );
+      expect(
+        () => painter.drawRow(
+          'Long Key With Value',
+          'A very long value string that exceeds standard width to test truncation',
+          width: 40,
+        ),
+        returnsNormally,
+      );
       expect(() => painter.drawDivider('Commands', width: 60), returnsNormally);
-      expect(() => painter.drawMenuItem('1', 'Build Release', width: 60),
-          returnsNormally);
+      expect(
+        () => painter.drawMenuItem('1', 'Build Release', width: 60),
+        returnsNormally,
+      );
       expect(() => painter.drawFooter(width: 60), returnsNormally);
     });
   });

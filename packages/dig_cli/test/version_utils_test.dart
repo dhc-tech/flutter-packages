@@ -15,11 +15,13 @@ void main() {
       expect(VersionUtils.isNewer('1.0.0', '2.0.0'), isFalse);
     });
 
-    test('isNewer gracefully handles invalid semver strings without crashing',
-        () {
-      expect(VersionUtils.isNewer('invalid', '1.8.0'), isFalse);
-      expect(VersionUtils.isNewer('1.8.0', 'invalid'), isFalse);
-      expect(VersionUtils.isNewer('', ''), isFalse);
-    });
+    test(
+      'isNewer gracefully handles invalid semver strings without crashing',
+      () {
+        expect(VersionUtils.isNewer('invalid', '1.8.0'), isFalse);
+        expect(VersionUtils.isNewer('1.8.0', 'invalid'), isFalse);
+        expect(VersionUtils.isNewer('', ''), isFalse);
+      },
+    );
   });
 }
