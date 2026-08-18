@@ -1,0 +1,83 @@
+# AI code review via DeepSeek — a standalone, independent reviewer
+# alongside Gemini Code Assist, Qodo/PR-Agent, and CodeRabbit. Purely
+# advisory: posts one comment, cannot approve, merge, or affect any
+# required status check.
+#
+# Plain pull_request (not pull_request_target): a fork PR gets no
+# repo secrets and only a read-only GITHUB_TOKEN under this trigger —
+# GitHub enforces that natively, regardless of the permissions block
+# below. This workflow also never checks out the PR's own code; it
+# only reads the diff text via the API and sends it to DeepSeek.
+
+name: 🐋 DeepSeek Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: deepseek-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  review:
+    name: 🧠 DeepSeek Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.actor != 'dependabot[bot]' &&
+      github.actor != 'github-actions[bot]'
+    permissions:
+      pull-requests: write  # posting the review comment
+      contents: read        # reading the diff via the API below
+    steps:
+      - name: 🔑 Check API key availability
+        id: check_key
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          if [ -n "$DEEPSEEK_API_KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️ DEEPSEEK_API_KEY secret not configured. Skipping DeepSeek review."
+          fi
+
+      - name: 📥 Fetch PR diff
+        if: steps.check_key.outputs.available == 'true'
+        id: diff
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Fetched as plain diff text via the API — this never checks
+          # out or executes the PR's branch/code.
+          gh api "repos/$REPO/pulls/$PR_NUMBER" -H "Accept: application/vnd.github.v3.diff" > pr.diff
+          # Cap the diff sent to the model — a huge diff both costs a
+          # lot and exceeds context; truncate rather than fail outright.
+          head -c 60000 pr.diff > pr_truncated.diff
+          echo "truncated=$([ "$(wc -c < pr.diff)" -gt 60000 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: 🐋 Run DeepSeek review
+        if: steps.check_key.outputs.available == 'true'
+        id: review
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          TRUNCATED: ${{ steps.diff.outputs.truncated }}
+        run: |
+          python3 .github/scripts/deepseek_review.py
+
+      - name: 💬 Post review comment
+        if: steps.check_key.outputs.available == 'true' && steps.review.outputs.review_body != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REVIEW_BODY: ${{ steps.review.outputs.review_body }}
+        run: |
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$REVIEW_BODY"
