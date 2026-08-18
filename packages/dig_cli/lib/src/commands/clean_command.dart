@@ -41,8 +41,7 @@ class CleanCommand extends Command {
     try {
       kLog('🚀 Starting thorough project cleanup...', type: LogType.info);
 
-      await runWithSpinner('🧹 Cleaning Flutter project (flutter clean)',
-          () async {
+      await runWithSpinner('🧹 Cleaning Flutter project (flutter clean)', () async {
         final result = await Process.run('flutter', ['clean']);
         if (result.exitCode != 0) {
           throw Exception(
@@ -54,8 +53,7 @@ class CleanCommand extends Command {
       await _deleteIfExists('build');
       kLog('🗑️  Removed build directory', type: LogType.info);
 
-      await runWithSpinner('📦 Getting Dart packages (flutter pub get)',
-          () async {
+      await runWithSpinner('📦 Getting Dart packages (flutter pub get)', () async {
         final result = await Process.run('flutter', ['pub', 'get']);
         if (result.exitCode != 0) {
           throw Exception(
@@ -87,12 +85,9 @@ class CleanCommand extends Command {
           await runWithSpinner(
             '📥 Installing CocoaPods (pod install)',
             () async {
-              final result = await Process.run(
-                  'pod',
-                  [
-                    'install',
-                  ],
-                  workingDirectory: iosDir.path);
+              final result = await Process.run('pod', [
+                'install',
+              ], workingDirectory: iosDir.path);
               if (result.exitCode != 0) {
                 kLog(
                   '⚠️ pod install failed. You might need to run it manually.',
