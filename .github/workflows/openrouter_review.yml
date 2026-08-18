@@ -213,4 +213,11 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REVIEW_BODY: ${{ steps.review.outputs.review_body }}
         run: |
-          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$REVIEW_BODY"
+          # --body-file - reads from stdin: the review is markdown from
+          # an LLM (near-certain to contain backticks for code
+          # formatting), and backticks inside a double-quoted bash
+          # string trigger command substitution — a real
+          # shell-injection risk with --body "$REVIEW_BODY" directly.
+          # Piping via stdin never passes it through the shell as an
+          # argument at all.
+          printf '%s' "$REVIEW_BODY" | gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file -
