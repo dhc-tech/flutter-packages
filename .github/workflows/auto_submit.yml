@@ -31,6 +31,7 @@ jobs:
       contents: write        # performing the actual merge
       pull-requests: write   # reading/updating PR state (labels, mergeability)
       issues: write          # posting the "removed autosubmit" explanation comment
+      actions: read          # reading this job's own log to extract the real failure reason
     steps:
       # Closes the loop fully: a human never has to manually add the
       # autosubmit label. Approving the PR IS the "please merge this"
@@ -84,6 +85,7 @@ jobs:
           PR_NUMBER: ${{ steps.automerge.outputs.pullRequestNumber }}
           MERGE_RESULT: ${{ steps.automerge.outputs.mergeResult }}
           REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
         run: |
           if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "0" ]; then
             echo "No PR number from automerge-action output; skipping."
@@ -94,5 +96,23 @@ jobs:
             echo "autosubmit label already removed by a concurrent run; skipping duplicate comment."
             exit 0
           fi
+
+          # Pull the real reason out of this same job's own log instead of
+          # a generic template — automerge-action logs the exact GitHub
+          # API error (e.g. "Resource not accessible by personal access
+          # token", "not mergeable state: dirty", a specific failing
+          # check) on every retry. The last occurrence is the one that
+          # actually mattered.
+          reason=$(gh run view "$RUN_ID" --repo "$REPO" --log 2>/dev/null \
+            | grep -i "Failed to merge PR:\|Current PR status:" \
+            | tail -1 \
+            | sed -E 's/^[^\t]*\t[^\t]*\t[0-9TZ:.-]+ (INFO|ERROR)\s*//')
+          if [ -z "$reason" ]; then
+            reason="(no specific reason captured from the log — check the workflow run for details)"
+          fi
+
           gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "autosubmit" || true
-          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "🤖 Removed the \`autosubmit\` label — merge attempt result: \`$MERGE_RESULT\`. Please fix the issues identified (failing checks, missing approval, or a merge conflict) or deflake, then re-apply the \`autosubmit\` label."
+          body="🤖 Removed the \`autosubmit\` label — merge attempt result: \`$MERGE_RESULT\`"
+          body="$body"$'\n\n'"**Reason:** $reason"
+          body="$body"$'\n\n'"Fix the actual issue above, then re-apply the \`autosubmit\` label to retry. [Full run log](${GITHUB_SERVER_URL}/${REPO}/actions/runs/${RUN_ID})."
+          gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$body"
