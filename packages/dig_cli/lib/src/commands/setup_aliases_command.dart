@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as p;
+
 import '../utils/logger.dart';
 import '../ui/box_painter.dart';
 
@@ -16,8 +18,10 @@ class SetupAliasesCommand extends Command {
     final home =
         Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
     if (home == null) {
-      kLog('❗ Could not determine home directory to set up aliases.',
-          type: LogType.error);
+      kLog(
+        '❗ Could not determine home directory to set up aliases.',
+        type: LogType.error,
+      );
       return;
     }
 
@@ -27,8 +31,9 @@ class SetupAliasesCommand extends Command {
     if (Platform.isWindows) {
       // Windows PowerShell Profile
       final psProfileDir = p.join(home, 'Documents', 'PowerShell');
-      final psProfile =
-          File(p.join(psProfileDir, 'Microsoft.PowerShell_profile.ps1'));
+      final psProfile = File(
+        p.join(psProfileDir, 'Microsoft.PowerShell_profile.ps1'),
+      );
 
       if (!await Directory(psProfileDir).exists()) {
         await Directory(psProfileDir).create(recursive: true);
@@ -51,8 +56,10 @@ class SetupAliasesCommand extends Command {
       } else {
         // Fallback to .zshrc on Mac or .bashrc on Linux
         targetProfile = Platform.isMacOS ? zshrc : bashrc;
-        kLog('  Creating new profile file: ${p.basename(targetProfile.path)}',
-            type: LogType.info);
+        kLog(
+          '  Creating new profile file: ${p.basename(targetProfile.path)}',
+          type: LogType.info,
+        );
       }
       profileName = p.basename(targetProfile.path);
     }
@@ -65,7 +72,8 @@ class SetupAliasesCommand extends Command {
     String aliasesBlock = '';
 
     if (Platform.isWindows) {
-      aliasesBlock = '''
+      aliasesBlock =
+          '''
 
 # --- DIG CLI Custom Aliases ---
 function ${prefix}p { dg create-project \$args }
@@ -78,7 +86,8 @@ function ${prefix}apk { dg create apk \$args }
 # ------------------------------
 ''';
     } else {
-      aliasesBlock = '''
+      aliasesBlock =
+          '''
 
 # --- DIG CLI Custom Aliases ---
 alias ${prefix}p="dg create-project"
@@ -98,8 +107,10 @@ alias ${prefix}apk="dg create apk"
     }
 
     if (content.contains('# --- DIG CLI Custom Aliases ---')) {
-      kLog('✅ DIG CLI aliases are already installed in $profileName',
-          type: LogType.success);
+      kLog(
+        '✅ DIG CLI aliases are already installed in $profileName',
+        type: LogType.success,
+      );
       return;
     }
 
@@ -115,11 +126,15 @@ alias ${prefix}apk="dg create apk"
     painter.drawFooter(width: 50);
 
     if (Platform.isWindows) {
-      kLog('\n🚀 Restart PowerShell or run ". \$PROFILE" to activate them.',
-          type: LogType.info);
+      kLog(
+        '\n🚀 Restart PowerShell or run ". \$PROFILE" to activate them.',
+        type: LogType.info,
+      );
     } else {
-      kLog('\n🚀 Run "source ~/$profileName" to activate them immediately.',
-          type: LogType.info);
+      kLog(
+        '\n🚀 Run "source ~/$profileName" to activate them immediately.',
+        type: LogType.info,
+      );
     }
   }
 }

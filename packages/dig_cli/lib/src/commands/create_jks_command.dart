@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as p;
+
 import '../utils/logger.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
@@ -18,8 +20,11 @@ class CreateJksCommand extends Command {
     argParser.addOption('store-pass', help: 'Keystore password');
     argParser.addOption('key-pass', help: 'Key password');
     argParser.addOption('ou', help: 'Organizational Unit');
-    argParser.addFlag('no-interactive',
-        negatable: false, help: 'Run without user prompts');
+    argParser.addFlag(
+      'no-interactive',
+      negatable: false,
+      help: 'Run without user prompts',
+    );
   }
   @override
   Future<void> run() async {
@@ -106,8 +111,10 @@ class CreateJksCommand extends Command {
     }
 
     if (storePass.length < 6) {
-      kLog('❗ Store password must be at least 6 characters.',
-          type: LogType.error);
+      kLog(
+        '❗ Store password must be at least 6 characters.',
+        type: LogType.error,
+      );
       return;
     }
 
@@ -132,8 +139,9 @@ class CreateJksCommand extends Command {
     final keytoolCheck = await Process.run('which', ['keytool']);
     if (keytoolCheck.exitCode != 0) {
       kLog(
-          '❗ "keytool" command not found. Please ensure JDK is installed and in your PATH.',
-          type: LogType.error);
+        '❗ "keytool" command not found. Please ensure JDK is installed and in your PATH.',
+        type: LogType.error,
+      );
       return;
     }
 
@@ -174,11 +182,13 @@ class CreateJksCommand extends Command {
       if (isInsideFlutter) {
         await runWithSpinner('📦 Automating Android setup...', () async {
           // Create key.properties in android/
-          final keyPropertiesFile =
-              File(p.join(projectRoot.path, 'android', 'key.properties'));
+          final keyPropertiesFile = File(
+            p.join(projectRoot.path, 'android', 'key.properties'),
+          );
 
           // Use absolute path in key.properties for "0 work" robustness
-          final propertiesContent = '''storePassword=$storePass
+          final propertiesContent =
+              '''storePassword=$storePass
 keyPassword=$keyPass
 keyAlias=$alias
 storeFile=${p.basename(jksFile.path)}''';
@@ -198,8 +208,9 @@ storeFile=${p.basename(jksFile.path)}''';
       kLog('   • Alias: $alias', type: LogType.info);
       kLog('   • Passwords: $storePass', type: LogType.info);
       kLog(
-          '   • Status: Your project is ready for "flutter build apk --release"',
-          type: LogType.success);
+        '   • Status: Your project is ready for "flutter build apk --release"',
+        type: LogType.success,
+      );
     } catch (e) {
       kLog('❌ An error occurred: $e', type: LogType.error);
     }
@@ -278,11 +289,15 @@ if (keystorePropertiesFile.exists()) {
       if (!content.contains('release {') &&
           !content.contains('create("release")')) {
         content = content.replaceFirst(
-            'signingConfigs {', 'signingConfigs {\n$releaseConfig');
+          'signingConfigs {',
+          'signingConfigs {\n$releaseConfig',
+        );
       }
     } else if (content.contains('android {')) {
-      content = content.replaceFirst('android {',
-          'android {\n    signingConfigs {\n$releaseConfig\n    }\n');
+      content = content.replaceFirst(
+        'android {',
+        'android {\n    signingConfigs {\n$releaseConfig\n    }\n',
+      );
     }
 
     // 4. Update buildTypes
@@ -292,8 +307,10 @@ if (keystorePropertiesFile.exists()) {
           final signingLine = isKotlin
               ? '            signingConfig = signingConfigs.getByName("release")'
               : '            signingConfig signingConfigs.release';
-          content =
-              content.replaceFirst('release {', 'release {\n$signingLine');
+          content = content.replaceFirst(
+            'release {',
+            'release {\n$signingLine',
+          );
         }
       }
     }

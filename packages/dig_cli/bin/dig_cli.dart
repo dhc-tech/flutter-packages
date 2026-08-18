@@ -37,8 +37,12 @@ void main(List<String> arguments) async {
     ..addCommand(VersionCommand());
 
   // Add global version flag
-  runner.argParser
-      .addFlag('version', abbr: 'v', negatable: false, help: 'Show version');
+  runner.argParser.addFlag(
+    'version',
+    abbr: 'v',
+    negatable: false,
+    help: 'Show version',
+  );
 
   if (arguments.isEmpty) {
     await showInteractiveMenu();

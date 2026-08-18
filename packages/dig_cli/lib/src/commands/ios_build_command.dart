@@ -51,7 +51,8 @@ class IosBuildCommand extends Command {
       }
 
       stdout.write(
-          'Enter custom name prefix (press enter to use project name): ');
+        'Enter custom name prefix (press enter to use project name): ',
+      );
       final nameInput = stdin.readLineSync()?.trim();
       if (nameInput != null && nameInput.isNotEmpty) {
         customName = nameInput;
@@ -139,11 +140,13 @@ Future<void> buildIos({
 
     final buildResult = await runWithSpinner(
       '🚧 Running flutter build ipa --release --export-method $method...',
-      () => Process.run(
-        'flutter',
-        ['build', 'ipa', '--release', '--export-method', method],
-        workingDirectory: projectRoot.path,
-      ),
+      () => Process.run('flutter', [
+        'build',
+        'ipa',
+        '--release',
+        '--export-method',
+        method,
+      ], workingDirectory: projectRoot.path),
     );
 
     if (buildResult.exitCode != 0) {
@@ -156,16 +159,22 @@ Future<void> buildIos({
         kLog('\n--- Error Log ---', type: LogType.error);
         print(buildResult.stderr);
       }
-      kLog('\n💡 Common fixes for iOS installation issues:',
-          type: LogType.info);
       kLog(
-          '   • Make sure you use "ad-hoc" or "development" for testing on devices.',
-          type: LogType.info);
+        '\n💡 Common fixes for iOS installation issues:',
+        type: LogType.info,
+      );
       kLog(
-          '   • Verify your UDIDs are added to the provisioning profile (for ad-hoc).',
-          type: LogType.info);
-      kLog('   • App Store builds cannot be installed directly on devices.',
-          type: LogType.info);
+        '   • Make sure you use "ad-hoc" or "development" for testing on devices.',
+        type: LogType.info,
+      );
+      kLog(
+        '   • Verify your UDIDs are added to the provisioning profile (for ad-hoc).',
+        type: LogType.info,
+      );
+      kLog(
+        '   • App Store builds cannot be installed directly on devices.',
+        type: LogType.info,
+      );
       return;
     }
 
@@ -208,12 +217,15 @@ Future<void> buildIos({
     kLog('\n📲 To install on device:', type: LogType.info);
     kLog('   1. Connect your iPhone to this Mac.', type: LogType.info);
     kLog('   2. Open "Finder" or "Apple Configurator 2".', type: LogType.info);
-    kLog('   3. Drag and drop the .ipa file onto your device.',
-        type: LogType.info);
+    kLog(
+      '   3. Drag and drop the .ipa file onto your device.',
+      type: LogType.info,
+    );
     if (method == 'app-store') {
       kLog(
-          '\n⚠️  Warning: App Store builds cannot be installed directly. Use ad-hoc or development.',
-          type: LogType.warning);
+        '\n⚠️  Warning: App Store builds cannot be installed directly. Use ad-hoc or development.',
+        type: LogType.warning,
+      );
     }
   } catch (e) {
     kLog(

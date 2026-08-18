@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as p;
+
 import '../utils/logger.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
@@ -41,8 +43,10 @@ class HashKeyCommand extends Command {
     final debugKeystorePath = p.join(home, '.android', 'debug.keystore');
 
     if (!await File(debugKeystorePath).exists()) {
-      kLog('❗ Debug keystore not found at $debugKeystorePath',
-          type: LogType.error);
+      kLog(
+        '❗ Debug keystore not found at $debugKeystorePath',
+        type: LogType.error,
+      );
       return;
     }
 
@@ -69,8 +73,10 @@ class HashKeyCommand extends Command {
       final projectConfig = await _tryReadProjectKeyProperties();
       if (projectConfig != null && projectConfig.containsKey('storeFile')) {
         final stFile = projectConfig['storeFile'];
-        kLog('\n✨ Found key.properties in current project.',
-            type: LogType.success);
+        kLog(
+          '\n✨ Found key.properties in current project.',
+          type: LogType.success,
+        );
         kLog('   Keystore: $stFile', type: LogType.info);
         kLog('   Alias: ${projectConfig['keyAlias']}', type: LogType.info);
 
@@ -118,8 +124,10 @@ class HashKeyCommand extends Command {
         storepass.isEmpty ||
         keypass == null ||
         keypass.isEmpty) {
-      kLog('❗ All fields are required for release hash key.',
-          type: LogType.error);
+      kLog(
+        '❗ All fields are required for release hash key.',
+        type: LogType.error,
+      );
       return;
     }
 
@@ -153,68 +161,73 @@ class HashKeyCommand extends Command {
 
       if (keytoolCheck.exitCode != 0) {
         kLog(
-            '❗ "keytool" command not found. Please ensure JDK is installed and in your PATH.',
-            type: LogType.error);
+          '❗ "keytool" command not found. Please ensure JDK is installed and in your PATH.',
+          type: LogType.error,
+        );
         return;
       }
       if (opensslCheck.exitCode != 0) {
-        kLog('❗ "openssl" command not found. Please install openssl.',
-            type: LogType.error);
+        kLog(
+          '❗ "openssl" command not found. Please install openssl.',
+          type: LogType.error,
+        );
         return;
       }
 
-      final result = await runWithSpinner(
-        '🔍 Processing...',
-        () async {
-          // We use piping manually in Dart for better security (avoids sh -c issues)
-          final keytoolProc = await Process.start('keytool', [
-            '-exportcert',
-            '-alias',
-            alias,
-            '-keystore',
-            keystore,
-            '-storepass',
-            storepass,
-            '-keypass',
-            keypass,
-          ]);
+      final result = await runWithSpinner('🔍 Processing...', () async {
+        // We use piping manually in Dart for better security (avoids sh -c issues)
+        final keytoolProc = await Process.start('keytool', [
+          '-exportcert',
+          '-alias',
+          alias,
+          '-keystore',
+          keystore,
+          '-storepass',
+          storepass,
+          '-keypass',
+          keypass,
+        ]);
 
-          final sha1Proc = await Process.start('openssl', ['sha1', '-binary']);
-          final base64Proc = await Process.start('openssl', ['base64']);
+        final sha1Proc = await Process.start('openssl', ['sha1', '-binary']);
+        final base64Proc = await Process.start('openssl', ['base64']);
 
-          // Pipe: keytool -> sha1 -> base64
-          await keytoolProc.stdout.pipe(sha1Proc.stdin);
-          await sha1Proc.stdout.pipe(base64Proc.stdin);
+        // Pipe: keytool -> sha1 -> base64
+        await keytoolProc.stdout.pipe(sha1Proc.stdin);
+        await sha1Proc.stdout.pipe(base64Proc.stdin);
 
-          final hashResult =
-              await base64Proc.stdout.transform(const Utf8Decoder()).join();
-          final keytoolExit = await keytoolProc.exitCode;
-          final sha1Exit = await sha1Proc.exitCode;
-          final base64Exit = await base64Proc.exitCode;
+        final hashResult = await base64Proc.stdout
+            .transform(const Utf8Decoder())
+            .join();
+        final keytoolExit = await keytoolProc.exitCode;
+        final sha1Exit = await sha1Proc.exitCode;
+        final base64Exit = await base64Proc.exitCode;
 
-          final stderrOutput =
-              await keytoolProc.stderr.transform(const Utf8Decoder()).join();
+        final stderrOutput = await keytoolProc.stderr
+            .transform(const Utf8Decoder())
+            .join();
 
-          final finalExitCode = (keytoolExit != 0)
-              ? keytoolExit
-              : (sha1Exit != 0 ? sha1Exit : base64Exit);
+        final finalExitCode = (keytoolExit != 0)
+            ? keytoolExit
+            : (sha1Exit != 0 ? sha1Exit : base64Exit);
 
-          return ProcessResult(0, finalExitCode, hashResult, stderrOutput);
-        },
-      );
+        return ProcessResult(0, finalExitCode, hashResult, stderrOutput);
+      });
 
       if (result.exitCode == 0) {
         final hash = result.stdout.toString().trim();
         if (hash.isEmpty) {
           kLog(
-              '❗ Generated hash key is empty. Check if the alias and passwords are correct.',
-              type: LogType.error);
+            '❗ Generated hash key is empty. Check if the alias and passwords are correct.',
+            type: LogType.error,
+          );
           return;
         }
         kLog('\n✅ $label Hash Key (Base64):', type: LogType.success);
         kLog('   $hash', type: LogType.success);
-        kLog('\n💡 This is used for Google Sign-In and Facebook Login.',
-            type: LogType.info);
+        kLog(
+          '\n💡 This is used for Google Sign-In and Facebook Login.',
+          type: LogType.info,
+        );
       } else {
         kLog('❗ Failed to generate hash key.', type: LogType.error);
         kLog('Error: ${result.stderr}', type: LogType.error);
@@ -228,8 +241,9 @@ class HashKeyCommand extends Command {
     final projectRoot = findProjectRoot();
     if (projectRoot == null) return null;
 
-    final keyPropFile =
-        File(p.join(projectRoot.path, 'android', 'key.properties'));
+    final keyPropFile = File(
+      p.join(projectRoot.path, 'android', 'key.properties'),
+    );
     if (!await keyPropFile.exists()) return null;
 
     final config = <String, String>{};

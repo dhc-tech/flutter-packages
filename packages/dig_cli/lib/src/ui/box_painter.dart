@@ -18,7 +18,8 @@ class BoxPainter {
     final rightPadding = ' ' * (width - _visibleLength(title) - padding - 2);
 
     print(
-        '${borderPen('║')}$leftPadding${titlePen(title)}$rightPadding${borderPen('║')}');
+      '${borderPen('║')}$leftPadding${titlePen(title)}$rightPadding${borderPen('║')}',
+    );
     print(borderPen('╠$horizontalLine╣'));
   }
 
@@ -42,7 +43,8 @@ class BoxPainter {
     }
 
     print(
-        '${borderPen('║')}  ${textPen(label)}: ${textPen(content)} ${borderPen('║')}');
+      '${borderPen('║')}  ${textPen(label)}: ${textPen(content)} ${borderPen('║')}',
+    );
   }
 
   void drawDivider(String text, {int width = 50}) {

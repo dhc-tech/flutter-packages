@@ -1,5 +1,7 @@
 import 'dart:io';
+
 import 'package:args/command_runner.dart';
+
 import '../utils/logger.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
@@ -13,18 +15,25 @@ class RenameCommand extends Command {
       'Renames the Flutter app and changes the bundle ID / package name.';
 
   RenameCommand() {
-    argParser.addOption('name',
-        abbr: 'n', help: 'New display name for the app');
-    argParser.addOption('bundle-id',
-        abbr: 'b',
-        help: 'New bundle ID / package name (e.g., com.example.app)');
+    argParser.addOption(
+      'name',
+      abbr: 'n',
+      help: 'New display name for the app',
+    );
+    argParser.addOption(
+      'bundle-id',
+      abbr: 'b',
+      help: 'New bundle ID / package name (e.g., com.example.app)',
+    );
   }
 
   @override
   Future<void> run() async {
     if (!await isFlutterProject()) {
-      kLog('❗ This command must be run inside a Flutter project.',
-          type: LogType.error);
+      kLog(
+        '❗ This command must be run inside a Flutter project.',
+        type: LogType.error,
+      );
       return;
     }
 
@@ -38,7 +47,8 @@ class RenameCommand extends Command {
       if (newName?.isEmpty ?? true) newName = null;
 
       stdout.write(
-          'Enter new bundle ID (e.g., com.example.app, leave empty to skip): ');
+        'Enter new bundle ID (e.g., com.example.app, leave empty to skip): ',
+      );
       newBundleId = stdin.readLineSync()?.trim();
       if (newBundleId?.isEmpty ?? true) newBundleId = null;
 
@@ -54,8 +64,9 @@ class RenameCommand extends Command {
 
     if (newBundleId != null && !_isValidBundleId(newBundleId)) {
       kLog(
-          '❗ Invalid bundle ID format. Expected something like "com.example.app".',
-          type: LogType.error);
+        '❗ Invalid bundle ID format. Expected something like "com.example.app".',
+        type: LogType.error,
+      );
       return;
     }
 
@@ -74,8 +85,9 @@ class RenameCommand extends Command {
 
     kLog('✅ App successfully renamed!', type: LogType.success);
     kLog(
-        '💡 Run "flutter clean" and "flutter pub get" to refresh all artifacts.',
-        type: LogType.info);
+      '💡 Run "flutter clean" and "flutter pub get" to refresh all artifacts.',
+      type: LogType.info,
+    );
   }
 
   bool _isValidBundleId(String id) {

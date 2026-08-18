@@ -1,6 +1,8 @@
 import 'dart:io';
+
 import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as p;
+
 import '../utils/logger.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
@@ -16,15 +18,20 @@ class CreateModuleCommand extends Command {
       'Creates a new GetX module (View, Controller, Binding) and registers routes.';
 
   CreateModuleCommand() {
-    argParser.addOption('name',
-        abbr: 'n', help: 'The name of the new module (e.g., "auth")');
+    argParser.addOption(
+      'name',
+      abbr: 'n',
+      help: 'The name of the new module (e.g., "auth")',
+    );
   }
 
   @override
   Future<void> run() async {
     if (!await isFlutterProject()) {
-      kLog('❗ This command must be run inside a Flutter project.',
-          type: LogType.error);
+      kLog(
+        '❗ This command must be run inside a Flutter project.',
+        type: LogType.error,
+      );
       return;
     }
 
@@ -48,9 +55,9 @@ class CreateModuleCommand extends Command {
     // Clean up module name (e.g., 'AuthView' -> 'Auth', 'user_module' -> 'user')
     final String cleanModuleName = finalModuleName
         .replaceAll(
-            RegExp(r'_?(View|Controller|Binding|Module)$',
-                caseSensitive: false),
-            '')
+          RegExp(r'_?(View|Controller|Binding|Module)$', caseSensitive: false),
+          '',
+        )
         .trim();
 
     final slug = _toSnakeCase(cleanModuleName);
@@ -93,10 +100,15 @@ class CreateModuleCommand extends Command {
   }
 
   Future<void> _createController(
-      Directory dir, String className, String slug) async {
-    final file =
-        File(p.join(dir.path, 'controller', '${slug}_controller.dart'));
-    final content = '''
+    Directory dir,
+    String className,
+    String slug,
+  ) async {
+    final file = File(
+      p.join(dir.path, 'controller', '${slug}_controller.dart'),
+    );
+    final content =
+        '''
 import '../../../utils/import.dart';
 
 class ${className}Controller extends GetxController {
@@ -107,9 +119,13 @@ class ${className}Controller extends GetxController {
   }
 
   Future<void> _createBinding(
-      Directory dir, String className, String slug) async {
+    Directory dir,
+    String className,
+    String slug,
+  ) async {
     final file = File(p.join(dir.path, 'binding', '${slug}_binding.dart'));
-    final content = '''
+    final content =
+        '''
 import '../../../utils/import.dart';
 import '../controller/${slug}_controller.dart';
 
@@ -127,7 +143,8 @@ class ${className}Binding extends Bindings {
 
   Future<void> _createView(Directory dir, String className, String slug) async {
     final file = File(p.join(dir.path, 'view', '${slug}_view.dart'));
-    final content = '''
+    final content =
+        '''
 import '../../../utils/import.dart';
 import '../controller/${slug}_controller.dart';
 
@@ -156,7 +173,8 @@ class ${className}View extends GetView<${className}Controller> {
 
   Future<void> _createExport(Directory dir, String slug) async {
     final file = File(p.join(dir.path, '${slug}_export.dart'));
-    final content = '''
+    final content =
+        '''
 export 'binding/${slug}_binding.dart';
 export 'controller/${slug}_controller.dart';
 export 'view/${slug}_view.dart';
@@ -165,8 +183,9 @@ export 'view/${slug}_view.dart';
   }
 
   Future<void> _registerModuleExport(String slug) async {
-    final exportFile =
-        File(p.join('lib', 'app', 'module', 'module_export.dart'));
+    final exportFile = File(
+      p.join('lib', 'app', 'module', 'module_export.dart'),
+    );
     if (!await exportFile.exists()) {
       await exportFile.parent.create(recursive: true);
       await exportFile.writeAsString('''
@@ -187,10 +206,12 @@ export 'splash/splash_export.dart';
     lines.add(exportLine);
 
     // Header and non-export lines
-    final headerLines =
-        lines.where((l) => !l.trim().startsWith('export')).toList();
-    final exportLines =
-        lines.where((l) => l.trim().startsWith('export')).toList();
+    final headerLines = lines
+        .where((l) => !l.trim().startsWith('export'))
+        .toList();
+    final exportLines = lines
+        .where((l) => l.trim().startsWith('export'))
+        .toList();
     exportLines.sort();
 
     final newContent =
@@ -218,7 +239,8 @@ abstract class AppRoute {
     final lastBraceIndex = content.lastIndexOf('}');
     if (lastBraceIndex == -1) return;
 
-    final updatedContent = "${content.substring(0, lastBraceIndex)}"
+    final updatedContent =
+        "${content.substring(0, lastBraceIndex)}"
         "  static const String $routeName = '/$className';\n"
         "${content.substring(lastBraceIndex)}";
 
@@ -256,7 +278,8 @@ abstract class AppPage {
     }
 
     if (!content.contains('AppRoute.$routeName')) {
-      final newPage = '''
+      final newPage =
+          '''
     GetPage(
       name: AppRoute.$routeName,
       page: () => const ${className}View(),
@@ -267,7 +290,8 @@ abstract class AppPage {
       final listEndIndex = content.lastIndexOf('];');
       if (listEndIndex == -1) return;
 
-      final updatedContent = "${content.substring(0, listEndIndex)}"
+      final updatedContent =
+          "${content.substring(0, listEndIndex)}"
           "$newPage"
           "${content.substring(listEndIndex)}";
 
@@ -278,7 +302,9 @@ abstract class AppPage {
   String _toSnakeCase(String input) {
     return input
         .replaceAllMapped(
-            RegExp(r'([A-Z])'), (match) => '_${match.group(1)!.toLowerCase()}')
+          RegExp(r'([A-Z])'),
+          (match) => '_${match.group(1)!.toLowerCase()}',
+        )
         .replaceAll(RegExp(r'^\_'), '')
         .toLowerCase();
   }

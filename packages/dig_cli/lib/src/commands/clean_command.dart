@@ -28,8 +28,10 @@ class CleanCommand extends Command {
     final root = findProjectRoot();
 
     if (root == null) {
-      kLog('❗ This command must be run inside a Flutter project.',
-          type: LogType.error);
+      kLog(
+        '❗ This command must be run inside a Flutter project.',
+        type: LogType.error,
+      );
       exit(1);
     }
     Directory.current = root;
@@ -39,30 +41,26 @@ class CleanCommand extends Command {
     try {
       kLog('🚀 Starting thorough project cleanup...', type: LogType.info);
 
-      await runWithSpinner(
-        '🧹 Cleaning Flutter project (flutter clean)',
-        () async {
-          final result = await Process.run('flutter', ['clean']);
-          if (result.exitCode != 0) {
-            throw Exception(
-                'flutter clean failed with exit code ${result.exitCode}\n${result.stderr}');
-          }
-        },
-      );
+      await runWithSpinner('🧹 Cleaning Flutter project (flutter clean)', () async {
+        final result = await Process.run('flutter', ['clean']);
+        if (result.exitCode != 0) {
+          throw Exception(
+            'flutter clean failed with exit code ${result.exitCode}\n${result.stderr}',
+          );
+        }
+      });
 
       await _deleteIfExists('build');
       kLog('🗑️  Removed build directory', type: LogType.info);
 
-      await runWithSpinner(
-        '📦 Getting Dart packages (flutter pub get)',
-        () async {
-          final result = await Process.run('flutter', ['pub', 'get']);
-          if (result.exitCode != 0) {
-            throw Exception(
-                'flutter pub get failed with exit code ${result.exitCode}\n${result.stderr}');
-          }
-        },
-      );
+      await runWithSpinner('📦 Getting Dart packages (flutter pub get)', () async {
+        final result = await Process.run('flutter', ['pub', 'get']);
+        if (result.exitCode != 0) {
+          throw Exception(
+            'flutter pub get failed with exit code ${result.exitCode}\n${result.stderr}',
+          );
+        }
+      });
 
       final homeDir = Platform.isWindows
           ? Platform.environment['USERPROFILE']
@@ -87,12 +85,14 @@ class CleanCommand extends Command {
           await runWithSpinner(
             '📥 Installing CocoaPods (pod install)',
             () async {
-              final result = await Process.run('pod', ['install'],
-                  workingDirectory: iosDir.path);
+              final result = await Process.run('pod', [
+                'install',
+              ], workingDirectory: iosDir.path);
               if (result.exitCode != 0) {
                 kLog(
-                    '⚠️ pod install failed. You might need to run it manually.',
-                    type: LogType.warning);
+                  '⚠️ pod install failed. You might need to run it manually.',
+                  type: LogType.warning,
+                );
               }
             },
           );
@@ -100,15 +100,18 @@ class CleanCommand extends Command {
 
         if (cleanGlobal && homeDir != null) {
           final derivedData = Directory(
-              p.join(homeDir, 'Library', 'Developer', 'Xcode', 'DerivedData'));
+            p.join(homeDir, 'Library', 'Developer', 'Xcode', 'DerivedData'),
+          );
           if (await derivedData.exists()) {
             kLog('🧹 Cleaning global Xcode DerivedData...', type: LogType.info);
             await derivedData.delete(recursive: true);
           }
         }
       } else if (Platform.isWindows) {
-        kLog('🪟 Windows: Running platform specific cleanup...',
-            type: LogType.info);
+        kLog(
+          '🪟 Windows: Running platform specific cleanup...',
+          type: LogType.info,
+        );
         await _deleteIfExists('windows/build');
         await _deleteIfExists('windows/flutter/ephemeral');
         kLog('🧼 Cleaned local Windows build artifacts.', type: LogType.info);
@@ -121,8 +124,10 @@ class CleanCommand extends Command {
           }
         }
       } else if (Platform.isLinux) {
-        kLog('🐧 Linux: Running platform specific cleanup...',
-            type: LogType.info);
+        kLog(
+          '🐧 Linux: Running platform specific cleanup...',
+          type: LogType.info,
+        );
         await _deleteIfExists('linux/build');
         await _deleteIfExists('linux/flutter/ephemeral');
         kLog('🧼 Cleaned local Linux build artifacts.', type: LogType.info);

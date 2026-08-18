@@ -1,8 +1,10 @@
 import 'dart:io';
+
 import 'package:args/command_runner.dart';
 import 'package:yaml/yaml.dart';
 import 'package:watcher/watcher.dart';
 import 'package:path/path.dart' as p;
+
 import '../utils/logger.dart';
 
 /// Command to generate asset constants from dig.yaml
@@ -153,7 +155,7 @@ Future<void> _watchAssets() async {
       'ttf',
       'otf',
       'webp',
-      'gif'
+      'gif',
     };
 
     if (allowedExtensions.contains(extension)) {
@@ -192,7 +194,9 @@ Future<void> _watchAssets() async {
 ///   }
 /// }
 Map<String, Map<String, List<_AssetInfo>>> _scanAssets(
-    Directory dir, List<String> skipPatterns) {
+  Directory dir,
+  List<String> skipPatterns,
+) {
   final assets = <String, Map<String, List<_AssetInfo>>>{};
 
   final allFiles = dir.listSync(recursive: true);
@@ -206,15 +210,18 @@ Map<String, Map<String, List<_AssetInfo>>> _scanAssets(
       final normalizedPath = relativePath.replaceAll('\\', '/');
       final pathParts = normalizedPath.split('/');
 
-      final extension =
-          p.extension(entity.path).toLowerCase().replaceAll('.', '');
+      final extension = p
+          .extension(entity.path)
+          .toLowerCase()
+          .replaceAll('.', '');
 
       // Check if this path should be skipped
       // The relative path for skipping should include the base folder if it matches existing logic
       // But _shouldSkip expects 'assets/...' or '/pattern/'.
       // This is still a bit brittle, but I'll improve _shouldSkip too.
-      final fullRelativePath =
-          p.join(p.basename(dir.path), normalizedPath).replaceAll('\\', '/');
+      final fullRelativePath = p
+          .join(p.basename(dir.path), normalizedPath)
+          .replaceAll('\\', '/');
 
       if (_shouldSkip(fullRelativePath, skipPatterns)) {
         continue;
@@ -260,11 +267,13 @@ Map<String, Map<String, List<_AssetInfo>>> _scanAssets(
 
         // The path in the constant should be the full path relative to the project root
         // which is basically p.join(dir.path, relativePath)
-        final projectRelativePath =
-            p.join(dir.path, relativePath).replaceAll('\\', '/');
+        final projectRelativePath = p
+            .join(dir.path, relativePath)
+            .replaceAll('\\', '/');
 
-        assets[category]![fileType]!
-            .add(_AssetInfo(constantName, projectRelativePath));
+        assets[category]![fileType]!.add(
+          _AssetInfo(constantName, projectRelativePath),
+        );
       }
     }
   }
@@ -306,9 +315,9 @@ String _toConstantName(String fileName) {
     result = part[0].toLowerCase() + part.substring(1);
   } else {
     final first = parts.first.toLowerCase();
-    final rest = parts.skip(1).map(
-          (p) => p[0].toUpperCase() + p.substring(1).toLowerCase(),
-        );
+    final rest = parts
+        .skip(1)
+        .map((p) => p[0].toUpperCase() + p.substring(1).toLowerCase());
     result = first + rest.join('');
   }
 
@@ -323,7 +332,9 @@ String _toConstantName(String fileName) {
 /// Generate multiple files organized by category and type
 /// Returns list of generated file paths
 List<String> _generateMultipleFiles(
-    Map<String, Map<String, List<_AssetInfo>>> assets, String outputDir) {
+  Map<String, Map<String, List<_AssetInfo>>> assets,
+  String outputDir,
+) {
   final generatedFiles = <String>[];
 
   // Create output directory
@@ -354,8 +365,12 @@ List<String> _generateMultipleFiles(
       final fileName = '${category}_$fileType.dart';
       final filePath = '$outputDir/assets/$category/$fileName';
 
-      final typeFileContent =
-          _generateTypeFile(className, assetList, category, fileType);
+      final typeFileContent = _generateTypeFile(
+        className,
+        assetList,
+        category,
+        fileType,
+      );
 
       final typeFile = File(filePath);
       typeFile.createSync(recursive: true);
@@ -408,8 +423,12 @@ String _toCategoryClassName(String category, String fileType) {
   return '$categoryCapitalized$typeCapitalized';
 }
 
-String _generateTypeFile(String className, List<_AssetInfo> assets,
-    String category, String fileType) {
+String _generateTypeFile(
+  String className,
+  List<_AssetInfo> assets,
+  String category,
+  String fileType,
+) {
   final buffer = StringBuffer();
 
   buffer.writeln('// GENERATED CODE - DO NOT MODIFY BY HAND');
@@ -426,8 +445,9 @@ String _generateTypeFile(String className, List<_AssetInfo> assets,
 
   for (final asset in assets) {
     // Ensure constant name is a valid Dart identifier
-    final safeName =
-        RegExp(r'^[0-9]').hasMatch(asset.name) ? 'ic${asset.name}' : asset.name;
+    final safeName = RegExp(r'^[0-9]').hasMatch(asset.name)
+        ? 'ic${asset.name}'
+        : asset.name;
     buffer.writeln('  /// ${asset.path}');
     buffer.writeln("  static const String $safeName = '${asset.path}';");
     if (asset != assets.last) buffer.writeln();
@@ -536,8 +556,9 @@ Future<void> _updatePubspec(Directory assetsDir) async {
   final baseAssetsPath = p
       .relative(assetsDir.path, from: Directory.current.path)
       .replaceAll('\\', '/');
-  final normalizedBase =
-      baseAssetsPath.endsWith('/') ? baseAssetsPath : '$baseAssetsPath/';
+  final normalizedBase = baseAssetsPath.endsWith('/')
+      ? baseAssetsPath
+      : '$baseAssetsPath/';
 
   requiredAssets.add(normalizedBase);
 
@@ -613,8 +634,11 @@ Future<void> _updatePubspec(Directory assetsDir) async {
       }
 
       if (line.startsWith('    -')) {
-        final assetPath =
-            trimmed.substring(1).trim().replaceAll("'", "").replaceAll('"', '');
+        final assetPath = trimmed
+            .substring(1)
+            .trim()
+            .replaceAll("'", "")
+            .replaceAll('"', '');
         existingAssetLines[i] = assetPath;
         lastAssetIndex = i;
       } else if (!line.startsWith('   ')) {
@@ -648,11 +672,12 @@ Future<void> _updatePubspec(Directory assetsDir) async {
 
     // Remove stale entries (iterate in reverse to keep indices stable)
     if (staleEntries.isNotEmpty) {
-      final linesToRemove = existingAssetLines.entries
-          .where((e) => staleEntries.contains(e.value))
-          .map((e) => e.key)
-          .toList()
-        ..sort((a, b) => b.compareTo(a));
+      final linesToRemove =
+          existingAssetLines.entries
+              .where((e) => staleEntries.contains(e.value))
+              .map((e) => e.key)
+              .toList()
+            ..sort((a, b) => b.compareTo(a));
 
       for (final lineIndex in linesToRemove) {
         newLines.removeAt(lineIndex);
@@ -703,8 +728,10 @@ Future<void> handleAssetSetup() async {
   final assetsDir = Directory('assets');
 
   if (configFile.existsSync() && assetsDir.existsSync()) {
-    kLog('✅ Assets already configured! (dig.yaml & assets/ folder present)',
-        type: LogType.success);
+    kLog(
+      '✅ Assets already configured! (dig.yaml & assets/ folder present)',
+      type: LogType.success,
+    );
   } else {
     if (!configFile.existsSync()) {
       kLog('📝 Creating default dig.yaml...', type: LogType.info);

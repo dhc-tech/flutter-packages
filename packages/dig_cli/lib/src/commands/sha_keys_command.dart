@@ -25,16 +25,20 @@ Future<void> getShaKeys() async {
   final projectRoot = findProjectRoot();
 
   if (projectRoot == null) {
-    kLog('❗ This command must be run inside a Flutter project.',
-        type: LogType.error);
+    kLog(
+      '❗ This command must be run inside a Flutter project.',
+      type: LogType.error,
+    );
     return;
   }
 
   final androidDir = Directory(p.join(projectRoot.path, 'android'));
   if (!await androidDir.exists()) {
     kLog('❗ Android directory not found.', type: LogType.error);
-    kLog('💡 Make sure you are in a Flutter project with Android support.',
-        type: LogType.info);
+    kLog(
+      '💡 Make sure you are in a Flutter project with Android support.',
+      type: LogType.info,
+    );
     return;
   }
 
@@ -46,13 +50,17 @@ Future<void> getShaKeys() async {
   final gradlewFile = File(gradlewPath);
   if (!await gradlewFile.exists()) {
     kLog('❗ Gradle wrapper not found.', type: LogType.error);
-    kLog('💡 Run "flutter build apk" first to generate it.',
-        type: LogType.info);
+    kLog(
+      '💡 Run "flutter build apk" first to generate it.',
+      type: LogType.info,
+    );
     return;
   }
 
-  kLog('\n🔐 Getting SHA Keys using Gradle Signing Report...',
-      type: LogType.info);
+  kLog(
+    '\n🔐 Getting SHA Keys using Gradle Signing Report...',
+    type: LogType.info,
+  );
   kLog('📁 Project: ${projectRoot.path}', type: LogType.info);
   kLog('📂 Running in: ${androidDir.path}\n', type: LogType.info);
 
@@ -66,11 +74,9 @@ Future<void> getShaKeys() async {
     // Use absolute path for gradlew
     final result = await runWithSpinner(
       '🔍 Running signingReport...',
-      () => Process.run(
-        gradlewPath,
-        ['signingReport'],
-        workingDirectory: androidDir.path,
-      ),
+      () => Process.run(gradlewPath, [
+        'signingReport',
+      ], workingDirectory: androidDir.path),
     );
 
     if (result.exitCode != 0) {
@@ -149,10 +155,12 @@ void _parseAndDisplaySigningReport(String output) {
   kLog('✅ SHA Keys extracted successfully!\n', type: LogType.success);
 
   // Group by config (debug/release)
-  final debugReports =
-      reports.where((r) => r['config']?.toLowerCase() == 'debug').toList();
-  final releaseReports =
-      reports.where((r) => r['config']?.toLowerCase() == 'release').toList();
+  final debugReports = reports
+      .where((r) => r['config']?.toLowerCase() == 'debug')
+      .toList();
+  final releaseReports = reports
+      .where((r) => r['config']?.toLowerCase() == 'release')
+      .toList();
 
   if (debugReports.isNotEmpty) {
     kLog('═══════════════════════════════════════════', type: LogType.info);
@@ -171,8 +179,10 @@ void _parseAndDisplaySigningReport(String output) {
   kLog('\n💡 Tips:', type: LogType.info);
   kLog('   • Use SHA1 for Google Sign-In, Maps API, etc.', type: LogType.info);
   kLog('   • Use SHA256 for App Links and Play Integrity.', type: LogType.info);
-  kLog('   • Add both debug & release keys to Google Console.',
-      type: LogType.info);
+  kLog(
+    '   • Add both debug & release keys to Google Console.',
+    type: LogType.info,
+  );
 }
 
 /// Displays a single signing report entry

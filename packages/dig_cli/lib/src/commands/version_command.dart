@@ -35,21 +35,25 @@ class VersionCommand extends Command {
     print(borderPen(topBorder));
 
     // Title
-    print(borderPen('║') +
-        ' ' * ((totalWidth - title.length - 2) / 2).floor() +
-        titlePen(title) +
-        ' ' * ((totalWidth - title.length - 2) / 2).ceil() +
-        borderPen('║'));
+    print(
+      borderPen('║') +
+          ' ' * ((totalWidth - title.length - 2) / 2).floor() +
+          titlePen(title) +
+          ' ' * ((totalWidth - title.length - 2) / 2).ceil() +
+          borderPen('║'),
+    );
 
     print(borderPen('║') + ' ' * (totalWidth - 2) + borderPen('║'));
 
     // Version Info
     final installedText = 'Installed: v$currentVersion';
-    print(borderPen('║') +
-        ' ' * ((totalWidth - installedText.length - 2) / 2).floor() +
-        textPen(installedText) +
-        ' ' * ((totalWidth - installedText.length - 2) / 2).ceil() +
-        borderPen('║'));
+    print(
+      borderPen('║') +
+          ' ' * ((totalWidth - installedText.length - 2) / 2).floor() +
+          textPen(installedText) +
+          ' ' * ((totalWidth - installedText.length - 2) / 2).ceil() +
+          borderPen('║'),
+    );
 
     // Executable Path (Local verification)
     final scriptPath = Platform.script.toFilePath();
@@ -58,49 +62,59 @@ class VersionCommand extends Command {
         ? '...${scriptPath.substring(scriptPath.length - (totalWidth - 7))}'
         : scriptPath;
 
-    print(borderPen('║') +
-        ' ' * ((totalWidth - displayPath.length - 2) / 2).floor() +
-        (AnsiPen()..gray(level: 0.5))(displayPath) +
-        ' ' * ((totalWidth - displayPath.length - 2) / 2).ceil() +
-        borderPen('║'));
+    print(
+      borderPen('║') +
+          ' ' * ((totalWidth - displayPath.length - 2) / 2).floor() +
+          (AnsiPen()..gray(level: 0.5))(displayPath) +
+          ' ' * ((totalWidth - displayPath.length - 2) / 2).ceil() +
+          borderPen('║'),
+    );
 
     if (latestVersion != null) {
       final latestText = 'Latest: v$latestVersion';
-      print(borderPen('║') +
-          ' ' * ((totalWidth - latestText.length - 2) / 2).floor() +
-          (VersionUtils.isNewer(latestVersion, currentVersion)
-              ? warningPen(latestText)
-              : versionPen(latestText)) +
-          ' ' * ((totalWidth - latestText.length - 2) / 2).ceil() +
-          borderPen('║'));
+      print(
+        borderPen('║') +
+            ' ' * ((totalWidth - latestText.length - 2) / 2).floor() +
+            (VersionUtils.isNewer(latestVersion, currentVersion)
+                ? warningPen(latestText)
+                : versionPen(latestText)) +
+            ' ' * ((totalWidth - latestText.length - 2) / 2).ceil() +
+            borderPen('║'),
+      );
 
       if (VersionUtils.isNewer(latestVersion, currentVersion)) {
         print(borderPen('║') + ' ' * (totalWidth - 2) + borderPen('║'));
         final updateMsg = 'Update available!';
-        print(borderPen('║') +
-            ' ' * ((totalWidth - updateMsg.length - 2) / 2).floor() +
-            warningPen(updateMsg) +
-            ' ' * ((totalWidth - updateMsg.length - 2) / 2).ceil() +
-            borderPen('║'));
+        print(
+          borderPen('║') +
+              ' ' * ((totalWidth - updateMsg.length - 2) / 2).floor() +
+              warningPen(updateMsg) +
+              ' ' * ((totalWidth - updateMsg.length - 2) / 2).ceil() +
+              borderPen('║'),
+        );
       }
     } else {
       final checkingText = 'Latest: (Check failed)';
-      print(borderPen('║') +
-          ' ' * ((totalWidth - checkingText.length - 2) / 2).floor() +
-          warningPen(checkingText) +
-          ' ' * ((totalWidth - checkingText.length - 2) / 2).ceil() +
-          borderPen('║'));
+      print(
+        borderPen('║') +
+            ' ' * ((totalWidth - checkingText.length - 2) / 2).floor() +
+            warningPen(checkingText) +
+            ' ' * ((totalWidth - checkingText.length - 2) / 2).ceil() +
+            borderPen('║'),
+      );
     }
 
     print(borderPen('║') + ' ' * (totalWidth - 2) + borderPen('║'));
 
     // Author
     final authorPen = AnsiPen()..yellow(bold: true);
-    print(borderPen('║') +
-        ' ' * ((totalWidth - author.length - 2) / 2).floor() +
-        authorPen(author) +
-        ' ' * ((totalWidth - author.length - 2) / 2).ceil() +
-        borderPen('║'));
+    print(
+      borderPen('║') +
+          ' ' * ((totalWidth - author.length - 2) / 2).floor() +
+          authorPen(author) +
+          ' ' * ((totalWidth - author.length - 2) / 2).ceil() +
+          borderPen('║'),
+    );
     print(borderPen(bottomBorder));
     print('');
   }

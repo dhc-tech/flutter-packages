@@ -80,9 +80,8 @@ class _SignInPageState extends State<SignInPage> {
         print('Sign in error: $e');
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Sign in failed: $e')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Sign in failed: $e')));
       }
     } finally {
       if (mounted) {
@@ -165,21 +164,28 @@ class _SignInPageState extends State<SignInPage> {
         children: [
           const Center(child: Icon(Icons.account_circle, size: 80)),
           const SizedBox(height: 30),
-          const Text('User Details:',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text(
+            'User Details:',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           const Divider(),
           if (_result != null) ...[
-            _userInfoRow('Name',
-                '${_result?.givenName ?? ''} ${_result?.familyName ?? ''}'),
+            _userInfoRow(
+              'Name',
+              '${_result?.givenName ?? ''} ${_result?.familyName ?? ''}',
+            ),
             _userInfoRow('Email', _result?.email ?? 'N/A'),
             _userInfoRow(
-                'User ID',
-                _result?.userIdentifier != null
-                    ? '${_result!.userIdentifier!.substring(0, 5)}...'
-                    : 'N/A'),
+              'User ID',
+              _result?.userIdentifier != null
+                  ? '${_result!.userIdentifier!.substring(0, 5)}...'
+                  : 'N/A',
+            ),
             const Divider(),
-            const Text('Backend Tokens:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const Text(
+              'Backend Tokens:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 10),
             _tokenInfoRow('ID Token (JWT)', _result?.idToken),
             _tokenInfoRow('Access Token', _result?.accessToken),
@@ -194,9 +200,7 @@ class _SignInPageState extends State<SignInPage> {
               onPressed: _signOut,
               icon: const Icon(Icons.logout),
               label: const Text('Sign Out'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
+              style: OutlinedButton.styleFrom(foregroundColor: Colors.red),
             ),
           ),
         ],
@@ -240,8 +244,8 @@ class _SignInPageState extends State<SignInPage> {
             child: Text(
               token != null
                   ? (token.length > 20
-                      ? '${token.substring(0, 20)}...[truncated]'
-                      : token)
+                        ? '${token.substring(0, 20)}...[truncated]'
+                        : token)
                   : 'Not available',
               style: const TextStyle(fontFamily: 'Courier', fontSize: 12),
             ),
