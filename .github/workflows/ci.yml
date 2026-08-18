@@ -101,3 +101,34 @@ jobs:
               fi
             fi
           done
+
+  # ============================================================================
+  # 3. Pub.dev Pana Health Score & Package Quality Gate
+  # ============================================================================
+  pana:
+    name: 🏆 Pub.dev Package Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: analyze
+
+    steps:
+      - name: 📥 Checkout Monorepo
+        uses: actions/checkout@v7
+
+      - name: 🛠️ Setup Dart & Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: ⚡ Activate Pana
+        run: dart pub global activate pana
+
+      - name: 🔍 Run Pana Score Validation across all packages
+        run: |
+          for pkg in packages/*; do
+            if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
+              echo "🏆 Validating Pub.dev quality score for $pkg..."
+              $HOME/.pub-cache/bin/pana --no-warning --exit-code-threshold 30 "$pkg"
+            fi
+          done
