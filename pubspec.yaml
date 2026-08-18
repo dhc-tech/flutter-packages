@@ -1,0 +1,14 @@
+name: flutter_packages_workspace
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+workspace:
+  - packages/apple_sign_in_plugin
+  - packages/dig_cli
+  - packages/white_label_kit
+
+dev_dependencies:
+  melos: ^8.3.0
+  flutter_lints: '>=6.0.0 <8.0.0'

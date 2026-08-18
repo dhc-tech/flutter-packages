@@ -3,7 +3,7 @@ description: A powerful command-line tool to automate building, cleaning, and pa
 version: 1.8.0
 homepage: https://github.com/dhc-tech/flutter-packages/tree/main/packages/dig_cli
 repository: https://github.com/dhc-tech/flutter-packages
-issue_tracker: https://github.com/dhc-tech/flutter-packages/issues
+issue_tracker: https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+dig_cli%22
 
 topics:
   - cli
@@ -11,8 +11,9 @@ topics:
   - flutter-tools
   - code-generator
 
+resolution: workspace
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: ">=3.5.0 <4.0.0"
 
 dependencies:
   ansicolor: ^2.0.3

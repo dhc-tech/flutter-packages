@@ -40,8 +40,23 @@ jobs:
 
       - name: ⚡ Activate Melos
         run: |
+          # melos 8+ requires the directory to be a native Dart pub
+          # workspace to discover any packages at all. The root
+          # pubspec.yaml now declares one (workspace: field), and each
+          # package opts in via resolution: workspace — stripped again
+          # right before dart pub publish in publish.yml so the field
+          # never reaches pub.dev / external consumers of the packages.
+          #
+          # This step was silently broken before that workspace existed:
+          # every prior run hit "not a melos workspace", melos version
+          # exited non-zero, and the version-bump step's own error
+          # handling quietly treated that as "no version changes" — the
+          # release pipeline had never actually worked, on any package.
           dart pub global activate melos
           echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
+      - name: 📦 Bootstrap workspace
+        run: melos bootstrap
 
       - name: 🔧 Configure Git Identity
         run: |
@@ -55,9 +70,25 @@ jobs:
           # <name>-vX.Y.Z tag, bumps pubspec.yaml, writes CHANGELOG.md,
           # commits as the bot, creates the release tag, and pushes both
           # the commit and the tag — in one step, same as flutter/packages.
-          if melos version --all --yes --push; then
-            echo "versioned=true" >> $GITHUB_OUTPUT
-          else
-            echo "versioned=false" >> $GITHUB_OUTPUT
+          #
+          # Failure handling is intentionally NOT a blanket "any non-zero
+          # exit means nothing to release" — that exact blanket swallow
+          # is what let this step report false success for months while
+          # melos failed outright on every run. Only "nothing left to
+          # version" is treated as benign; anything else fails the job
+          # loudly so a real breakage can never hide again.
+          set +e
+          output=$(melos version --all --yes --push 2>&1)
+          exit_code=$?
+          echo "$output"
+          set -e
+
+          if [ $exit_code -eq 0 ]; then
+            echo "versioned=true" >> "$GITHUB_OUTPUT"
+          elif echo "$output" | grep -qi "nothing to release\|no changes to release\|no packages need"; then
+            echo "versioned=false" >> "$GITHUB_OUTPUT"
             echo "No package changes requiring a version bump."
+          else
+            echo "melos version failed for a reason other than 'nothing to release' — failing the job."
+            exit 1
           fi
