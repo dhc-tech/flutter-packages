@@ -31,7 +31,23 @@ jobs:
       contents: write        # performing the actual merge
       pull-requests: write   # reading/updating PR state (labels, mergeability)
       issues: write          # posting the "removed autosubmit" explanation comment
-      workflows: write       # merging any PR that touches .github/workflows/** needs this specifically — contents: write alone is not sufficient and returns "Resource not accessible" otherwise
+      # There is no `workflows:` key in the permissions: block — that's
+      # not a real GitHub Actions permission scope (it only exists as a
+      # PAT OAuth/fine-grained-token scope name). Adding it here isn't
+      # merely a no-op: GitHub's own workflow-file validator rejects the
+      # unknown key outright, which surfaced as a synthetic failed check
+      # named after this file's own path with no jobs at all. Confirmed
+      # by removing it and the check passing again.
+      #
+      # The real, structural constraint: GITHUB_TOKEN can never merge or
+      # push a change to .github/workflows/** — full stop, no permission
+      # setting grants this. Only a PAT with the classic 'workflow' OAuth
+      # scope, a fine-grained PAT with 'Workflows: Read and write', or a
+      # GitHub App installation token with that permission can. This
+      # workflow uses GITHUB_TOKEN per explicit instruction; the direct
+      # consequence is that THIS PR (and any future PR that touches
+      # .github/workflows/**) cannot be auto-merged by this workflow —
+      # it needs a manual merge (or a PAT specifically for that case).
     steps:
       # Closes the loop fully: a human never has to manually add the
       # autosubmit label. Approving the PR IS the "please merge this"
@@ -65,12 +81,12 @@ jobs:
           # must be triggered manually (workflow_dispatch) after any
           # package-code PR merges, until/unless this is revisited.
           #
-          # The "Resource not accessible by personal access token" error
-          # this replaces was actually caused by a *different*, separate
-          # gap: merging a PR that touches .github/workflows/** requires
-          # the `workflows: write` permission specifically (added above)
-          # — contents: write alone doesn't cover workflow-file changes,
-          # for GITHUB_TOKEN or PAT_TOKEN alike.
+          # The "Resource not accessible" error this replaces was caused
+          # by a genuinely hard constraint, not a missing permission
+          # setting: neither GITHUB_TOKEN nor a PAT lacking the specific
+          # 'workflow'/'Workflows' scope can ever merge a PR touching
+          # .github/workflows/** — see the permissions: block comment
+          # above for the full explanation.
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           MERGE_LABELS: "autosubmit"
           MERGE_METHOD: "squash"
@@ -125,7 +141,7 @@ jobs:
               reason="CI checks aren't all green yet, or the required review/approval hasn't been fully satisfied. This is expected right after a push — CI takes a few minutes."
               ;;
             merge_failed)
-              reason="GitHub's merge API itself rejected the request after checks/approval looked satisfied. Common causes: (1) a merge conflict with the base branch, (2) this PR touches .github/workflows/** and the job's token is missing the 'workflows: write' permission — contents: write alone isn't enough for workflow-file changes, or (3) a required status check's exact name doesn't match what's configured in branch protection."
+              reason="GitHub's merge API itself rejected the request after checks/approval looked satisfied. Common causes: (1) a merge conflict with the base branch, (2) this PR touches .github/workflows/** — GITHUB_TOKEN structurally cannot merge those (no permission setting fixes it; needs a PAT with the 'workflow' scope specifically, or a manual merge), or (3) a required status check's exact name doesn't match what's configured in branch protection."
               ;;
             *)
               reason="Unrecognized mergeResult: $MERGE_RESULT."
