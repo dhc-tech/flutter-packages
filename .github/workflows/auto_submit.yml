@@ -3,7 +3,11 @@
 
 name: Auto Submit & Merge
 
-on:
+# pull_request_target (not pull_request) so a fork PR can still be merged
+# by this job once labeled/approved. Mitigation: MERGE_FORKS is "false"
+# below, and this workflow never checks out or executes any PR content —
+# automerge-action only calls the merge API.
+on: # zizmor: ignore[dangerous-triggers] mitigated as documented above
   pull_request_target:
     types: [labeled, unlabeled, synchronize, opened, edited, ready_for_review, reopened]
   pull_request_review:
@@ -12,18 +16,23 @@ on:
     types: [completed]
   status: {}
 
-permissions:
-  contents: write
-  pull-requests: write
+concurrency:
+  group: auto-submit-${{ github.event.pull_request.number || github.event.check_suite.pull_requests[0].number }}
+  cancel-in-progress: false
+
+permissions: {}
 
 jobs:
   auto_submit:
     name: 🤖 Auto Submit PR
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
+    permissions:
+      contents: write        # performing the actual merge
+      pull-requests: write   # reading/updating PR state (labels, mergeability)
     steps:
       - name: 🚀 Auto-merge if Approved & CI Green
-        uses: pascalgn/automerge-action@v0.16.4
+        uses: pascalgn/automerge-action@7961b8b5eec56cc088c140b56d864285eabd3f67 # v0.16.4
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
           MERGE_LABELS: "autosubmit"

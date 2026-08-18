@@ -8,12 +8,12 @@
 #   Pub.dev OIDC (no token storage needed!) — official dart-lang pattern.
 #   The repo must be configured at https://pub.dev/publishers with the
 #   GitHub Actions OIDC provider. See: https://dart.dev/tools/pub/automated-publishing
-#
-# Gemini AI Review:
-#   Uses GEMINI_API_KEY from Repository Secrets (not Environment secrets).
-#   Settings → Secrets → Actions → New repository secret → GEMINI_API_KEY
 
 name: 🚀 Publish to Pub.dev
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 on:
   push:
@@ -50,11 +50,13 @@ jobs:
 
     steps:
       - name: 📥 Checkout Monorepo
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       # Use flutter-action so formatter & analyzer match CI exactly
       - name: 🛠️ Setup Dart & Flutter SDK
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           flutter-version: '3.47.0'
           cache: true
@@ -146,7 +148,7 @@ jobs:
       # ── Create GitHub Release on successful publish ───────────────────────
       - name: 🏷️ Create GitHub Release
         if: steps.target.outputs.dry_run == 'false' && github.event_name == 'push'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           generate_release_notes: true
           name: "${{ steps.target.outputs.package }} ${{ github.ref_name }}"

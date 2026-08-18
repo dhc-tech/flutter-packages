@@ -45,7 +45,7 @@ jobs:
       checks: write          # /test and similar tools can report check status
     steps:
       - name: 🤖 Run PR-Agent
-        uses: the-pr-agent/pr-agent@main
+        uses: the-pr-agent/pr-agent@f6af7d77554ff8d26adffded077e6461329e92fa # v0.42.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

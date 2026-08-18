@@ -14,7 +14,7 @@
 
 name: 🚦 Merge Readiness Summary
 
-on:
+on: # zizmor: ignore[dangerous-triggers] mitigated as documented above
   workflow_run:
     workflows:
       - "CI Matrix Pipeline"
@@ -23,6 +23,10 @@ on:
     types: [completed]
   pull_request_review:
     types: [submitted, dismissed]
+
+concurrency:
+  group: merge-readiness-${{ github.event.workflow_run.head_sha || github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions: {}
 
@@ -39,7 +43,7 @@ jobs:
     steps:
       - name: 🔍 Find the PR for this SHA
         id: find_pr
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const sha = context.payload.workflow_run
@@ -56,11 +60,17 @@ jobs:
 
       - name: 📋 Build & upsert summary comment
         if: steps.find_pr.outputs.number != ''
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          # Passed via env, not templated into the script string: GitHub
+          # expands ${{ }} into the script text before it's parsed, so
+          # interpolating directly is unsafe even for our own step outputs.
+          PR_NUMBER: ${{ steps.find_pr.outputs.number }}
+          HEAD_SHA: ${{ steps.find_pr.outputs.sha }}
         with:
           script: |
-            const prNumber = Number('${{ steps.find_pr.outputs.number }}');
-            const sha = '${{ steps.find_pr.outputs.sha }}';
+            const prNumber = Number(process.env.PR_NUMBER);
+            const sha = process.env.HEAD_SHA;
             const { owner, repo } = context.repo;
 
             const [{ data: checkRuns }, { data: statuses }, { data: reviews }, protection] = await Promise.all([

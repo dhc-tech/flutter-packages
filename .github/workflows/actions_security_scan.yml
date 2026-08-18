@@ -19,21 +19,27 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: actions-security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   zizmor:
     name: 🔍 Scan workflows (zizmor)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
-      contents: read
-      security-events: write
-      actions: read
+      contents: read         # checkout the workflow files to scan
+      security-events: write # upload SARIF findings to the Security tab
+      actions: read          # zizmor-action reads workflow run metadata
     steps:
       - name: 📥 Checkout Repository
-        uses: actions/checkout@v4.2.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: 🛡️ Run zizmor
-        uses: zizmorcore/zizmor-action@v0.1.1
+        uses: zizmorcore/zizmor-action@f52a838cfabf134edcbaa7c8b3677dde20045018 # v0.1.1
         with:
           # Warn-level findings surface as annotations without blocking the
           # merge queue on day one; raise to a stricter level once the
