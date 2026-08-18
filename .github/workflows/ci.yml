@@ -17,6 +17,8 @@ jobs:
   analyze:
     name: 🔍 Formatting & Static Analysis (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -71,6 +73,8 @@ jobs:
   test:
     name: 🧪 Automated Test Suite Matrix (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -167,6 +171,8 @@ jobs:
   pana:
     name: 🏆 Pub.dev Package Quality Gate
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     timeout-minutes: 15
     needs: analyze
 
