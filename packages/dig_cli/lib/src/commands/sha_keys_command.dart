@@ -74,9 +74,12 @@ Future<void> getShaKeys() async {
     // Use absolute path for gradlew
     final result = await runWithSpinner(
       '🔍 Running signingReport...',
-      () => Process.run(gradlewPath, [
-        'signingReport',
-      ], workingDirectory: androidDir.path),
+      () => Process.run(
+          gradlewPath,
+          [
+            'signingReport',
+          ],
+          workingDirectory: androidDir.path),
     );
 
     if (result.exitCode != 0) {
@@ -155,12 +158,10 @@ void _parseAndDisplaySigningReport(String output) {
   kLog('✅ SHA Keys extracted successfully!\n', type: LogType.success);
 
   // Group by config (debug/release)
-  final debugReports = reports
-      .where((r) => r['config']?.toLowerCase() == 'debug')
-      .toList();
-  final releaseReports = reports
-      .where((r) => r['config']?.toLowerCase() == 'release')
-      .toList();
+  final debugReports =
+      reports.where((r) => r['config']?.toLowerCase() == 'debug').toList();
+  final releaseReports =
+      reports.where((r) => r['config']?.toLowerCase() == 'release').toList();
 
   if (debugReports.isNotEmpty) {
     kLog('═══════════════════════════════════════════', type: LogType.info);
