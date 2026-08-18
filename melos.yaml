@@ -8,6 +8,11 @@ command:
   version:
     linkToCommits: true
     workspaceChangelog: true
+    branch: main
+    message: |
+      chore(release): version packages [skip ci]
+
+      %AUTHORS%
 
 scripts:
   analyze:
