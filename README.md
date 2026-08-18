@@ -1,20 +1,21 @@
 # 📦 Flutter Packages Monorepo
 
 [![CI Pipeline](https://github.com/dhc-tech/flutter-packages/actions/workflows/ci.yml/badge.svg)](https://github.com/dhc-tech/flutter-packages/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Pub.dev Publisher](https://img.shields.io/badge/pub.dev-dhc--tech-0175C2.svg?logo=dart)](https://pub.dev/publishers/dhc.tech/packages)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-A centralized monorepo of production-grade Dart & Flutter packages, plugins, and developer toolkits maintained by **[dhc-tech](https://github.com/dhc-tech)**.
+A centralized, production-grade monorepo containing official Flutter plugins, Dart developer CLI tools, and multi-tenant application kits maintained by **[dhc-tech](https://github.com/dhc-tech)**.
 
 ---
 
 ## 📚 Available Packages
 
-| Package | Version | Description | Status |
-|---|---|---|---|
-| **[`white_label_kit`](packages/white_label_kit)** | [![white_label_kit](https://img.shields.io/badge/version-0.0.2-green.svg)](packages/white_label_kit/CHANGELOG.md) | Multi-tenant white-label and flavor management toolkit for Flutter applications. | ✅ Stable |
-| **[`dig_cli`](packages/dig_cli)** | [![dig_cli](https://img.shields.io/badge/version-1.8.0-green.svg)](packages/dig_cli/CHANGELOG.md) | CLI utility for Flutter code generation, asset path indexing, and project scaffolding. | ✅ Stable |
-| **[`apple_sign_in_plugin`](packages/apple_sign_in_plugin)** | [![apple_sign_in_plugin](https://img.shields.io/badge/version-1.2.6-green.svg)](packages/apple_sign_in_plugin/CHANGELOG.md) | Streamlined Sign in with Apple authentication with JWT decoding and token validation. | ✅ Stable |
+| Package | Version | Type | Description | Pub.dev Score |
+|---|---|---|---|---|
+| **[`white_label_kit`](packages/white_label_kit)** | [![white_label_kit](https://img.shields.io/badge/version-0.0.2-green.svg)](packages/white_label_kit/CHANGELOG.md) | Multi-Tenant Tool | Flavor management, Gradle/Xcode automation, and compile-time asset isolation. | [![Pana Points](https://img.shields.io/badge/pana-160%2F160-brightgreen.svg)](https://pub.dev/packages/white_label_kit/score) |
+| **[`dig_cli`](packages/dig_cli)** | [![dig_cli](https://img.shields.io/badge/version-1.8.0-green.svg)](packages/dig_cli/CHANGELOG.md) | Developer CLI | Interactive CLI for Flutter code generation, asset indexing, keystores, and scaffolding. | [![Pana Points](https://img.shields.io/badge/pana-160%2F160-brightgreen.svg)](https://pub.dev/packages/dig_cli/score) |
+| **[`apple_sign_in_plugin`](packages/apple_sign_in_plugin)** | [![apple_sign_in_plugin](https://img.shields.io/badge/version-1.2.6-green.svg)](packages/apple_sign_in_plugin/CHANGELOG.md) | Flutter Plugin | Native Sign in with Apple integration with JWT decoding, token validation, and state management. | [![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20Android%20%7C%20macOS%20%7C%20Web-blue.svg)](https://pub.dev/packages/apple_sign_in_plugin) |
 
 ---
 
@@ -23,80 +24,129 @@ A centralized monorepo of production-grade Dart & Flutter packages, plugins, and
 ```text
 flutter-packages/
 ├── .github/
-│   ├── ISSUE_TEMPLATE/            # 📝 Standardized Bug Report & Feature Request templates
+│   ├── ISSUE_TEMPLATE/
+│   │   ├── bug_report.yml             # 🐛 Standardized bug reporting form
+│   │   └── feature_request.yml        # 💡 Feature request submission form
 │   ├── workflows/
-│   │   ├── ci.yml                 # 🔍 Automated static analysis & test matrix across all packages
-│   │   └── release.yml            # 🚀 Automated semantic release and artifact publishing
-│   └── pull_request_template.md   # 📋 Quality checklist for all PRs
+│   │   ├── ci.yml                     # 🔍 Formatting, static analysis & test matrix
+│   │   └── publish.yml                # 🚀 Pub.dev automated publishing workflow
+│   └── pull_request_template.md       # 📋 PR quality & zero-bug checklist
 │
-├── packages/                      # 📦 Independent, reusable Dart & Flutter packages
-│   ├── white_label_kit/           # 🏷️ Multi-tenant white-label CLI & runtime kit
+├── packages/                          # 📦 Published Dart & Flutter packages
+│   ├── white_label_kit/               # 🏷️ Multi-tenant white-label CLI & runtime engine
 │   │   ├── bin/
 │   │   ├── lib/
 │   │   ├── test/
+│   │   ├── example/
 │   │   ├── CHANGELOG.md
 │   │   ├── README.md
 │   │   └── pubspec.yaml
-│   └── ...
+│   │
+│   ├── dig_cli/                       # 🛠️ Flutter developer CLI & code generation engine
+│   │   ├── bin/
+│   │   ├── lib/
+│   │   ├── example/
+│   │   ├── CHANGELOG.md
+│   │   ├── README.md
+│   │   └── pubspec.yaml
+│   │
+│   └── apple_sign_in_plugin/          # 🍎 Cross-platform Apple authentication plugin
+│       ├── lib/
+│       ├── test/
+│       ├── example/
+│       ├── CHANGELOG.md
+│       ├── README.md
+│       └── pubspec.yaml
 │
-├── LICENSE                        # ⚖️ MIT License
-└── README.md                      # 📖 Monorepo documentation
+├── CONTRIBUTING.md                    # 🤝 Contribution & development guide
+├── LICENSE                            # ⚖️ MIT Open Source License
+└── README.md                          # 📖 Monorepo documentation
 ```
 
 ---
 
 ## 🛠️ Local Development & Testing
 
-### 1. Test All Packages
-Run the automated test suite across all packages:
-
-```bash
-for pkg in packages/*; do
-  if [ -d "$pkg/test" ]; then
-    echo "🧪 Running tests in $pkg..."
-    (cd "$pkg" && dart test)
-  fi
-done
-```
-
-### 2. Analyze & Lint All Packages
-Run static analysis with zero-warning enforcement:
-
+### 1. Resolve All Dependencies
 ```bash
 for pkg in packages/*; do
   if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
-    echo "🔍 Analyzing $pkg..."
-    (cd "$pkg" && dart analyze --fatal-infos)
+    echo "📦 Resolving dependencies for $pkg..."
+    if grep -q "sdk: flutter" "$pkg/pubspec.yaml"; then
+      (cd "$pkg" && flutter pub get)
+    else
+      (cd "$pkg" && dart pub get)
+    fi
   fi
 done
 ```
 
-### 3. Verify Code Formatting
+### 2. Verify Code Formatting
 ```bash
 dart format --output=none --set-exit-if-changed packages/
 ```
 
+### 3. Run Static Analysis (Zero Warnings / Fatal Infos)
+```bash
+for pkg in packages/*; do
+  if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
+    echo "🔍 Analyzing $pkg..."
+    if grep -q "sdk: flutter" "$pkg/pubspec.yaml"; then
+      (cd "$pkg" && flutter analyze --fatal-infos)
+    else
+      (cd "$pkg" && dart analyze --fatal-infos)
+    fi
+  fi
+done
+```
+
+### 4. Run Automated Test Suites
+Runs `flutter test` for Flutter plugins and `dart test` for pure Dart packages:
+```bash
+for pkg in packages/*; do
+  if [ -d "$pkg/test" ]; then
+    echo "🧪 Running tests for $pkg..."
+    if grep -q "sdk: flutter" "$pkg/pubspec.yaml"; then
+      (cd "$pkg" && flutter test)
+    else
+      (cd "$pkg" && dart test)
+    fi
+  fi
+done
+```
+
 ---
 
-## ➕ Adding a New Package
+## 🚀 Publishing to Pub.dev
 
-1. Create a new package directory under `packages/`:
-   ```bash
-   dart create -t package-simple packages/<your_package_name>
-   ```
-2. Include a comprehensive `README.md`, `CHANGELOG.md`, and complete unit tests under `test/`.
-3. The CI/CD pipeline will automatically detect, analyze, and test the new package on pull requests and pushes to `main`.
+Packages are published to [pub.dev](https://pub.dev) using the automated GitHub Actions workflow [`.github/workflows/publish.yml`](.github/workflows/publish.yml).
+
+### Publishing via Git Tag
+To release a package version, push a corresponding tag:
+```bash
+# Format: <package_name>-v<version>
+git tag white_label_kit-v0.0.2
+git push origin white_label_kit-v0.0.2
+```
+
+### Publishing via Workflow Dispatch
+You can also trigger manual publishing with optional dry-run validation directly from GitHub Actions:
+1. Navigate to **Actions** → **Publish to Pub.dev**.
+2. Select the target package (`white_label_kit`, `dig_cli`, `apple_sign_in_plugin`).
+3. Toggle dry-run mode or proceed with live publishing.
 
 ---
 
-## 🤝 Contributing & Pull Requests
+## 🤝 Quality Guidelines & Pull Requests
 
-1. Fork the repository and create a feature branch (`feature/your-feature-name`).
-2. Ensure `dart format`, `dart analyze --fatal-infos`, and all package tests pass.
-3. Submit a Pull Request targeting `main`.
+Every pull request must pass the automated CI pipeline:
+- **0 Analysis Errors / Warnings**: Enforced via `--fatal-infos`.
+- **Formatting**: Strictly adheres to standard `dart format`.
+- **Tests**: 100% test pass rate across all packages.
+- **Pana Health**: Maintained at maximum score without deprecated APIs.
 
 ---
 
 ## 📄 License
 
-This repository and all its packages are open source and licensed under the [MIT License](LICENSE).
+This monorepo and all individual packages are licensed under the **[MIT License](LICENSE)**.
