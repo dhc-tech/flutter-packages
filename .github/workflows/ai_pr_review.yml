@@ -13,6 +13,10 @@ jobs:
     name: 🧠 Gemini Code Review
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # ── Access the GEMINI_API_KEY environment secret ──────────────────────
+    # The key is stored inside GitHub Environment "GEMINI_API_KEY".
+    # Specifying environment: here makes secrets.GEMINI_API_KEY available.
+    environment: GEMINI_API_KEY
 
     steps:
       - name: 📥 Checkout Repository
@@ -27,11 +31,8 @@ jobs:
             echo "available=true" >> $GITHUB_OUTPUT
           else
             echo "available=false" >> $GITHUB_OUTPUT
-            echo "⚠️ GEMINI_API_KEY secret not configured."
-            echo "ℹ️ To enable free AI reviews:"
-            echo "   1. Get a FREE key at: https://aistudio.google.com/app/apikey"
-            echo "   2. Add it as a GitHub Secret: Settings → Secrets → Actions → New secret"
-            echo "   3. Name it: GEMINI_API_KEY"
+            echo "⚠️ GEMINI_API_KEY not found in Environment 'GEMINI_API_KEY'."
+            echo "ℹ️ To fix: Settings → Secrets → Actions → New REPOSITORY secret → GEMINI_API_KEY"
           fi
 
       - name: 🚀 Run Gemini AI Review
@@ -60,7 +61,6 @@ jobs:
           repo = os.environ.get('REPO', '')
           pr_number = os.environ.get('PR_NUMBER', '')
 
-          # Only post the setup guide once — check if we already posted
           list_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments?per_page=20"
           req = urllib.request.Request(
               list_url,
@@ -78,23 +78,18 @@ jobs:
                           print("Setup guide already posted. Skipping.")
                           exit(0)
           except Exception:
-              pass  # best-effort
+              pass
 
           body = (
               "## 🤖 AI PR Reviewer — Setup Required\n\n"
-              "> **GEMINI_API_KEY** is not configured. AI code review is currently disabled for this repository.\n\n"
+              "> **GEMINI_API_KEY** is not configured. AI code review is currently disabled.\n\n"
               "### ✅ Enable Free AI Reviews in 2 minutes:\n\n"
-              "1. **Get your FREE Gemini API key** → [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) _(100% free tier, no credit card)_\n"
-              "2. **Add as a GitHub Secret** → [Settings → Secrets → Actions](https://github.com/{repo}/settings/secrets/actions)\n"
+              "1. **Get your FREE Gemini API key** → [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)\n"
+              "2. **Add as a GitHub Repository Secret** → Settings → Secrets and variables → Actions → **New repository secret**\n"
               "3. **Name it exactly:** `GEMINI_API_KEY`\n\n"
-              "Once added, every PR will receive an automated Gemini 2.0 Flash review covering:\n"
-              "- 🛡️ Security & secrets exposure\n"
-              "- 💎 Dart/Flutter standards compliance\n"
-              "- ⚠️ Breaking change detection\n"
-              "- 🧪 Test coverage audit\n\n"
               "---\n"
               "*This message appears once until the secret is configured.*"
-          ).format(repo=repo)
+          )
 
           comment_url = f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments"
           comment_req = urllib.request.Request(

@@ -1,9 +1,23 @@
-name: Publish to Pub.dev
+# Publish to Pub.dev
+#
+# Triggers on:
+#   • A git tag like `apple_sign_in_plugin-v1.3.0` pushed to main
+#   • Manual workflow_dispatch for one-off or dry-run publishes
+#
+# Authentication:
+#   Pub.dev OIDC (no token storage needed!) — official dart-lang pattern.
+#   The repo must be configured at https://pub.dev/publishers with the
+#   GitHub Actions OIDC provider. See: https://dart.dev/tools/pub/automated-publishing
+#
+# Gemini AI Review:
+#   Uses GEMINI_API_KEY from Repository Secrets (not Environment secrets).
+#   Settings → Secrets → Actions → New repository secret → GEMINI_API_KEY
+
+name: 🚀 Publish to Pub.dev
 
 on:
   push:
     tags:
-      - 'v*'
       - 'white_label_kit-v*'
       - 'dig_cli-v*'
       - 'apple_sign_in_plugin-v*'
@@ -18,87 +32,106 @@ on:
           - dig_cli
           - apple_sign_in_plugin
       dry_run:
-        description: 'Run in dry-run mode without publishing'
+        description: 'Dry-run only (no actual publish)'
         required: true
         type: boolean
-        default: false
+        default: true
 
 permissions:
-  id-token: write
-  contents: write
+  id-token: write   # Required for OIDC pub.dev authentication
+  contents: write   # Required to push changelog commits / release notes
 
 jobs:
   publish:
-    name: 🚀 Publish Package
+    name: 🚀 Publish Package to Pub.dev
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
     steps:
       - name: 📥 Checkout Monorepo
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4.2.2
 
-      - name: 🛠️ Setup Flutter & Dart SDK
+      # Use flutter-action so formatter & analyzer match CI exactly
+      - name: 🛠️ Setup Dart & Flutter SDK
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      - name: 🔍 Determine Target Package
+      # ── Determine which package to publish ───────────────────────────────
+      - name: 🎯 Determine Target Package
         id: target
+        shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "package=${{ github.event.inputs.package }}" >> $GITHUB_OUTPUT
-            echo "dry_run=${{ github.event.inputs.dry_run }}" >> $GITHUB_OUTPUT
+            echo "dry_run=${{ github.event.inputs.dry_run }}"   >> $GITHUB_OUTPUT
           else
             TAG="${{ github.ref_name }}"
             if [[ "$TAG" == white_label_kit-* ]]; then
               echo "package=white_label_kit" >> $GITHUB_OUTPUT
             elif [[ "$TAG" == dig_cli-* ]]; then
-              echo "package=dig_cli" >> $GITHUB_OUTPUT
+              echo "package=dig_cli"         >> $GITHUB_OUTPUT
             elif [[ "$TAG" == apple_sign_in_plugin-* ]]; then
               echo "package=apple_sign_in_plugin" >> $GITHUB_OUTPUT
             else
-              echo "package=white_label_kit" >> $GITHUB_OUTPUT
+              echo "❌ Unrecognised tag pattern: $TAG" && exit 1
             fi
             echo "dry_run=false" >> $GITHUB_OUTPUT
           fi
 
+      # ── Quality gate before publishing ───────────────────────────────────
       - name: 📦 Install Package Dependencies
+        shell: bash
         run: |
-          cd packages/${{ steps.target.outputs.package }}
-          if grep -q "sdk: flutter" pubspec.yaml; then
-            flutter pub get
+          pkg=packages/${{ steps.target.outputs.package }}
+          if grep -q "sdk: flutter" "$pkg/pubspec.yaml"; then
+            (cd "$pkg" && flutter pub get)
           else
-            dart pub get
+            (cd "$pkg" && dart pub get)
           fi
 
-      - name: 🧪 Run Package Tests
+      - name: 🔍 Static Analysis
+        shell: bash
         run: |
-          cd packages/${{ steps.target.outputs.package }}
-          if [ -d "test" ]; then
-            if grep -q "sdk: flutter" pubspec.yaml; then
-              flutter test
+          pkg=packages/${{ steps.target.outputs.package }}
+          if grep -q "sdk: flutter" "$pkg/pubspec.yaml"; then
+            (cd "$pkg" && flutter analyze --fatal-infos)
+          else
+            (cd "$pkg" && dart analyze --fatal-infos)
+          fi
+
+      - name: 🧪 Run Tests
+        shell: bash
+        run: |
+          pkg=packages/${{ steps.target.outputs.package }}
+          if [ -d "$pkg/test" ]; then
+            if grep -q "sdk: flutter" "$pkg/pubspec.yaml"; then
+              (cd "$pkg" && flutter test)
             else
-              dart test
+              (cd "$pkg" && dart test)
             fi
           fi
 
-      - name: 🔍 Verify Static Analysis
+      # ── Publish (OIDC — no stored token needed) ───────────────────────────
+      - name: 🚀 Publish to Pub.dev (OIDC)
+        shell: bash
         run: |
-          cd packages/${{ steps.target.outputs.package }}
-          if grep -q "sdk: flutter" pubspec.yaml; then
-            flutter analyze --fatal-infos
+          pkg=packages/${{ steps.target.outputs.package }}
+          version=$(grep '^version:' "$pkg/pubspec.yaml" | awk '{print $2}')
+          echo "Publishing ${{ steps.target.outputs.package }}@$version"
+
+          if [ "${{ steps.target.outputs.dry_run }}" = "true" ]; then
+            echo "🔍 DRY RUN — validating package only (not publishing)"
+            (cd "$pkg" && dart pub publish --dry-run)
           else
-            dart analyze --fatal-infos
+            (cd "$pkg" && dart pub publish --force)
           fi
 
-      - name: 🚀 Publish to Pub.dev
-        run: |
-          cd packages/${{ steps.target.outputs.package }}
-          if [ "${{ steps.target.outputs.dry_run }}" = "true" ]; then
-            echo "Dry run enabled. Validating package..."
-            dart pub publish --dry-run
-          else
-            echo "Publishing ${{ steps.target.outputs.package }} to pub.dev..."
-            dart pub publish --force || dart pub publish --dry-run
-          fi
+      # ── Create GitHub Release on successful publish ───────────────────────
+      - name: 🏷️ Create GitHub Release
+        if: steps.target.outputs.dry_run == 'false' && github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          name: "${{ steps.target.outputs.package }} ${{ github.ref_name }}"
