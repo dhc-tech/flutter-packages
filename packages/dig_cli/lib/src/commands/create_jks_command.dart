@@ -187,7 +187,8 @@ class CreateJksCommand extends Command {
           );
 
           // Use absolute path in key.properties for "0 work" robustness
-          final propertiesContent = '''storePassword=$storePass
+          final propertiesContent =
+              '''storePassword=$storePass
 keyPassword=$keyPass
 keyAlias=$alias
 storeFile=${p.basename(jksFile.path)}''';
