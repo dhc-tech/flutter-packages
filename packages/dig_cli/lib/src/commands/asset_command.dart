@@ -210,15 +210,18 @@ Map<String, Map<String, List<_AssetInfo>>> _scanAssets(
       final normalizedPath = relativePath.replaceAll('\\', '/');
       final pathParts = normalizedPath.split('/');
 
-      final extension =
-          p.extension(entity.path).toLowerCase().replaceAll('.', '');
+      final extension = p
+          .extension(entity.path)
+          .toLowerCase()
+          .replaceAll('.', '');
 
       // Check if this path should be skipped
       // The relative path for skipping should include the base folder if it matches existing logic
       // But _shouldSkip expects 'assets/...' or '/pattern/'.
       // This is still a bit brittle, but I'll improve _shouldSkip too.
-      final fullRelativePath =
-          p.join(p.basename(dir.path), normalizedPath).replaceAll('\\', '/');
+      final fullRelativePath = p
+          .join(p.basename(dir.path), normalizedPath)
+          .replaceAll('\\', '/');
 
       if (_shouldSkip(fullRelativePath, skipPatterns)) {
         continue;
@@ -264,8 +267,9 @@ Map<String, Map<String, List<_AssetInfo>>> _scanAssets(
 
         // The path in the constant should be the full path relative to the project root
         // which is basically p.join(dir.path, relativePath)
-        final projectRelativePath =
-            p.join(dir.path, relativePath).replaceAll('\\', '/');
+        final projectRelativePath = p
+            .join(dir.path, relativePath)
+            .replaceAll('\\', '/');
 
         assets[category]![fileType]!.add(
           _AssetInfo(constantName, projectRelativePath),
@@ -441,8 +445,9 @@ String _generateTypeFile(
 
   for (final asset in assets) {
     // Ensure constant name is a valid Dart identifier
-    final safeName =
-        RegExp(r'^[0-9]').hasMatch(asset.name) ? 'ic${asset.name}' : asset.name;
+    final safeName = RegExp(r'^[0-9]').hasMatch(asset.name)
+        ? 'ic${asset.name}'
+        : asset.name;
     buffer.writeln('  /// ${asset.path}');
     buffer.writeln("  static const String $safeName = '${asset.path}';");
     if (asset != assets.last) buffer.writeln();
@@ -551,8 +556,9 @@ Future<void> _updatePubspec(Directory assetsDir) async {
   final baseAssetsPath = p
       .relative(assetsDir.path, from: Directory.current.path)
       .replaceAll('\\', '/');
-  final normalizedBase =
-      baseAssetsPath.endsWith('/') ? baseAssetsPath : '$baseAssetsPath/';
+  final normalizedBase = baseAssetsPath.endsWith('/')
+      ? baseAssetsPath
+      : '$baseAssetsPath/';
 
   requiredAssets.add(normalizedBase);
 
@@ -628,8 +634,11 @@ Future<void> _updatePubspec(Directory assetsDir) async {
       }
 
       if (line.startsWith('    -')) {
-        final assetPath =
-            trimmed.substring(1).trim().replaceAll("'", "").replaceAll('"', '');
+        final assetPath = trimmed
+            .substring(1)
+            .trim()
+            .replaceAll("'", "")
+            .replaceAll('"', '');
         existingAssetLines[i] = assetPath;
         lastAssetIndex = i;
       } else if (!line.startsWith('   ')) {
@@ -663,11 +672,12 @@ Future<void> _updatePubspec(Directory assetsDir) async {
 
     // Remove stale entries (iterate in reverse to keep indices stable)
     if (staleEntries.isNotEmpty) {
-      final linesToRemove = existingAssetLines.entries
-          .where((e) => staleEntries.contains(e.value))
-          .map((e) => e.key)
-          .toList()
-        ..sort((a, b) => b.compareTo(a));
+      final linesToRemove =
+          existingAssetLines.entries
+              .where((e) => staleEntries.contains(e.value))
+              .map((e) => e.key)
+              .toList()
+            ..sort((a, b) => b.compareTo(a));
 
       for (final lineIndex in linesToRemove) {
         newLines.removeAt(lineIndex);
