@@ -150,9 +150,12 @@ jobs:
               $content = Get-Content "$pkg\pubspec.yaml" -Raw
               Push-Location $pkg
               if ($content -match "sdk: flutter") {
-                flutter test
+                # Use --reporter github to avoid interactive batch prompts on Windows
+                & flutter test --reporter github --no-pub
+                if ($LASTEXITCODE -ne 0) { throw "Tests failed for $pkg" }
               } else {
-                dart test
+                & dart test --reporter github
+                if ($LASTEXITCODE -ne 0) { throw "Tests failed for $pkg" }
               }
               Pop-Location
             }
