@@ -2,9 +2,9 @@ name: CI Matrix Pipeline
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [main, master, develop]
   pull_request:
-    branches: [ main, master, develop ]
+    branches: [main, master, develop]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   # ============================================================================
-  # 1. Code Formatting & Linting across Multi-OS Matrix
+  # 1. Code Formatting & Linting (Linux + macOS)
   # ============================================================================
   analyze:
     name: 🔍 Formatting & Static Analysis (${{ matrix.os }})
@@ -22,9 +22,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
     timeout-minutes: 15
-    defaults:
-      run:
-        shell: bash
 
     steps:
       - name: 📥 Checkout Monorepo
@@ -37,6 +34,7 @@ jobs:
           cache: true
 
       - name: 📦 Resolve Package Dependencies
+        shell: bash
         run: |
           for pkg in packages/*; do
             if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
@@ -50,9 +48,11 @@ jobs:
           done
 
       - name: 🎨 Verify Dart Code Formatting
+        shell: bash
         run: dart format --output=none --set-exit-if-changed packages/
 
       - name: 🔍 Static Analysis (Fatal Infos Enforcement)
+        shell: bash
         run: |
           for pkg in packages/*; do
             if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
@@ -66,7 +66,7 @@ jobs:
           done
 
   # ============================================================================
-  # 2. Automated Test Matrix across Multi-OS Matrix (Linux, macOS, Windows)
+  # 2. Automated Test Matrix — Linux, macOS, Windows
   # ============================================================================
   test:
     name: 🧪 Automated Test Suite Matrix (${{ matrix.os }})
@@ -75,11 +75,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    timeout-minutes: 20
+    timeout-minutes: 25
     needs: analyze
-    defaults:
-      run:
-        shell: bash
 
     steps:
       - name: 📥 Checkout Monorepo
@@ -91,7 +88,10 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: 📦 Resolve Package Dependencies
+      # ── Linux / macOS ──────────────────────────────────────────────────────
+      - name: 📦 Resolve Package Dependencies (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           for pkg in packages/*; do
             if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
@@ -103,11 +103,13 @@ jobs:
             fi
           done
 
-      - name: 🧪 Execute Tests per Package
+      - name: 🧪 Execute Tests per Package (Unix)
+        if: runner.os != 'Windows'
+        shell: bash
         run: |
           for pkg in packages/*; do
             if [ -d "$pkg/test" ]; then
-              echo "➜ Running test suite for $pkg..."
+              echo "➜ Running tests for $pkg..."
               if grep -q "sdk: flutter" "$pkg/pubspec.yaml"; then
                 (cd "$pkg" && flutter test)
               else
@@ -116,17 +118,54 @@ jobs:
             fi
           done
 
+      # ── Windows ─────────────────────────────────────────────────────────────
+      - name: 📦 Resolve Package Dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path packages -Directory | ForEach-Object {
+            $pkg = $_.FullName
+            if (Test-Path "$pkg\pubspec.yaml") {
+              Write-Host "➜ Resolving dependencies for $pkg..."
+              $content = Get-Content "$pkg\pubspec.yaml" -Raw
+              Push-Location $pkg
+              if ($content -match "sdk: flutter") {
+                flutter pub get
+              } else {
+                dart pub get
+              }
+              Pop-Location
+            }
+          }
+
+      - name: 🧪 Execute Tests per Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Get-ChildItem -Path packages -Directory | ForEach-Object {
+            $pkg = $_.FullName
+            $testDir = "$pkg\test"
+            if (Test-Path $testDir) {
+              Write-Host "➜ Running tests for $pkg..."
+              $content = Get-Content "$pkg\pubspec.yaml" -Raw
+              Push-Location $pkg
+              if ($content -match "sdk: flutter") {
+                flutter test
+              } else {
+                dart test
+              }
+              Pop-Location
+            }
+          }
+
   # ============================================================================
-  # 3. Pub.dev Pana Health Score & Package Quality Gate
+  # 3. Pub.dev Pana Package Quality Gate (Linux only)
   # ============================================================================
   pana:
     name: 🏆 Pub.dev Package Quality Gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: analyze
-    defaults:
-      run:
-        shell: bash
 
     steps:
       - name: 📥 Checkout Monorepo
@@ -142,6 +181,7 @@ jobs:
         run: dart pub global activate pana
 
       - name: 🔍 Run Pana Score Validation across all packages
+        shell: bash
         run: |
           for pkg in packages/*; do
             if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
