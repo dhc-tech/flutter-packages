@@ -4,6 +4,12 @@
 #   • A git tag like `apple_sign_in_plugin-v1.3.0` pushed to main
 #   • Manual workflow_dispatch for one-off or dry-run publishes
 #
+# One tag == one package == one isolated run. When a batch release
+# creates multiple tags at once, each gets its own separate workflow
+# run — a failure in one package's publish has no effect on any other
+# package's run, by construction (not something this file has to
+# orchestrate itself).
+#
 # Authentication:
 #   Pub.dev OIDC (no token storage needed!) — official dart-lang pattern.
 #   The repo must be configured at https://pub.dev/publishers with the
@@ -17,20 +23,23 @@ concurrency:
 
 on:
   push:
+    # A single pattern (<any-name>-v<version>) instead of one entry per
+    # package name — adding a new package to packages/** needs zero
+    # changes here. The actual package name is parsed from the matched
+    # tag at runtime (see "Determine Target Package" below), not from
+    # this list.
     tags:
-      - 'white_label_kit-v*'
-      - 'dig_cli-v*'
-      - 'apple_sign_in_plugin-v*'
+      # GitHub's tag filters use simple glob syntax, not regex — no
+      # quantifiers like [0-9]+. This matches any tag ending in
+      # "-v<digit>...". Package-name validity and the exact version
+      # format are checked at runtime below, not by this pattern.
+      - '*-v[0-9]*'
   workflow_dispatch:
     inputs:
       package:
-        description: 'Package to publish'
+        description: 'Package directory name under packages/ to publish'
         required: true
-        type: choice
-        options:
-          - white_label_kit
-          - dig_cli
-          - apple_sign_in_plugin
+        type: string
       dry_run:
         description: 'Dry-run only (no actual publish)'
         required: true
@@ -61,8 +70,8 @@ jobs:
           flutter-version: '3.47.0'
           cache: true
 
-      # ── Determine which package to publish ───────────────────────────────
-      - name: 🎯 Determine Target Package
+      # ── Determine which package + version to publish ──────────────────────
+      - name: 🎯 Determine Target Package & Version
         id: target
         shell: bash
         env:
@@ -72,24 +81,79 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
         run: |
           if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "package=$INPUT_PACKAGE" >> "$GITHUB_OUTPUT"
-            echo "dry_run=$INPUT_DRY_RUN" >> "$GITHUB_OUTPUT"
-          else
-            TAG="$REF_NAME"
-            if [[ "$TAG" == white_label_kit-* ]]; then
-              echo "package=white_label_kit" >> $GITHUB_OUTPUT
-            elif [[ "$TAG" == dig_cli-* ]]; then
-              echo "package=dig_cli"         >> $GITHUB_OUTPUT
-            elif [[ "$TAG" == apple_sign_in_plugin-* ]]; then
-              echo "package=apple_sign_in_plugin" >> $GITHUB_OUTPUT
-            else
-              echo "❌ Unrecognised tag pattern: $TAG" && exit 1
+            pkg="$INPUT_PACKAGE"
+            if [ ! -f "packages/$pkg/pubspec.yaml" ]; then
+              echo "❌ No packages/$pkg/pubspec.yaml — not a real package directory." && exit 1
             fi
-            echo "dry_run=false" >> $GITHUB_OUTPUT
+            echo "package=$pkg" >> "$GITHUB_OUTPUT"
+            echo "dry_run=$INPUT_DRY_RUN" >> "$GITHUB_OUTPUT"
+            echo "tag_version=" >> "$GITHUB_OUTPUT"
+          else
+            # Tag format: <package>-v<version>. The package name is
+            # whatever's left after stripping the trailing -v<version>,
+            # matched against real directories under packages/ — no
+            # hardcoded package-name list to keep in sync.
+            tag="$REF_NAME"
+            tag_version="${tag##*-v}"
+            pkg="${tag%-v"$tag_version"}"
+            if [ ! -f "packages/$pkg/pubspec.yaml" ]; then
+              echo "❌ Tag '$tag' doesn't resolve to a real package directory (packages/$pkg not found)." && exit 1
+            fi
+            echo "package=$pkg" >> "$GITHUB_OUTPUT"
+            echo "tag_version=$tag_version" >> "$GITHUB_OUTPUT"
+            echo "dry_run=false" >> "$GITHUB_OUTPUT"
           fi
+
+      # ── Validate before touching anything else ─────────────────────────────
+      - name: ✅ Validate package is publishable & version matches tag
+        shell: bash
+        env:
+          TARGET_PACKAGE: ${{ steps.target.outputs.package }}
+          TAG_VERSION: ${{ steps.target.outputs.tag_version }}
+        run: |
+          pkg="packages/$TARGET_PACKAGE"
+          pubspec_version=$(grep '^version:' "$pkg/pubspec.yaml" | head -1 | awk '{print $2}' | tr -d "'\"")
+
+          if grep -q '^publish_to: *none' "$pkg/pubspec.yaml"; then
+            echo "❌ $TARGET_PACKAGE has publish_to: none — this package must never be published. Stopping." && exit 1
+          fi
+
+          if [ -n "$TAG_VERSION" ] && [ "$TAG_VERSION" != "$pubspec_version" ]; then
+            echo "❌ Tag version ($TAG_VERSION) doesn't match packages/$TARGET_PACKAGE/pubspec.yaml's version ($pubspec_version). Stopping — publishing the wrong version is worse than not publishing." && exit 1
+          fi
+
+          if ! grep -q "$pubspec_version" "$pkg/CHANGELOG.md" 2>/dev/null; then
+            echo "❌ CHANGELOG.md has no entry for version $pubspec_version. Stopping." && exit 1
+          fi
+
+          echo "version=$pubspec_version" >> "$GITHUB_OUTPUT"
+          echo "✅ $TARGET_PACKAGE@$pubspec_version — publishable, version matches tag, changelog has an entry."
+        id: validate
+
+      - name: 🔁 Check if this version is already published
+        if: steps.target.outputs.dry_run == 'false'
+        shell: bash
+        env:
+          TARGET_PACKAGE: ${{ steps.target.outputs.package }}
+          VERSION: ${{ steps.validate.outputs.version }}
+        run: |
+          # pub.dev versions are immutable, so dart pub publish would
+          # itself reject a re-publish — but checking first means a
+          # workflow rerun (e.g. after a later step failed) reports
+          # "already published, nothing to do" instead of a scary-
+          # looking but harmless failure.
+          status=$(curl -s -o /dev/null -w "%{http_code}" "https://pub.dev/api/packages/${TARGET_PACKAGE}/versions/${VERSION}")
+          if [ "$status" = "200" ]; then
+            echo "ℹ️ $TARGET_PACKAGE@$VERSION is already published on pub.dev. Nothing to do."
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+        id: check_published
 
       # ── Quality gate before publishing ───────────────────────────────────
       - name: 📦 Install Package Dependencies
+        if: steps.check_published.outputs.already_published != 'true'
         shell: bash
         env:
           TARGET_PACKAGE: ${{ steps.target.outputs.package }}
@@ -102,6 +166,7 @@ jobs:
           fi
 
       - name: 🔍 Static Analysis
+        if: steps.check_published.outputs.already_published != 'true'
         shell: bash
         env:
           TARGET_PACKAGE: ${{ steps.target.outputs.package }}
@@ -114,6 +179,7 @@ jobs:
           fi
 
       - name: 🧪 Run Tests
+        if: steps.check_published.outputs.already_published != 'true'
         shell: bash
         env:
           TARGET_PACKAGE: ${{ steps.target.outputs.package }}
@@ -136,6 +202,7 @@ jobs:
       # root that doesn't exist for them). This is a plain, uncommitted
       # local edit made right before publish — never pushed anywhere.
       - name: 🧹 Strip resolution:workspace before publish
+        if: steps.check_published.outputs.already_published != 'true'
         shell: bash
         env:
           TARGET_PACKAGE: ${{ steps.target.outputs.package }}
@@ -148,27 +215,29 @@ jobs:
           }
           echo "✅ Confirmed resolution: workspace is not present in the package to be published."
 
-      # ── Publish (OIDC — no stored token needed) ───────────────────────────
-      - name: 🚀 Publish to Pub.dev (OIDC)
+      - name: 🧪 Dry-run validate (always, even for a real publish)
+        if: steps.check_published.outputs.already_published != 'true'
         shell: bash
         env:
           TARGET_PACKAGE: ${{ steps.target.outputs.package }}
-          IS_DRY_RUN: ${{ steps.target.outputs.dry_run }}
         run: |
           pkg="packages/$TARGET_PACKAGE"
-          version=$(grep '^version:' "$pkg/pubspec.yaml" | awk '{print $2}')
-          echo "Publishing $TARGET_PACKAGE@$version"
+          (cd "$pkg" && dart pub publish --dry-run)
 
-          if [ "$IS_DRY_RUN" = "true" ]; then
-            echo "🔍 DRY RUN — validating package only (not publishing)"
-            (cd "$pkg" && dart pub publish --dry-run)
-          else
-            (cd "$pkg" && dart pub publish --force)
-          fi
+      # ── Publish (OIDC — no stored token needed) ───────────────────────────
+      - name: 🚀 Publish to Pub.dev (OIDC)
+        if: steps.check_published.outputs.already_published != 'true' && steps.target.outputs.dry_run == 'false'
+        shell: bash
+        env:
+          TARGET_PACKAGE: ${{ steps.target.outputs.package }}
+          VERSION: ${{ steps.validate.outputs.version }}
+        run: |
+          echo "Publishing $TARGET_PACKAGE@$VERSION"
+          (cd "packages/$TARGET_PACKAGE" && dart pub publish --force)
 
       # ── Create GitHub Release on successful publish ───────────────────────
       - name: 🏷️ Create GitHub Release
-        if: steps.target.outputs.dry_run == 'false' && github.event_name == 'push'
+        if: steps.check_published.outputs.already_published != 'true' && steps.target.outputs.dry_run == 'false' && github.event_name == 'push'
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           generate_release_notes: true
