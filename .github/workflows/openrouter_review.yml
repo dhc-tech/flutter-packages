@@ -146,7 +146,11 @@ jobs:
                   ],
                   "temperature": 0.2,
                   "max_tokens": 2000,
-                  "stream": False,
+                  # This model only returns content reliably in
+                  # streaming mode on OpenRouter's free tier — a plain
+                  # (non-streaming) request came back empty. Concatenate
+                  # the SSE delta chunks into the final review text.
+                  "stream": True,
               }
 
               req = urllib.request.Request(
@@ -162,13 +166,29 @@ jobs:
                   },
               )
 
+              chunks = []
               try:
                   with urllib.request.urlopen(req, timeout=120) as res:
-                      raw = json.loads(res.read().decode("utf-8"))
-                  review_text = raw["choices"][0]["message"]["content"].strip()
+                      for raw_line in res:
+                          line = raw_line.decode("utf-8", errors="replace").strip()
+                          if not line.startswith("data:"):
+                              continue
+                          data = line[len("data:"):].strip()
+                          if data == "[DONE]":
+                              break
+                          try:
+                              event = json.loads(data)
+                          except json.JSONDecodeError:
+                              continue
+                          delta = event.get("choices", [{}])[0].get("delta", {})
+                          piece = delta.get("content")
+                          if piece:
+                              chunks.append(piece)
               except Exception as e:
                   print(f"OpenRouter API call failed: {e}")
                   return
+
+              review_text = "".join(chunks).strip()
 
               if not review_text:
                   print("OpenRouter returned an empty review.")
