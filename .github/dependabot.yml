@@ -23,6 +23,10 @@ updates:
     directory: "/packages/apple_sign_in_plugin"
     schedule:
       interval: "weekly"
+    # A newly published version sits for at least 7 days before Dependabot
+    # opens a PR for it, giving time for any yanks/hotfixes to surface.
+    cooldown:
+      default-days: 7
     labels:
       - "p: apple_sign_in_plugin"
       - "infra: dependencies"
@@ -31,6 +35,8 @@ updates:
     directory: "/packages/dig_cli"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     labels:
       - "p: dig_cli"
       - "infra: dependencies"
@@ -39,6 +45,8 @@ updates:
     directory: "/packages/white_label_kit"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     labels:
       - "p: white_label_kit"
       - "infra: dependencies"
