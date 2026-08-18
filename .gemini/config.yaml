@@ -6,7 +6,10 @@ code_review:
   comment_severity_threshold: MEDIUM
   pull_request_opened:
     help: false
-    summary: false
+    # Was false — with no summary comment, there was no visible signal
+    # that the app is active on a PR at all, which matters right after
+    # a fresh install.
+    summary: true
     include_drafts: false
 ignore_patterns:
   - '**/*.g.dart'

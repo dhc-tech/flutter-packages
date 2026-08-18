@@ -137,10 +137,23 @@ jobs:
         env:
           RUN_ID: ${{ github.run_id }}
           EXISTING_BRANCH: ${{ steps.existing.outputs.branch }}
+          BASE: ${{ inputs.base }}
         run: |
           if [ -n "$EXISTING_BRANCH" ]; then
             git fetch origin "$EXISTING_BRANCH"
             git checkout "$EXISTING_BRANCH"
+            # Reset to the current base tip before re-running melos
+            # version, instead of stacking a new bump on top of the
+            # existing branch's own already-bumped commit. Without this,
+            # rerunning this workflow while a release PR is still open
+            # double-bumps every package a second time (e.g.
+            # 1.3.0 -> 1.4.0 -> 1.5.0) — confirmed by exactly that on a
+            # real run. Resetting first means melos always recomputes
+            # from scratch against the real commit history since each
+            # package's last tag, so a rerun regenerates the same
+            # correct single bump instead of adding another one.
+            git fetch origin "$BASE"
+            git reset --hard "origin/$BASE"
             echo "name=$EXISTING_BRANCH" >> "$GITHUB_OUTPUT"
           else
             branch="release/auto-${RUN_ID}"
@@ -185,7 +198,14 @@ jobs:
         if: steps.melos_version.outputs.versioned == 'true'
         env:
           BRANCH: ${{ steps.branch.outputs.name }}
-        run: git push origin "$BRANCH"
+        run: |
+          # --force-with-lease: an existing release branch was just reset
+          # to base above, so its history has diverged from what's
+          # already on the remote — a plain push would be rejected. This
+          # only ever rewrites this unmerged release-prep branch, never
+          # main and never a tag (tags stay force-push-free, see
+          # release_tag_on_merge.yml).
+          git push --force-with-lease origin "$BRANCH"
 
       - name: 📬 Open or update release PR
         if: steps.melos_version.outputs.versioned == 'true'
