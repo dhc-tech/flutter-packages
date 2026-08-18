@@ -1,0 +1,36 @@
+name: flutter_packages_monorepo
+repository: https://github.com/dhc-tech/flutter-packages
+
+packages:
+  - packages/**
+
+command:
+  version:
+    linkToCommits: true
+    workspaceChangelog: true
+
+scripts:
+  analyze:
+    run: |
+      melos exec -c 1 -- "if grep -q 'sdk: flutter' pubspec.yaml; then flutter analyze --fatal-infos; else dart analyze --fatal-infos; fi"
+    description: Run static analysis with zero warnings/errors across all packages.
+
+  format:
+    run: |
+      dart format --set-exit-if-changed .
+    description: Verify code formatting across all packages.
+
+  format:fix:
+    run: |
+      dart format .
+    description: Apply automatic code formatting across all packages.
+
+  test:
+    run: |
+      melos exec -c 1 --fail-fast --dir-exists="test" -- "if grep -q 'sdk: flutter' pubspec.yaml; then flutter test; else dart test; fi"
+    description: Run unit/widget tests in packages containing a test folder.
+
+  pana:
+    run: |
+      melos exec -c 1 -- "pana --no-warning ."
+    description: Verify Pub.dev quality health score on each package.

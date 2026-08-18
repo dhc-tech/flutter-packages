@@ -32,6 +32,7 @@ flutter-packages/
 │   │   ├── pull_request_label.yml     # 🏷️ Automatic package path PR labeler
 │   │   ├── auto_submit.yml            # 🤖 Automated PR merge & submit pipeline
 │   │   ├── ai_pr_review.yml           # 🧠 Free Gemini 2.0 Flash AI code reviewer
+│   │   ├── ai_issue_triage.yml        # 🤖 Free Gemini 2.0 Flash AI issue assistant
 │   │   └── publish.yml                # 🚀 Pub.dev automated publishing workflow
 │   ├── dependabot.yml                 # 🔄 Automated weekly dependency maintenance
 │   ├── labeler.yml                    # 🏷️ Package-to-label mapping configuration
@@ -39,34 +40,25 @@ flutter-packages/
 │
 ├── packages/                          # 📦 Published Dart & Flutter packages
 │   ├── white_label_kit/               # 🏷️ Multi-tenant white-label CLI & runtime engine
-│   │   ├── bin/
-│   │   ├── lib/
-│   │   ├── test/
-│   │   ├── example/
-│   │   ├── CHANGELOG.md
-│   │   ├── README.md
-│   │   └── pubspec.yaml
-│   │
 │   ├── dig_cli/                       # 🛠️ Flutter developer CLI & code generation engine
-│   │   ├── bin/
-│   │   ├── lib/
-│   │   ├── example/
-│   │   ├── CHANGELOG.md
-│   │   ├── README.md
-│   │   └── pubspec.yaml
-│   │
 │   └── apple_sign_in_plugin/          # 🍎 Cross-platform Apple authentication plugin
-│       ├── lib/
-│       ├── test/
-│       ├── example/
-│       ├── CHANGELOG.md
-│       ├── README.md
-│       └── pubspec.yaml
 │
-├── CONTRIBUTING.md                    # 🤝 Contribution & development guide
+├── melos.yaml                         # ⚡ Multi-package workspace orchestration
 ├── LICENSE                            # ⚖️ MIT Open Source License
 └── README.md                          # 📖 Monorepo documentation
 ```
+
+---
+
+## 🎯 Why a Monorepo?
+
+Instead of maintaining 10 separate GitHub repositories with duplicated CI configs, issues, and releases, this monorepo provides:
+
+1. **Single Source of Truth:** All DHC Tech plugins live in one organized repository with atomic versioning.
+2. **Unified CI/CD Matrix:** A single GitHub Actions pipeline runs static analysis, formatting checks, and tests across all packages simultaneously.
+3. **Automated Maintenance:** Dependabot, automated path-based PR labeling (`actions/labeler`), and auto-merging (`autosubmit`) manage overhead automatically.
+4. **Free AI-Powered Reviews:** Google Gemini 2.0 Flash automatically reviews PR diffs and triages user issues with zero recurring cost.
+5. **Instant Local Development (Melos):** Run tests, analysis, and formatting across all packages with single commands.
 
 ---
 
