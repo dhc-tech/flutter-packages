@@ -49,4 +49,5 @@ jobs:
             infra
             ci
             ai
+            release
           requireScope: false
