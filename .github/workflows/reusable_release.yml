@@ -145,6 +145,14 @@ jobs:
           else
             branch="release/auto-${RUN_ID}"
             git checkout -b "$branch"
+            # melos version runs `git pull --tags -f` internally, which
+            # fails outright ("no tracking information for the current
+            # branch") on a brand-new local branch with no upstream —
+            # confirmed by exactly that failure before this push existed.
+            # Pushing the empty branch now (with -u) gives it a tracking
+            # ref before melos ever touches git, so that internal pull
+            # has something to track.
+            git push -u origin "$branch"
             echo "name=$branch" >> "$GITHUB_OUTPUT"
           fi
 
