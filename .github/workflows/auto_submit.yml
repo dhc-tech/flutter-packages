@@ -31,7 +31,6 @@ jobs:
       contents: write        # performing the actual merge
       pull-requests: write   # reading/updating PR state (labels, mergeability)
       issues: write          # posting the "removed autosubmit" explanation comment
-      actions: read          # reading this job's own log to extract the real failure reason
     steps:
       # Closes the loop fully: a human never has to manually add the
       # autosubmit label. Approving the PR IS the "please merge this"
@@ -97,22 +96,29 @@ jobs:
             exit 0
           fi
 
-          # Pull the real reason out of this same job's own log instead of
-          # a generic template — automerge-action logs the exact GitHub
-          # API error (e.g. "Resource not accessible by personal access
-          # token", "not mergeable state: dirty", a specific failing
-          # check) on every retry. The last occurrence is the one that
-          # actually mattered.
-          reason=$(gh run view "$RUN_ID" --repo "$REPO" --log 2>/dev/null \
-            | grep -i "Failed to merge PR:\|Current PR status:" \
-            | tail -1 \
-            | sed -E 's/^[^\t]*\t[^\t]*\t[0-9TZ:.-]+ (INFO|ERROR)\s*//')
-          if [ -z "$reason" ]; then
-            reason="(no specific reason captured from the log — check the workflow run for details)"
-          fi
+          # A previous version of this step tried to grep this same job's
+          # own log for automerge-action's exact error line — that's not
+          # reliable: a job's log isn't finalized/fetchable via the API
+          # until the job itself completes, which it hasn't while this
+          # step is still running (confirmed: returned nothing, every
+          # time, on real failures). Using a static explanation per
+          # mergeResult value instead — less specific than the literal
+          # API error text, but always present and accurate for the
+          # common causes, unlike a log-scrape that returns nothing.
+          case "$MERGE_RESULT" in
+            not_ready)
+              reason="CI checks aren't all green yet, or the required review/approval hasn't been fully satisfied. This is expected right after a push — CI takes a few minutes."
+              ;;
+            merge_failed)
+              reason="GitHub's merge API itself rejected the request after checks/approval looked satisfied. Common causes: (1) a merge conflict with the base branch, (2) the merge token lacks permission for this specific change — e.g. fine-grained PATs need the separate 'Workflows' repo permission to merge any PR that touches .github/workflows/**, contents-only access isn't enough, or (3) a required status check's exact name doesn't match what's configured in branch protection."
+              ;;
+            *)
+              reason="Unrecognized mergeResult: $MERGE_RESULT."
+              ;;
+          esac
 
           gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label "autosubmit" || true
           body="🤖 Removed the \`autosubmit\` label — merge attempt result: \`$MERGE_RESULT\`"
-          body="$body"$'\n\n'"**Reason:** $reason"
-          body="$body"$'\n\n'"Fix the actual issue above, then re-apply the \`autosubmit\` label to retry. [Full run log](${GITHUB_SERVER_URL}/${REPO}/actions/runs/${RUN_ID})."
+          body="$body"$'\n\n'"**Likely reason:** $reason"
+          body="$body"$'\n\n'"Fix the underlying issue, then re-apply the \`autosubmit\` label to retry. [Full run log](${GITHUB_SERVER_URL}/${REPO}/actions/runs/${RUN_ID}) has the exact API error if you need it."
           gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$body"
