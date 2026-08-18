@@ -20,18 +20,22 @@ migrate_working_dir/
 .vscode/
 
 # Flutter/Dart specific
-.dart_tool/
+**/.dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 .pub-cache/
 .pub/
-/build/
+**/build/
+build/
 
 # Coverage
 coverage/
+**/coverage/
 
-# Output
+# Output & Binaries
 *.apk
 *.aab
 *.ipa
+*.o
+*.a
