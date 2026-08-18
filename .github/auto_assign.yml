@@ -1,0 +1,9 @@
+# Configuration for auto-assigning reviewers to PRs
+addReviewers: true
+addAssignees: true
+
+reviewers:
+  - digvijaysinh2204
+  - dhc-tech
+
+numberOfReviewers: 1

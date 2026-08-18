@@ -1,0 +1,20 @@
+name: 👥 Auto-Assign Reviewers
+
+on:
+  pull_request_target:
+    types: [opened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  assign_reviewers:
+    name: Assign Package Reviewers
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false && github.actor != 'dependabot[bot]'
+    steps:
+      - name: 👥 Assign Reviewer
+        uses: kentaro-m/auto-assign-action@v2.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: ".github/auto_assign.yml"

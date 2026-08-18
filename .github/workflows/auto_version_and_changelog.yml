@@ -1,0 +1,64 @@
+name: 🚀 Auto Version, Changelog & Tag Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'packages/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  version_and_release:
+    name: 📦 Semantic Version Bump & Changelog
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'chore(release):') && !contains(github.event.head_commit.message, '[skip ci]')"
+
+    steps:
+      - name: 📥 Checkout Repository (Full History)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🛠️ Setup Dart & Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: ⚡ Activate Melos
+        run: |
+          dart pub global activate melos
+          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+
+      - name: 🔧 Configure Git Identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: 🚀 Run Melos Versioning & Changelog Generation
+        id: melos_version
+        run: |
+          # Melos automatically analyzes commits, bumps pubspec version, and generates CHANGELOG.md
+          if melos version --yes --no-git-tag-version; then
+            echo "versioned=true" >> $GITHUB_OUTPUT
+          else
+            echo "versioned=false" >> $GITHUB_OUTPUT
+            echo "No package changes requiring a version bump."
+          fi
+
+      - name: 💾 Commit & Push Version Bumps & Changelogs
+        if: steps.melos_version.outputs.versioned == 'true'
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git add packages/
+            git commit -m "chore(release): automated package version bumps and changelog updates [skip ci]"
+            git push origin main
+          else
+            echo "Working tree clean, no version changes to commit."
+          fi
