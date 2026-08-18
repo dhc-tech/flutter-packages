@@ -12,16 +12,23 @@ concurrency:
 
 jobs:
   # ============================================================================
-  # 1. Code Formatting & Linting across all Packages
+  # 1. Code Formatting & Linting across Multi-OS Matrix
   # ============================================================================
   analyze:
-    name: 🔍 Formatting & Static Analysis
-    runs-on: ubuntu-latest
+    name: 🔍 Formatting & Static Analysis (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
     timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: 📥 Checkout Monorepo
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: 🛠️ Setup Dart & Flutter SDK
         uses: subosito/flutter-action@v2
@@ -59,17 +66,24 @@ jobs:
           done
 
   # ============================================================================
-  # 2. Automated Test Matrix across all Packages
+  # 2. Automated Test Matrix across Multi-OS Matrix (Linux, macOS, Windows)
   # ============================================================================
   test:
-    name: 🧪 Automated Test Suite Matrix
-    runs-on: ubuntu-latest
+    name: 🧪 Automated Test Suite Matrix (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     timeout-minutes: 20
     needs: analyze
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: 📥 Checkout Monorepo
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: 🛠️ Setup Dart & Flutter SDK
         uses: subosito/flutter-action@v2
@@ -110,10 +124,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: analyze
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: 📥 Checkout Monorepo
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: 🛠️ Setup Dart & Flutter SDK
         uses: subosito/flutter-action@v2
