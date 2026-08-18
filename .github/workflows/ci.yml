@@ -34,7 +34,11 @@ jobs:
           for pkg in packages/*; do
             if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
               echo "➜ Resolving dependencies for $pkg..."
-              (cd "$pkg" && dart pub get)
+              if grep -q "sdk: flutter" "$pkg/pubspec.yaml"; then
+                (cd "$pkg" && flutter pub get)
+              else
+                (cd "$pkg" && dart pub get)
+              fi
             fi
           done
 
@@ -46,7 +50,11 @@ jobs:
           for pkg in packages/*; do
             if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
               echo "➜ Analyzing $pkg..."
-              (cd "$pkg" && dart analyze --fatal-infos)
+              if grep -q "sdk: flutter" "$pkg/pubspec.yaml"; then
+                (cd "$pkg" && flutter analyze --fatal-infos)
+              else
+                (cd "$pkg" && dart analyze --fatal-infos)
+              fi
             fi
           done
 
@@ -73,7 +81,11 @@ jobs:
         run: |
           for pkg in packages/*; do
             if [ -d "$pkg" ] && [ -f "$pkg/pubspec.yaml" ]; then
-              (cd "$pkg" && dart pub get)
+              if grep -q "sdk: flutter" "$pkg/pubspec.yaml"; then
+                (cd "$pkg" && flutter pub get)
+              else
+                (cd "$pkg" && dart pub get)
+              fi
             fi
           done
 
@@ -82,6 +94,10 @@ jobs:
           for pkg in packages/*; do
             if [ -d "$pkg/test" ]; then
               echo "➜ Running test suite for $pkg..."
-              (cd "$pkg" && dart test)
+              if grep -q "sdk: flutter" "$pkg/pubspec.yaml"; then
+                (cd "$pkg" && flutter test)
+              else
+                (cd "$pkg" && dart test)
+              fi
             fi
           done
