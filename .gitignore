@@ -45,3 +45,12 @@ coverage/
 # are local-only, not committed).
 /pubspec.lock
 pubspec_overrides.yaml
+
+# Directory for files cached by the repo tooling (script/tool), matching
+# flutter/packages' own .gitignore convention.
+/.repo_tool_cache/
+
+# AI related (matches flutter/packages' .agents/ convention): personal,
+# uncommitted skills/rules an individual contributor keeps locally.
+.agents/rules/personal-*
+.agents/skills/personal-*
