@@ -26,7 +26,7 @@ since its own last release tag, independently.
 | Release preparation (batch) | `batch_release_pr.yml` | Manual (`workflow_dispatch`): prepare a release PR for a chosen set of packages, or all of them. |
 | Release preparation (branch) | `release_from_branches.yml` | Manual: prepare a release PR from a ref other than `main` (e.g. a hotfix branch). |
 | Shared release logic | `reusable_release.yml` | The one implementation all three callers above use — melos version/changelog computation, release-branch creation, opening (or updating) the release PR. Not called directly. |
-| Publish + tag (automatic, atomic) | `release.yml`'s `publish` job | Once a `chore(release): ...` PR merges to `main`, waits for CI (`✅ CI Success`), then runs flutter/packages' own vendored `script/tool` CLI: `dart ./script/tool/lib/src/main.dart publish --all-changed --base-sha=HEAD~ --skip-confirmation --remote=origin`. This one command publishes every package whose pubspec version changed to pub.dev (via `PUB_CREDENTIALS`), tags the release, and pushes the tag — atomically. |
+| Publish + tag (automatic, atomic) | `release.yml`'s `publish` job | Once a `chore(release): ...` PR merges to `main`, waits for CI (`CI Success`), then runs flutter/packages' own vendored `script/tool` CLI: `dart ./script/tool/lib/src/main.dart publish --all-changed --base-sha=HEAD~ --skip-confirmation --remote=origin`. This one command publishes every package whose pubspec version changed to pub.dev (via `PUB_CREDENTIALS`), tags the release, and pushes the tag — atomically. |
 
 This is exactly flutter/packages' own architecture: their `release.yml`
 runs on every push to `main` and does the entire publish+tag+push in

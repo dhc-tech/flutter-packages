@@ -1,4 +1,4 @@
-name: CI Matrix Pipeline
+name: CI
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
   #    gate against unchanged Dart code — skip them in that case.
   # ============================================================================
   changes:
-    name: 🔎 Detect changed paths
+    name: Detect changed paths
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -43,7 +43,7 @@ jobs:
   # 1. Code Formatting & Linting (Linux + macOS)
   # ============================================================================
   analyze:
-    name: 🔍 Formatting & Static Analysis (${{ matrix.os }})
+    name: Formatting & Static Analysis (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     needs: changes
     if: needs.changes.outputs.packages == 'true'
@@ -114,7 +114,7 @@ jobs:
   # 2. Automated Test Matrix — Linux, macOS, Windows
   # ============================================================================
   test:
-    name: 🧪 Automated Test Suite Matrix (${{ matrix.os }})
+    name: Automated Test Suite Matrix (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -215,7 +215,7 @@ jobs:
   # 3. Pub.dev Pana Package Quality Gate (Linux only)
   # ============================================================================
   pana:
-    name: 🏆 Pub.dev Package Quality Gate
+    name: Pub.dev Package Quality Gate
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -259,7 +259,7 @@ jobs:
   # This job depends on every matrix job and fails if any of them did;
   # branch protection should require only this one context: "✅ CI Success".
   ci-success:
-    name: ✅ CI Success
+    name: CI Success
     runs-on: ubuntu-latest
     needs: [changes, analyze, test, pana]
     if: always()

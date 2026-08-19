@@ -6,7 +6,7 @@
 # zizmor is Google's own published tool for this exact purpose
 # (github.com/zizmorcore/zizmor).
 
-name: 🛡️ GitHub Actions Security Scan
+name: GitHub Actions Security Scan
 
 on:
   push:
@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   zizmor:
-    name: 🔍 Scan workflows (zizmor)
+    name: Scan workflows (zizmor)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
