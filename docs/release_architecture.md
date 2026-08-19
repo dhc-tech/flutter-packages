@@ -22,7 +22,7 @@ since its own last release tag, independently.
 | Release preparation (branch) | `release_from_branches.yml` | Manual: prepare a release PR from a ref other than `main` (e.g. a hotfix branch). |
 | Shared release logic | `reusable_release.yml` | The one implementation all three callers above use — melos version/changelog computation, release-branch creation, opening (or updating) the release PR. Not called directly. |
 | Final release / tagging | `release_tag_on_merge.yml` | Once a `chore(release): ...` PR merges to `main`, create and push the real `<package>-vX.Y.Z` tag(s). |
-| Package publishing | `publish.yml` | Triggered by a package release tag: validates, then publishes that one package to pub.dev via OIDC. |
+| Package publishing | `publish.yml` | Triggered by a package release tag: validates, then publishes that one package to pub.dev via stored PUB_CREDENTIALS. |
 
 ## Normal flow (single or multiple packages)
 
@@ -83,22 +83,40 @@ one.
 - One tag = one package = one isolated workflow run — a batch release
   producing 3 tags produces 3 independent publish runs; one package's
   failure has no effect on the others
-- Authenticated via [pub.dev automated publishing](https://dart.dev/tools/pub/automated-publishing)
-  (GitHub Actions OIDC, `permissions: id-token: write`) — no stored
-  credentials, no PAT
+- Authenticated via a stored `PUB_CREDENTIALS` repo secret — the same
+  mechanism [flutter/packages' own release pipeline](https://github.com/flutter/packages)
+  uses (their custom publish tool reads a `PUB_CREDENTIALS` secret and
+  writes it to pub's credentials file before calling `dart pub
+  publish`; this repo's `publish.yml` does the equivalent directly).
+  Not pub.dev's OIDC "Automated publishing" feature — that needs a
+  one-time, human-only opt-in on each package's pub.dev admin page
+  before it does anything, and without it `dart pub publish` silently
+  falls back to an interactive Google OAuth prompt that hangs forever
+  in CI (confirmed on a real run, before switching to this approach)
 - Before any real publish: validates `publish_to: none` isn't set, the
   tag's version matches `pubspec.yaml`'s version, `CHANGELOG.md` has an
   entry for that version, and that the version isn't already published
   — then always runs `dart pub publish --dry-run` before the real
   publish
 
-### One-time manual pub.dev configuration (per package)
+### One-time setup: generating `PUB_CREDENTIALS` (per pub.dev account, not per package)
 
-On each package's `pub.dev/packages/<name>/admin` page → Automated
-publishing:
-- Repository: `dhc-tech/flutter-packages`
-- Tag pattern: `<name>-v{{version}}`
-- Enable publishing from GitHub Actions + push events
+A human with publish rights to all 3 packages runs, once, on their own
+machine:
+
+```
+dart pub login
+```
+
+This opens a browser for a normal Google OAuth login and writes a
+credentials file to `~/.config/dart/pub-credentials.json` (Linux) or
+`~/Library/Application Support/dart/pub-credentials.json` (macOS).
+Copy that file's entire contents into a repository secret named
+`PUB_CREDENTIALS` (Settings → Secrets and variables → Actions → New
+repository secret). `publish.yml` writes it back out to the same path
+on the runner before every publish — no pub.dev admin-page
+configuration needed at all, and it authorizes all packages this
+account can publish, not just one.
 
 ## What was deliberately not built
 

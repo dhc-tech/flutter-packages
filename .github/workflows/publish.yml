@@ -11,9 +11,15 @@
 # orchestrate itself).
 #
 # Authentication:
-#   Pub.dev OIDC (no token storage needed!) — official dart-lang pattern.
-#   The repo must be configured at https://pub.dev/publishers with the
-#   GitHub Actions OIDC provider. See: https://dart.dev/tools/pub/automated-publishing
+#   A stored PUB_CREDENTIALS repo secret — the same mechanism
+#   flutter/packages' own release pipeline uses. OIDC (pub.dev's
+#   "Automated publishing" feature) needs a one-time, human-only
+#   opt-in on each package's pub.dev admin page before it does
+#   anything; without it, `dart pub publish` silently falls back to
+#   an interactive Google OAuth prompt and hangs forever in CI —
+#   confirmed on a real run. A stored credentials secret needs no
+#   pub.dev-side configuration at all. See docs/release_architecture.md
+#   for how to generate PUB_CREDENTIALS.
 
 name: 🚀 Publish to Pub.dev
 
@@ -54,7 +60,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      id-token: write   # Required for OIDC pub.dev authentication
       contents: write   # Required for softprops/action-gh-release to create the release
 
     steps:
@@ -245,8 +250,30 @@ jobs:
             exit 1
           fi
 
-      # ── Publish (OIDC — no stored token needed) ───────────────────────────
-      - name: 🚀 Publish to Pub.dev (OIDC)
+      # ── Authenticate (stored credentials — same mechanism flutter/packages
+      #    uses via its own publish tool's PUB_CREDENTIALS secret) ───────────
+      # OIDC (permissions: id-token: write, above) needs a one-time,
+      # human-only "Automated publishing" opt-in on each package's
+      # pub.dev admin page — confirmed blocking a real publish attempt:
+      # without that opt-in, `dart pub publish` doesn't even try OIDC,
+      # it silently falls back to an interactive Google OAuth prompt
+      # and hangs forever in CI (no browser, nobody to click "Allow").
+      # A stored credentials secret needs no per-package pub.dev-side
+      # configuration at all — write it to the exact path dart's pub
+      # tool reads non-interactively, before ever calling publish.
+      - name: 🔑 Write stored Pub.dev credentials
+        if: steps.check_published.outputs.already_published != 'true' && steps.target.outputs.dry_run == 'false'
+        env:
+          PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}
+        run: |
+          if [ -z "$PUB_CREDENTIALS" ]; then
+            echo "❌ PUB_CREDENTIALS secret is not set — cannot publish non-interactively. See docs/release_architecture.md for how to generate it."
+            exit 1
+          fi
+          mkdir -p "$HOME/.config/dart"
+          printf '%s' "$PUB_CREDENTIALS" > "$HOME/.config/dart/pub-credentials.json"
+
+      - name: 🚀 Publish to Pub.dev
         if: steps.check_published.outputs.already_published != 'true' && steps.target.outputs.dry_run == 'false'
         shell: bash
         env:
