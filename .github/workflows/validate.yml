@@ -1,0 +1,51 @@
+name: Validate Repository
+
+# Adapted from flutter/core-packages' validate_repo.yaml, using this repo's
+# local script/tool (flutter_plugin_tools) instead of a globally-activated
+# pub.dev release, to match this repo's other workflows' convention of
+# invoking `dart ./script/tool/lib/src/main.dart <command>` directly.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Declare default permissions as read only.
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: "Install Flutter"
+        uses: ./.github/workflows/internals/install_flutter
+
+      - name: Set up main branch
+        run: git rev-parse --verify --quiet main || git branch main origin/main
+        shell: bash
+
+      - name: Set up tools
+        run: dart pub get
+        working-directory: ${{ github.workspace }}/script/tool
+
+      - name: Run 'format' to check for formatting violations
+        if: ${{ !cancelled() }}
+        run: dart ./script/tool/lib/src/main.dart format --fail-on-change --no-swift
+
+      - name: Run 'license-check' to check for license issues
+        if: ${{ !cancelled() }}
+        run: dart ./script/tool/lib/src/main.dart license-check
+
+      - name: Run 'publish-check' to make sure everything is in a publishable state
+        if: ${{ !cancelled() }}
+        run: dart ./script/tool/lib/src/main.dart publish-check --allow-pre-release
