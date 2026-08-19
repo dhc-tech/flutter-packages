@@ -17,6 +17,12 @@ on:
       - main
     paths:
       - 'packages/**'
+  # Manual fallback: a release PR merged via GITHUB_TOKEN-based
+  # automerge doesn't fire this workflow's push trigger at all (a
+  # GITHUB_TOKEN-authored push never triggers further workflow runs —
+  # confirmed happening on a real merge). workflow_dispatch lets a
+  # maintainer recover without hand-crafting tags outside the workflow.
+  workflow_dispatch: {}
 
 permissions: {}
 
@@ -28,7 +34,11 @@ jobs:
   tag:
     name: 🏷️ Tag newly-released packages
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message, 'chore(release):')
+    # The commit-message check only makes sense for the push trigger —
+    # a manual workflow_dispatch run has no head_commit at all, and a
+    # maintainer triggering it by hand is itself the "yes, do this"
+    # signal.
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'chore(release):')
     permissions:
       contents: write   # creating and pushing the release tag(s)
 
