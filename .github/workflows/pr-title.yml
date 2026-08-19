@@ -22,8 +22,8 @@ permissions:
   statuses: write
 
 jobs:
-  validate:
-    name: validate
+  pr-title:
+    name: pr-title
     runs-on: ubuntu-latest
     steps:
       - name: Validate PR title
