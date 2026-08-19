@@ -1,0 +1,58 @@
+name: Validate Repository
+
+# Adapted from flutter/core-packages' validate_repo.yaml, using this repo's
+# local script/tool (flutter_plugin_tools) instead of a globally-activated
+# pub.dev release, to match this repo's other workflows' convention of
+# invoking `dart ./script/tool/lib/src/main.dart <command>` directly.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+# Declare default permissions as read only.
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: "Install Flutter"
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.47.0'
+          cache: true
+
+      - name: Set up main branch
+        run: git rev-parse --verify --quiet main || git branch main origin/main
+        shell: bash
+
+      - name: Set up tools
+        run: dart pub get
+        working-directory: ${{ github.workspace }}/script/tool
+
+      - name: Run 'format' to check for formatting violations
+        if: ${{ !cancelled() }}
+        # clang-format is excluded: it produced a non-convergent diff on
+        # generated runner boilerplate (win32_window.h) even across
+        # consecutive runs on the same machine, making it unusable as a
+        # merge gate. Dart/Kotlin/Java formatting remain enforced.
+        #
+        # license-check and publish-check are not run here yet:
+        # - license-check flags ~176 pre-existing files repo-wide that
+        #   never had copyright headers; fixing that is a separate,
+        #   larger cleanup, not a per-PR gate.
+        # - publish-check depends on live pub.dev validation and this
+        #   package's local dependency_overrides for unpublished sibling
+        #   packages, which needs a closer look before it's a reliable gate.
+        run: dart ./script/tool/lib/src/main.dart format --fail-on-change --no-swift --no-clang-format

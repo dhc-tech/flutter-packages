@@ -2,7 +2,7 @@ name: apple_sign_in_plugin_darwin
 description: iOS and macOS implementation of the apple_sign_in_plugin package, built directly on Apple's AuthenticationServices framework.
 repository: https://github.com/dhc-tech/flutter-packages/tree/main/packages/apple_sign_in_plugin/apple_sign_in_plugin_darwin
 issue_tracker: https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+apple_sign_in_plugin_darwin%22
-version: 0.0.1
+version: 0.0.1-dev.0
 
 environment:
   sdk: '>=3.5.0 <4.0.0'
