@@ -1,12 +1,13 @@
 analyzer:
   exclude:
     - build/**
-    - android/**
-    - ios/**
-    - web/**
-    - windows/**
-    - macos/**
-    - linux/**
+    - apple_sign_in_plugin_android/**
+    - apple_sign_in_plugin_darwin/**
+    - apple_sign_in_plugin_web/**
+    - apple_sign_in_plugin_windows/**
+    - apple_sign_in_plugin_linux/**
+    - apple_sign_in_plugin_platform_interface/**
+    - example/**
 include: package:flutter_lints/flutter.yaml
 
 # Additional information about this file can be found at
