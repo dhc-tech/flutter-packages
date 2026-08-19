@@ -1,21 +1,37 @@
-## 📝 Summary of Changes
-<!-- Briefly describe the feature, bug fix, or refactor introduced across the packages. -->
+*Replace this paragraph with a description of what this PR is changing or adding, and why. Consider including before/after screenshots.*
 
----
+*List which issues are fixed by this PR. You must list at least one issue.*
 
-## 📦 Impacted Packages
-- [ ] `packages/white_label_kit`
-- [ ] `packages/dig_cli`
-- [ ] `packages/apple_sign_in_plugin`
-- [ ] Other: <!-- specify package name -->
+## Pre-Review Checklist
 
----
+- [ ] I read the [Contributor Guide] and followed the process outlined there for submitting PRs.
+- [ ] I read the [AI contribution guidelines] and understand my responsibilities, or I am not using AI tools.
+- [ ] I read the [Tree Hygiene] page, which explains my responsibilities.
+- [ ] I read and followed the [relevant style guides] and ran [the auto-formatter].
+- [ ] I signed the [CLA].
+- [ ] The title of the PR starts with the name of the package surrounded by square brackets, e.g. `[shared_preferences]`
+- [ ] I [linked to at least one issue that this PR fixes] in the description above.
+- [ ] I followed [the version and CHANGELOG instructions], using [semantic versioning] and the [repository CHANGELOG style], or I have commented below to indicate which documented exception this PR falls under[^1].
+- [ ] I updated/added any relevant documentation (doc comments with `///`).
+- [ ] I added new tests to check the change I am making, or I have commented below to indicate which [test exemption] this PR falls under[^1].
+- [ ] All existing and new tests are passing.
 
-## 🔍 Quality & Zero-Bug Checklist
+If you need help, consider asking for advice on the #hackers-new channel on [Discord].
 
-- [ ] **Formatting:** Ran `dart format packages/` (0 unformatted lines).
-- [ ] **Static Analysis:** Ran `dart analyze --fatal-infos` (0 errors, 0 warnings, 0 infos across all packages).
-- [ ] **Automated Tests:** All unit and integration test suites passed (`dart test`).
-- [ ] **Documentation:** Updated relevant `README.md` and `CHANGELOG.md` files.
-- [ ] **Semantic Versioning:** Updated package version in `pubspec.yaml` according to SemVer rules.
-- [ ] **Backward Compatibility:** No breaking changes introduced to public APIs without deprecation warnings.
+**Note**: The Flutter team is currently trialing the use of [Gemini Code Assist for GitHub](https://developers.google.com/gemini-code-assist/docs/review-github-code). Comments from the `gemini-code-assist` bot should not be taken as authoritative feedback from the Flutter team. If you find its comments useful you can update your code accordingly, but if you are unsure or disagree with the feedback, please feel free to wait for a Flutter team member's review for guidance on which automated comments should be addressed.
+
+[^1]: Regular contributors who have demonstrated familiarity with the repository guidelines only need to comment if the PR is not auto-exempted by repo tooling.
+
+<!-- Links -->
+[Contributor Guide]: https://github.com/flutter/packages/blob/main/CONTRIBUTING.md
+[AI contribution guidelines]: https://github.com/flutter/flutter/blob/main/docs/contributing/Tree-hygiene.md#ai-contribution-guidelines
+[Tree Hygiene]: https://github.com/flutter/flutter/blob/master/docs/contributing/Tree-hygiene.md
+[relevant style guides]: https://github.com/flutter/packages/blob/main/CONTRIBUTING.md#style
+[the auto-formatter]: https://github.com/flutter/packages/blob/main/script/tool/README.md#format-code
+[CLA]: https://cla.developers.google.com/
+[Discord]: https://github.com/flutter/flutter/blob/master/docs/contributing/Chat.md
+[linked to at least one issue that this PR fixes]: https://github.com/flutter/flutter/blob/master/docs/contributing/Tree-hygiene.md#overview
+[the version and CHANGELOG instructions]: https://github.com/flutter/flutter/blob/master/docs/ecosystem/contributing/README.md#version-and-changelog-updates
+[semantic versioning]: https://dart.dev/tools/pub/versioning#semantic-versions
+[repository CHANGELOG style]: https://github.com/flutter/flutter/blob/master/docs/ecosystem/contributing/README.md#changelog-style
+[test exemption]: https://github.com/flutter/flutter/blob/master/docs/contributing/Tree-hygiene.md#tests
