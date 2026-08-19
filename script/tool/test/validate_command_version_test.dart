@@ -1583,50 +1583,47 @@ release:
           ]),
         );
       });
-      test(
-        'ignores changelog and pubspec yaml version modifications check with override: batch-<package> label',
-        () async {
-          final RepositoryPackage package = createFakePackage(
-            'package',
-            packagesDir,
-            version: '1.0.0',
-          );
-          package.ciConfigFile.writeAsStringSync('''
+      test('ignores changelog and pubspec yaml version modifications check with override: batch-<package> label', () async {
+        final RepositoryPackage package = createFakePackage(
+          'package',
+          packagesDir,
+          version: '1.0.0',
+        );
+        package.ciConfigFile.writeAsStringSync('''
 release:
   batch: true
 ''');
-          // Create the pending_changelogs directory so the test doesn't fail on that check.
-          package.directory.childDirectory('pending_changelogs').createSync();
+        // Create the pending_changelogs directory so the test doesn't fail on that check.
+        package.directory.childDirectory('pending_changelogs').createSync();
 
-          gitProcessRunner.mockProcessesForExecutable['git-diff'] = <FakeProcessInfo>[
-            FakeProcessInfo(
-              MockProcess(
-                stdout: '''
+        gitProcessRunner.mockProcessesForExecutable['git-diff'] = <FakeProcessInfo>[
+          FakeProcessInfo(
+            MockProcess(
+              stdout: '''
 packages/package/CHANGELOG.md
 packages/package/pubspec.yaml
 ''',
-              ),
             ),
-          ];
-          gitProcessRunner.mockProcessesForExecutable['git-show'] = <FakeProcessInfo>[
-            FakeProcessInfo(MockProcess(stdout: 'version: 1.0.0')),
-          ];
+          ),
+        ];
+        gitProcessRunner.mockProcessesForExecutable['git-show'] = <FakeProcessInfo>[
+          FakeProcessInfo(MockProcess(stdout: 'version: 1.0.0')),
+        ];
 
-          final List<String> output = await runCapturingPrint(runner, <String>[
-            'validate',
-            '--base-sha=main',
-            '--pr-labels=override: batch-package',
-          ]);
+        final List<String> output = await runCapturingPrint(runner, <String>[
+          'validate',
+          '--base-sha=main',
+          '--pr-labels=override: batch-package',
+        ]);
 
-          expect(
-            output,
-            containsAllInOrder(<Matcher>[
-              contains('Running for package'),
-              contains('No issues found!'),
-            ]),
-          );
-        },
-      );
+        expect(
+          output,
+          containsAllInOrder(<Matcher>[
+            contains('Running for package'),
+            contains('No issues found!'),
+          ]),
+        );
+      });
 
       test('fails when there is changelog modifications', () async {
         final RepositoryPackage package = createFakePackage(

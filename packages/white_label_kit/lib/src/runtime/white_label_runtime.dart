@@ -59,8 +59,8 @@ class WhiteLabelRuntime {
   /// themselves at build/dev time rather than relying on the
   /// `build_runner`-generated constants.
   factory WhiteLabelRuntime.fromConfig(TenantConfig config) {
-    final androidVersion = config.androidVersion;
-    final iosVersion = config.iosVersion;
+    final TenantVersion androidVersion = config.androidVersion;
+    final TenantVersion iosVersion = config.iosVersion;
     return WhiteLabelRuntime(
       tenantId: config.id,
       tenantName: config.name,
@@ -141,6 +141,7 @@ class WhiteLabelRuntime {
 /// [WhiteLabelRuntime]'s dartdoc for why this package doesn't expose a
 /// Flutter `Color` directly.
 class WhiteLabelTheme {
+  /// Builds a [WhiteLabelTheme] from its resolved hex-color fields.
   const WhiteLabelTheme({
     this.primaryColorHex,
     this.secondaryColorHex,
@@ -150,15 +151,24 @@ class WhiteLabelTheme {
     this.gradientColors = const {},
   });
 
+  /// The tenant's primary brand color, as a hex string.
   final String? primaryColorHex;
+
+  /// The tenant's secondary brand color, as a hex string.
   final String? secondaryColorHex;
 
   /// See `TenantTheme`'s dartdoc — four independent, arbitrarily-keyed
   /// hex-color maps for apps whose UI needs more than one primary/secondary
   /// pair.
   final Map<String, String> brandColors;
+
+  /// Arbitrarily-keyed hex colors for feature-specific UI.
   final Map<String, String> featureColors;
+
+  /// Arbitrarily-keyed hex colors for section-specific UI.
   final Map<String, String> sectionColors;
+
+  /// Arbitrarily-keyed hex colors used in gradients.
   final Map<String, String> gradientColors;
 
   @override
@@ -173,8 +183,10 @@ class WhiteLabelTheme {
 /// `TenantEnvironment`'s dartdoc for why only non-secret values ever belong
 /// here.
 class WhiteLabelEnvironment {
+  /// Builds a [WhiteLabelEnvironment] from its resolved fields.
   const WhiteLabelEnvironment({this.apiBaseUrl});
 
+  /// The tenant's API base URL, if configured.
   final String? apiBaseUrl;
 
   @override
@@ -183,6 +195,7 @@ class WhiteLabelEnvironment {
 
 /// A resolved `name+buildNumber` version pair — see `TenantVersion`.
 class WhiteLabelVersion {
+  /// Builds a [WhiteLabelVersion] from its resolved fields.
   const WhiteLabelVersion({required this.name, required this.buildNumber});
 
   /// Semantic version string, e.g. `"1.2.0"`.
@@ -201,14 +214,20 @@ class WhiteLabelVersion {
 /// Android-specific identity/version info for a tenant, resolved (platform
 /// override already applied — see `TenantConfig.androidVersion`).
 class WhiteLabelAndroidInfo {
+  /// Builds a [WhiteLabelAndroidInfo] from its resolved fields.
   const WhiteLabelAndroidInfo({
     required this.applicationId,
     required this.appName,
     required this.version,
   });
 
+  /// The Android application id, e.g. `com.acme.app`.
   final String applicationId;
+
+  /// The Android-visible app display name.
   final String appName;
+
+  /// The resolved Android app version.
   final WhiteLabelVersion version;
 
   @override
@@ -220,14 +239,20 @@ class WhiteLabelAndroidInfo {
 /// iOS-specific identity/version info for a tenant, resolved (platform
 /// override already applied — see `TenantConfig.iosVersion`).
 class WhiteLabelIosInfo {
+  /// Builds a [WhiteLabelIosInfo] from its resolved fields.
   const WhiteLabelIosInfo({
     required this.bundleId,
     required this.appName,
     required this.version,
   });
 
+  /// The iOS bundle id, e.g. `com.acme.app`.
   final String bundleId;
+
+  /// The iOS-visible app display name.
   final String appName;
+
+  /// The resolved iOS app version.
   final WhiteLabelVersion version;
 
   @override

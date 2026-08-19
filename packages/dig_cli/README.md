@@ -106,6 +106,12 @@ Contributions, issues, and feature requests are welcome at the [GitHub Issues](h
 
 ---
 
+## 👤 Author
+
+Maintained by **DHC Tech**.
+
+---
+
 ## 📄 License
 
 This project is open-source and licensed under the **[MIT License](LICENSE)**.

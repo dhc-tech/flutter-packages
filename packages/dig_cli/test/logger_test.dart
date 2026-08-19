@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() {
   group('Logger Tests', () {
     test('kLog executes safely for all LogType variants', () {
-      expect(() => kLog('Info message', type: LogType.info), returnsNormally);
+      expect(() => kLog('Info message'), returnsNormally);
       expect(
         () => kLog('Success message', type: LogType.success),
         returnsNormally,
@@ -17,7 +17,7 @@ void main() {
     });
 
     test('kAnsiStdoutEnabled returns boolean without crashing', () {
-      final isEnabled = kAnsiStdoutEnabled;
+      final bool isEnabled = kAnsiStdoutEnabled;
       expect(isEnabled, isA<bool>());
     });
   });

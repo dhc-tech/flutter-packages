@@ -8,12 +8,8 @@ import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
 
 /// Command to build iOS IPA and save it to desktop
-class IosBuildCommand extends Command {
-  @override
-  final name = 'ios';
-  @override
-  final description = 'Builds the Flutter project into an iOS IPA file.';
-
+class IosBuildCommand extends Command<void> {
+  /// Creates the iOS build command and registers its options/flags.
   IosBuildCommand() {
     argParser.addOption('output', abbr: 'o', help: 'Specify output directory');
     argParser.addOption(
@@ -34,18 +30,22 @@ class IosBuildCommand extends Command {
       help: 'Include date and time in the filename',
     );
   }
+  @override
+  final name = 'ios';
+  @override
+  final description = 'Builds the Flutter project into an iOS IPA file.';
 
   @override
   Future<void> run() async {
-    String? outputDir = argResults?['output'] as String?;
-    String? customName = argResults?['name'] as String?;
-    String? method = argResults?['method'] as String?;
+    var outputDir = argResults?['output'] as String?;
+    var customName = argResults?['name'] as String?;
+    var method = argResults?['method'] as String?;
     bool includeTimestamp = argResults?['timestamp'] as bool? ?? true;
 
     if (stdin.hasTerminal && outputDir == null && customName == null) {
-      kLog('\n🍎 iOS BUILD CONFIGURATION', type: LogType.info);
+      kLog('\n🍎 iOS BUILD CONFIGURATION');
       stdout.write('Enter output directory (press enter for Desktop): ');
-      final outInput = stdin.readLineSync()?.trim();
+      final String? outInput = stdin.readLineSync()?.trim();
       if (outInput != null && outInput.isNotEmpty) {
         outputDir = outInput;
       }
@@ -53,13 +53,13 @@ class IosBuildCommand extends Command {
       stdout.write(
         'Enter custom name prefix (press enter to use project name): ',
       );
-      final nameInput = stdin.readLineSync()?.trim();
+      final String? nameInput = stdin.readLineSync()?.trim();
       if (nameInput != null && nameInput.isNotEmpty) {
         customName = nameInput;
       }
 
       stdout.write('Include date and time in filename? (Y/n): ');
-      final timeInput = stdin.readLineSync()?.trim().toLowerCase();
+      final String? timeInput = stdin.readLineSync()?.trim().toLowerCase();
       if (timeInput == 'n' || timeInput == 'no') {
         includeTimestamp = false;
       }
@@ -77,6 +77,7 @@ class IosBuildCommand extends Command {
   }
 }
 
+/// Builds the Flutter project into an iOS IPA and saves it to [outputDir].
 Future<void> buildIos({
   String? outputDir,
   String? customName,
@@ -97,10 +98,10 @@ Future<void> buildIos({
     return;
   }
 
-  final savePath = outputDir ?? await getDesktopPath();
+  final String savePath = outputDir ?? await getDesktopPath();
 
   try {
-    final projectName = customName ?? await getProjectName();
+    final String? projectName = customName ?? await getProjectName();
     if (projectName == null || projectName.isEmpty) {
       kLog(
         '❗ Project name not found and no custom name was provided!',
@@ -114,31 +115,31 @@ Future<void> buildIos({
       final now = DateTime.now();
       final date =
           '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      final hour = now.hour.toString().padLeft(2, '0');
-      final minute = now.minute.toString().padLeft(2, '0');
+      final String hour = now.hour.toString().padLeft(2, '0');
+      final String minute = now.minute.toString().padLeft(2, '0');
       filename = '$projectName-$date-$hour-$minute.ipa';
 
-      kLog('\n🍎 iOS BUILD', type: LogType.info);
+      kLog('\n🍎 iOS BUILD');
       kLog('📱 APP PREFIX: $projectName');
       kLog('📅 Date: $date @ $hour:$minute');
       kLog('🛠️  METHOD: $method');
     } else {
       filename = '$projectName.ipa';
-      kLog('\n🍎 iOS BUILD', type: LogType.info);
+      kLog('\n🍎 iOS BUILD');
       kLog('📱 APP PREFIX: $projectName');
       kLog('🛠️  METHOD: $method');
     }
 
-    final projectRoot = findProjectRoot();
+    final Directory? projectRoot = findProjectRoot();
     if (projectRoot == null) {
       kLog('❗ Could not find project root.', type: LogType.error);
       return;
     }
 
     // Step 1: Build the iOS archive using Flutter
-    kLog('\n📦 Building iOS IPA...', type: LogType.info);
+    kLog('\n📦 Building iOS IPA...');
 
-    final buildResult = await runWithSpinner(
+    final ProcessResult buildResult = await runWithSpinner(
       '🚧 Running flutter build ipa --release --export-method $method...',
       () => Process.run(
           'flutter',
@@ -155,28 +156,24 @@ Future<void> buildIos({
     if (buildResult.exitCode != 0) {
       kLog('❗ iOS build failed. See error below:', type: LogType.error);
       if (buildResult.stdout.toString().trim().isNotEmpty) {
-        kLog('\n--- Build Output ---', type: LogType.info);
-        print(buildResult.stdout);
+        kLog('\n--- Build Output ---');
+        kLog(buildResult.stdout.toString());
       }
       if (buildResult.stderr.toString().trim().isNotEmpty) {
         kLog('\n--- Error Log ---', type: LogType.error);
-        print(buildResult.stderr);
+        kLog(buildResult.stderr.toString(), type: LogType.error);
       }
       kLog(
         '\n💡 Common fixes for iOS installation issues:',
-        type: LogType.info,
       );
       kLog(
         '   • Make sure you use "ad-hoc" or "development" for testing on devices.',
-        type: LogType.info,
       );
       kLog(
         '   • Verify your UDIDs are added to the provisioning profile (for ad-hoc).',
-        type: LogType.info,
       );
       kLog(
         '   • App Store builds cannot be installed directly on devices.',
-        type: LogType.info,
       );
       return;
     }
@@ -184,12 +181,12 @@ Future<void> buildIos({
     // Find the IPA file in build/ios/ipa/
     final ipaDir = Directory(p.join(projectRoot.path, 'build', 'ios', 'ipa'));
 
-    if (!await ipaDir.exists()) {
+    if (!ipaDir.existsSync()) {
       kLog('❗ IPA output directory not found.', type: LogType.error);
       return;
     }
 
-    final ipaFiles = await ipaDir
+    final List<FileSystemEntity> ipaFiles = await ipaDir
         .list()
         .where((entity) => entity.path.endsWith('.ipa'))
         .toList();
@@ -208,21 +205,20 @@ Future<void> buildIos({
     // Delete the source IPA after copying
     await srcFile.delete();
 
-    final fileSize = await destFile.length();
-    final sizeInMB = (fileSize / (1024 * 1024)).toStringAsFixed(2);
+    final int fileSize = await destFile.length();
+    final String sizeInMB = (fileSize / (1024 * 1024)).toStringAsFixed(2);
 
     kLog('\n✅ iOS IPA created successfully!', type: LogType.success);
     kLog('-------------------------------------------');
     kLog('📁 Location: ${destFile.path}', type: LogType.success);
-    kLog('📊 Size: ${sizeInMB}MB', type: LogType.info);
+    kLog('📊 Size: ${sizeInMB}MB');
     kLog('-------------------------------------------\n');
 
-    kLog('\n📲 To install on device:', type: LogType.info);
-    kLog('   1. Connect your iPhone to this Mac.', type: LogType.info);
-    kLog('   2. Open "Finder" or "Apple Configurator 2".', type: LogType.info);
+    kLog('\n📲 To install on device:');
+    kLog('   1. Connect your iPhone to this Mac.');
+    kLog('   2. Open "Finder" or "Apple Configurator 2".');
     kLog(
       '   3. Drag and drop the .ipa file onto your device.',
-      type: LogType.info,
     );
     if (method == 'app-store') {
       kLog(
@@ -240,7 +236,7 @@ Future<void> buildIos({
 
 /// Handles the iOS build command from the interactive menu
 Future<void> handleIosBuildCommand(List<String> args) async {
-  final runner = CommandRunner('dig', 'DIG CLI tool');
+  final CommandRunner<dynamic> runner = CommandRunner('dig', 'DIG CLI tool');
   runner.addCommand(IosBuildCommand());
   await runner.run(['ios', ...args]);
 }

@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:white_label_kit/white_label_kit.dart';
 import 'package:test/test.dart';
+import 'package:white_label_kit/white_label_kit.dart';
 
 void main() {
   late Directory projectRoot;
@@ -39,7 +39,7 @@ $versionYaml
   }
 
   test('omitted version defaults to 1.0.0+1 for both platforms', () {
-    final tenant = loadWith('')['acme'];
+    final TenantConfig tenant = loadWith('')['acme'];
     expect(tenant.version.name, '1.0.0');
     expect(tenant.version.buildNumber, 1);
     expect(tenant.androidVersion.combined, '1.0.0+1');
@@ -47,7 +47,7 @@ $versionYaml
   });
 
   test('shared version applies to both platforms when no override is set', () {
-    final tenant = loadWith('''
+    final TenantConfig tenant = loadWith('''
       version:
         name: "2.5.0"
         build_number: 7
@@ -81,7 +81,7 @@ white_label:
       assets:
         logo: "tenants/acme/assets/logo.png"
 ''');
-    final tenant = WhiteLabelConfig.load(projectRoot.path)['acme'];
+    final TenantConfig tenant = WhiteLabelConfig.load(projectRoot.path)['acme'];
 
     expect(
       tenant.version.combined,

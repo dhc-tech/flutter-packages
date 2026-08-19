@@ -804,59 +804,56 @@ cognitive_complexity:
         );
       });
 
-      test(
-        'fails with package analysis, skills analysis, and custom linter violations listed if all fail',
-        () async {
-          final RepositoryPackage package = createFakePackage(
-            'a_package',
-            packagesDir,
-            isFlutter: true,
-          );
-          _writeFakePubspecWithLinter(package, inDevDependencies: true);
-          package.libDirectory.childFile('lib.dart').createSync();
-          package.ciConfigFile.writeAsStringSync('analyze_skills: true');
+      test('fails with package analysis, skills analysis, and custom linter violations listed if all fail', () async {
+        final RepositoryPackage package = createFakePackage(
+          'a_package',
+          packagesDir,
+          isFlutter: true,
+        );
+        _writeFakePubspecWithLinter(package, inDevDependencies: true);
+        package.libDirectory.childFile('lib.dart').createSync();
+        package.ciConfigFile.writeAsStringSync('analyze_skills: true');
 
-          package.directory
-              .childDirectory('.agents')
-              .childDirectory('skills')
-              .childFile('test.dart')
-              .createSync(recursive: true);
+        package.directory
+            .childDirectory('.agents')
+            .childDirectory('skills')
+            .childFile('test.dart')
+            .createSync(recursive: true);
 
-          processRunner.mockProcessesForExecutable['flutter'] = <FakeProcessInfo>[
-            FakeProcessInfo(MockProcess(), <String>['pub', 'get']),
-          ];
-          processRunner.mockProcessesForExecutable['dart'] = <FakeProcessInfo>[
-            FakeProcessInfo(MockProcess(exitCode: 1), <String>['analyze']), // main package
-            FakeProcessInfo(MockProcess(exitCode: 1), <String>['analyze']), // skills package
-            FakeProcessInfo(MockProcess(exitCode: 1), <String>[
-              'run',
-              'cognitive_complexity',
-            ]), // custom linter
-          ];
+        processRunner.mockProcessesForExecutable['flutter'] = <FakeProcessInfo>[
+          FakeProcessInfo(MockProcess(), <String>['pub', 'get']),
+        ];
+        processRunner.mockProcessesForExecutable['dart'] = <FakeProcessInfo>[
+          FakeProcessInfo(MockProcess(exitCode: 1), <String>['analyze']), // main package
+          FakeProcessInfo(MockProcess(exitCode: 1), <String>['analyze']), // skills package
+          FakeProcessInfo(MockProcess(exitCode: 1), <String>[
+            'run',
+            'cognitive_complexity',
+          ]), // custom linter
+        ];
 
-          Error? commandError;
-          final List<String> output = await runCapturingPrint(
-            runner,
-            <String>['analyze'],
-            errorHandler: (Error e) {
-              commandError = e;
-            },
-          );
+        Error? commandError;
+        final List<String> output = await runCapturingPrint(
+          runner,
+          <String>['analyze'],
+          errorHandler: (Error e) {
+            commandError = e;
+          },
+        );
 
-          expect(commandError, isA<ToolExit>());
-          final String joinedOutput = output.join('\n');
-          expect(joinedOutput, contains('The following packages had errors:'));
-          expect(
-            joinedOutput,
-            contains(
-              '  a_package:\n'
-              '    Main package analysis failed\n'
-              '    Skills analysis failed\n'
-              '    Metrics violations found. See the package\'s local "analysis_options.yaml" for configured thresholds.',
-            ),
-          );
-        },
-      );
+        expect(commandError, isA<ToolExit>());
+        final String joinedOutput = output.join('\n');
+        expect(joinedOutput, contains('The following packages had errors:'));
+        expect(
+          joinedOutput,
+          contains(
+            '  a_package:\n'
+            '    Main package analysis failed\n'
+            '    Skills analysis failed\n'
+            '    Metrics violations found. See the package\'s local "analysis_options.yaml" for configured thresholds.',
+          ),
+        );
+      });
     });
 
     test('skips if requested if "pub get" fails in the resolver', () async {

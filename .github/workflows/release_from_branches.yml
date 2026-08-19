@@ -1,49 +1,20 @@
-# Release from a specific branch — an explicit, maintainer-only path
-# to prepare a release from a ref OTHER than main (e.g. a hotfix
-# branch cut from an older tag), for when a fix needs to ship without
-# including everything currently on main.
-#
-# Uses the exact same reusable_release.yml as every other release
-# path here — validation, changelog checks, and the normal PR review +
-# CI gate all still apply. This does not bypass branch protection: it
-# opens a PR targeting the chosen base branch, same as any other
-# change.
-
-name: 🌿 Release From Branch
-
+name: Batch Release
 on:
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: 'Branch, tag, or commit SHA to release from'
-        required: true
-        type: string
-      base:
-        description: 'Branch to open the release PR against'
-        required: true
-        type: string
-        default: "main"
-      packages:
-        description: '"all", or a comma-separated list of package names'
-        required: true
-        type: string
-        default: "all"
-
-permissions: {}
-
-concurrency:
-  group: release-from-branch-${{ inputs.ref }}
-  cancel-in-progress: false
-
+  push:
+    branches:
+      - 'release-go_router-*'
+      - 'release-cupertino_ui-*'
+      - 'release-material_ui-*'
+permissions:
+  # Release needs to push a tag back to the repo.
+  contents: write
 jobs:
-  prepare:
-    name: Prepare release PR from ${{ inputs.ref }}
-    permissions:
-      contents: write        # pushing the release branch (needed by the called workflow)
-      pull-requests: write   # opening/updating the release PR (needed by the called workflow)
+  release:
     uses: ./.github/workflows/reusable_release.yml
     with:
-      packages: ${{ inputs.packages }}
-      ref: ${{ inputs.ref }}
-      base: ${{ inputs.base }}
-      pr_title: "chore(release): version packages (from ${{ inputs.ref }})"
+      is-batch-release: true
+      branch-name: '${{ github.ref_name }}'
+    secrets:
+      USER_NAME: ${{ secrets.USER_NAME }}
+      USER_EMAIL: ${{ secrets.USER_EMAIL }}
+      PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}

@@ -6,7 +6,7 @@ import '../utils/logger.dart';
 import '../utils/spinner.dart';
 
 /// Command to repair the pub cache
-class PubCacheCommand extends Command {
+class PubCacheCommand extends Command<void> {
   @override
   final name = 'pub-cache';
   @override
@@ -20,14 +20,13 @@ class PubCacheCommand extends Command {
 
 /// Repairs the pub cache by running `flutter pub cache repair`
 Future<void> repairPubCache() async {
-  kLog('\n🔧 Repairing Pub Cache...', type: LogType.info);
+  kLog('\n🔧 Repairing Pub Cache...');
   kLog(
     '💡 This may take a few minutes depending on cache size.\n',
-    type: LogType.info,
   );
 
   try {
-    final result = await runWithSpinner(
+    final ProcessResult result = await runWithSpinner(
       '🔄 Running pub cache repair...',
       () =>
           Process.run('flutter', ['pub', 'cache', 'repair'], runInShell: true),
@@ -40,9 +39,9 @@ Future<void> repairPubCache() async {
     }
 
     // Print the output
-    final output = result.stdout.toString().trim();
+    final String output = result.stdout.toString().trim();
     if (output.isNotEmpty) {
-      print(output);
+      kLog(output);
     }
 
     kLog('\n✅ Pub cache repaired successfully!', type: LogType.success);

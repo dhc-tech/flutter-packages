@@ -8,7 +8,11 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-final _binPath = p.join(Directory.current.path, 'bin', 'white_label.dart');
+final String _binPath = p.join(
+  Directory.current.path,
+  'bin',
+  'white_label.dart',
+);
 
 Future<ProcessResult> runCli(List<String> args, {required String cwd}) {
   return Process.run('dart', [_binPath, ...args], workingDirectory: cwd);
@@ -24,7 +28,10 @@ name: fake_app
 flutter:
   uses-material-design: true
 ''');
-    final init = await runCli(['init', '--example'], cwd: projectRoot.path);
+    final ProcessResult init = await runCli([
+      'init',
+      '--example',
+    ], cwd: projectRoot.path);
     expect(init.exitCode, 0, reason: init.stderr.toString());
   });
 
@@ -33,7 +40,7 @@ flutter:
   });
 
   test('add-tenant generates the yaml entry and the assets folder — no manual editing', () async {
-    final result = await runCli([
+    final ProcessResult result = await runCli([
       'add-tenant',
       'beta',
       'Beta Corp',
@@ -51,7 +58,9 @@ flutter:
 
     // The yaml entry was appended for us — no hand-editing required. Prove
     // it via `validate` and `list`, not by re-parsing the raw string.
-    final validate = await runCli(['validate'], cwd: projectRoot.path);
+    final ProcessResult validate = await runCli([
+      'validate',
+    ], cwd: projectRoot.path);
     expect(
       validate.exitCode,
       0,
@@ -59,7 +68,7 @@ flutter:
     );
     expect(validate.stdout, contains('beta'));
 
-    final list = await runCli(['list'], cwd: projectRoot.path);
+    final ProcessResult list = await runCli(['list'], cwd: projectRoot.path);
     expect(list.stdout, contains('beta'));
     expect(
       list.stdout,
@@ -68,7 +77,7 @@ flutter:
   });
 
   test('add-tenant --default updates default_tenant', () async {
-    final result = await runCli([
+    final ProcessResult result = await runCli([
       'add-tenant',
       'beta',
       'Beta Corp',
@@ -77,12 +86,12 @@ flutter:
     ], cwd: projectRoot.path);
     expect(result.exitCode, 0, reason: result.stderr.toString());
 
-    final list = await runCli(['list'], cwd: projectRoot.path);
+    final ProcessResult list = await runCli(['list'], cwd: projectRoot.path);
     expect(list.stdout, contains('Default tenant: beta'));
   });
 
   test('add-tenant rejects a duplicate tenant id', () async {
-    final result = await runCli([
+    final ProcessResult result = await runCli([
       'add-tenant',
       'acme', // already exists from init --example
       'Acme Again',
@@ -94,7 +103,7 @@ flutter:
   });
 
   test('add-tenant rejects an invalid bundle id and creates nothing', () async {
-    final result = await runCli([
+    final ProcessResult result = await runCli([
       'add-tenant',
       'beta',
       'Beta Corp',
@@ -114,7 +123,7 @@ flutter:
       final realLogo = File(p.join(projectRoot.path, 'real_logo.png'))
         ..writeAsStringSync('REAL_LOGO_BYTES');
 
-      final result = await runCli([
+      final ProcessResult result = await runCli([
         'add-tenant',
         'beta',
         'Beta Corp',

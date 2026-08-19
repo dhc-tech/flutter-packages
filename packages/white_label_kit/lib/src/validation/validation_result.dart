@@ -6,11 +6,17 @@ sealed class ValidationResult {
   const ValidationResult();
 }
 
+/// A passing validation outcome.
 class Valid extends ValidationResult {
+  /// Creates a passing validation outcome.
   const Valid();
 }
 
+/// A failing validation outcome carrying an actionable [message].
 class Invalid extends ValidationResult {
+  /// Creates a failing validation outcome with an actionable [message].
   const Invalid(this.message);
+
+  /// Human-readable, actionable description of why validation failed.
   final String message;
 }

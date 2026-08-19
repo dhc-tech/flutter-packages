@@ -1,0 +1,16 @@
+# Local development override — remove before publishing.
+# The apple_sign_in_plugin_* platform packages are not yet on pub.dev;
+# force this resolution graph onto the local sibling packages.
+dependency_overrides:
+  apple_sign_in_plugin_android:
+    path: ../../apple_sign_in_plugin_android
+  apple_sign_in_plugin_darwin:
+    path: ../../apple_sign_in_plugin_darwin
+  apple_sign_in_plugin_linux:
+    path: ../../apple_sign_in_plugin_linux
+  apple_sign_in_plugin_platform_interface:
+    path: ../../apple_sign_in_plugin_platform_interface
+  apple_sign_in_plugin_web:
+    path: ../../apple_sign_in_plugin_web
+  apple_sign_in_plugin_windows:
+    path: ../../apple_sign_in_plugin_windows

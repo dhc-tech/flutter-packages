@@ -1,30 +1,24 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
-import 'package:args/command_runner.dart';
-import 'package:path/path.dart' as p;
-import 'package:http/http.dart' as http;
 import 'package:archive/archive.dart';
+import 'package:args/command_runner.dart';
+import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as p;
 
+import '../ui/box_painter.dart';
 import '../utils/logger.dart';
+import '../utils/project_rebrander.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
 import 'asset_command.dart';
 import 'create_jks_command.dart';
-import '../utils/project_rebrander.dart';
-import '../ui/box_painter.dart';
 
-class CreateProjectCommand extends Command {
-  String _githubRepo = 'Digvijaysinh2204/dig_template';
-  String _githubBranch = 'main';
-
-  @override
-  final name = 'create-project';
-  @override
-  final description =
-      'Creates a new Flutter project from a template and sets up signing.';
-
+/// Command that scaffolds a brand-new Flutter project from the DIG template.
+class CreateProjectCommand extends Command<void> {
+  /// Registers the options accepted by `create-project`.
   CreateProjectCommand() {
     argParser.addOption(
       'name',
@@ -50,7 +44,6 @@ class CreateProjectCommand extends Command {
       'github',
       abbr: 'g',
       help: 'Fetch the template from GitHub (always gets the latest version).',
-      defaultsTo: false,
     );
     argParser.addOption(
       'github-repo',
@@ -63,19 +56,28 @@ class CreateProjectCommand extends Command {
       defaultsTo: 'main',
     );
   }
+  String _githubRepo = 'Digvijaysinh2204/dig_template';
+  String _githubBranch = 'main';
+
+  @override
+  final name = 'create-project';
+  @override
+  final description =
+      'Creates a new Flutter project from a template and sets up signing.';
 
   @override
   Future<void> run() async {
-    kLog('\n🚀 CREATE PROJECT FROM TEMPLATE', type: LogType.info);
+    kLog('\n🚀 CREATE PROJECT FROM TEMPLATE');
 
-    _githubRepo = argResults?['github-repo'] ?? 'Digvijaysinh2204/dig_template';
-    _githubBranch = argResults?['github-branch'] ?? 'main';
+    _githubRepo = argResults?['github-repo'] as String? ??
+        'Digvijaysinh2204/dig_template';
+    _githubBranch = argResults?['github-branch'] as String? ?? 'main';
 
     // No longer prompting for y/n since local is gone.
     // If they want to use a specific branch/repo, they use flags.
 
     // 1. Get Project Details
-    String? projectName = argResults?['name'] as String?;
+    var projectName = argResults?['name'] as String?;
     if (projectName == null || projectName.isEmpty) {
       stdout.write('Enter project name (for folder & pubspec, e.g., my_app): ');
       projectName = stdin.readLineSync()?.trim();
@@ -86,12 +88,12 @@ class CreateProjectCommand extends Command {
     }
 
     // Slugify the project name for safety
-    final slug = projectName.toLowerCase().replaceAll(
+    final String slug = projectName.toLowerCase().replaceAll(
           RegExp(r'[^a-z0-9_]'),
           '_',
         );
 
-    String? appName = argResults?['app-name'] as String?;
+    var appName = argResults?['app-name'] as String?;
     if (appName == null || appName.isEmpty) {
       stdout.write('Enter app display name (e.g., My Awesome App): ');
       appName = stdin.readLineSync()?.trim();
@@ -100,7 +102,7 @@ class CreateProjectCommand extends Command {
       appName = projectName; // Fallback to project name
     }
 
-    String? bundleId = argResults?['bundle-id'] as String?;
+    var bundleId = argResults?['bundle-id'] as String?;
     if (bundleId == null || bundleId.isEmpty) {
       stdout.write('Enter bundle ID (e.g., com.awesome.app): ');
       bundleId = stdin.readLineSync()?.trim();
@@ -116,10 +118,10 @@ class CreateProjectCommand extends Command {
       return;
     }
 
-    String? outputDir = argResults?['output'] as String?;
+    var outputDir = argResults?['output'] as String?;
     if (outputDir == null || outputDir.isEmpty) {
       stdout.write('Enter output path (press enter for default ./$slug): ');
-      final input = stdin.readLineSync()?.trim();
+      final String? input = stdin.readLineSync()?.trim();
       if (input != null && input.isNotEmpty) {
         outputDir = input;
       }
@@ -129,7 +131,7 @@ class CreateProjectCommand extends Command {
         ? Directory(p.absolute(outputDir))
         : Directory(p.join(Directory.current.path, slug));
 
-    if (await targetDir.exists()) {
+    if (targetDir.existsSync()) {
       kLog(
         '❗ Directory ${targetDir.path} already exists.',
         type: LogType.error,
@@ -138,7 +140,7 @@ class CreateProjectCommand extends Command {
     }
 
     // 2. Locate Template
-    String? templatePath = await _findTemplatePath();
+    final String? templatePath = await _findTemplatePath();
     if (templatePath == null) {
       kLog(
         '❗ Template structure not found. Please ensure you are running the command from a valid installation.',
@@ -147,20 +149,20 @@ class CreateProjectCommand extends Command {
       return;
     }
 
-    kLog('📂 Creating project at: ${targetDir.path}', type: LogType.info);
-    kLog('🏗️  Using template: $templatePath', type: LogType.info);
+    kLog('📂 Creating project at: ${targetDir.path}');
+    kLog('🏗️  Using template: $templatePath');
 
     try {
       // 3. Run Flutter Create as Base
       await runWithSpinner('🚀 Running flutter create...', () async {
         // Calculate org from bundleId
-        String org = 'com.example';
+        var org = 'com.example';
         if (bundleId!.contains('.')) {
-          final parts = bundleId.split('.');
+          final List<String> parts = bundleId.split('.');
           org = parts.sublist(0, parts.length - 1).join('.');
         }
 
-        final result = await Process.run('flutter', [
+        final ProcessResult result = await Process.run('flutter', [
           'create',
           '--project-name',
           slug,
@@ -210,12 +212,12 @@ class CreateProjectCommand extends Command {
       });
 
       // 6. Generate JKS
-      kLog('\n🔑 Setting up Android Signing (0-Work)...', type: LogType.info);
-      final originalCwd = Directory.current;
+      kLog('\n🔑 Setting up Android Signing (0-Work)...');
+      final Directory originalCwd = Directory.current;
       Directory.current = targetDir;
       resetProjectRootCache();
 
-      final jksRunner = CommandRunner('dg', 'temp')
+      final CommandRunner<dynamic> jksRunner = CommandRunner('dg', 'temp')
         ..addCommand(CreateJksCommand());
 
       await jksRunner.run([
@@ -239,12 +241,13 @@ class CreateProjectCommand extends Command {
         final sampleJks = File(
           p.join(targetDir.path, 'android', 'app', 'sample.jks'),
         );
-        if (await sampleJks.exists()) {
-          await sampleJks.delete();
+        if (sampleJks.existsSync()) {
+          sampleJks.deleteSync();
         }
 
         // Run pub get
-        final result = await Process.run('flutter', ['pub', 'get']);
+        final ProcessResult result =
+            await Process.run('flutter', ['pub', 'get']);
         if (result.exitCode != 0) {
           kLog(
             '⚠️  flutter pub get failed, you might need to run it manually.',
@@ -267,6 +270,7 @@ class CreateProjectCommand extends Command {
 
       // Final summary
       final painter = BoxPainter();
+      // ignore: avoid_print
       print('');
       painter.drawHeader('PROJECT CREATED SUCCESSFULLY', width: 60);
       painter.drawRow('Project Name', projectName, width: 60);
@@ -280,7 +284,7 @@ class CreateProjectCommand extends Command {
         '   • Your project is ready for development!',
         type: LogType.success,
       );
-      kLog('   • Run "cd $slug && flutter run" to start.', type: LogType.info);
+      kLog('   • Run "cd $slug && flutter run" to start.');
     } catch (e) {
       kLog('❌ An error occurred: $e', type: LogType.error);
     }
@@ -288,36 +292,36 @@ class CreateProjectCommand extends Command {
 
   Future<String?> _findTemplatePath() async {
     // Only GitHub templates are supported now as local templates have been removed.
-    return await _downloadTemplateFromGithub();
+    return _downloadTemplateFromGithub();
   }
 
   Future<String?> _downloadTemplateFromGithub() async {
     try {
-      final repo = _githubRepo;
-      final branch = _githubBranch;
-      final url = Uri.parse(
+      final String repo = _githubRepo;
+      final String branch = _githubBranch;
+      final Uri url = Uri.parse(
         'https://github.com/$repo/archive/refs/heads/$branch.zip',
       );
 
       return await runWithSpinner(
         '🌐 Downloading latest template from GitHub ($repo)...',
         () async {
-          final response = await http.get(url);
+          final http.Response response = await http.get(url);
           if (response.statusCode != 200) {
             throw Exception(
               'Failed to download template. Status: ${response.statusCode}',
             );
           }
 
-          final bytes = response.bodyBytes;
-          final archive = ZipDecoder().decodeBytes(bytes);
+          final Uint8List bytes = response.bodyBytes;
+          final Archive archive = ZipDecoder().decodeBytes(bytes);
 
-          final tempDir = await Directory.systemTemp.createTemp(
+          final Directory tempDir = await Directory.systemTemp.createTemp(
             'dig_cli_template_',
           );
 
           for (final file in archive) {
-            final filename = file.name;
+            final String filename = file.name;
             if (file.isFile) {
               final data = file.content as List<int>;
               File(p.join(tempDir.path, filename))
@@ -332,15 +336,16 @@ class CreateProjectCommand extends Command {
           // GitHub zip has a root folder named {repo_name}-{branch_name}
           // Inside it, the code is now at the root
           // GitHub zip has a root folder named {repo_name}-{branch_name}
-          final rootFolderName = archive.first.name.split('/').first;
-          final templatePath = p.join(tempDir.path, rootFolderName);
+          final String rootFolderName = archive.first.name.split('/').first;
+          final String templatePath = p.join(tempDir.path, rootFolderName);
 
           String? detectedPath;
-          if (await File(p.join(templatePath, 'pubspec.yaml')).exists()) {
+          if (File(p.join(templatePath, 'pubspec.yaml')).existsSync()) {
             detectedPath = templatePath;
           } else {
             // Fallback search: Look for the first directory that contains pubspec.yaml
-            await for (var entity in tempDir.list(recursive: true)) {
+            await for (final FileSystemEntity entity
+                in tempDir.list(recursive: true)) {
               if (entity is File && p.basename(entity.path) == 'pubspec.yaml') {
                 detectedPath = p.dirname(entity.path);
                 break;
@@ -368,8 +373,8 @@ class CreateProjectCommand extends Command {
     Directory destination,
   ) async {
     await destination.create(recursive: true);
-    await for (var entity in source.list(recursive: false)) {
-      final base = p.basename(entity.path);
+    await for (final FileSystemEntity entity in source.list()) {
+      final String base = p.basename(entity.path);
 
       if (entity is Directory) {
         if (base == 'build' ||
@@ -398,16 +403,17 @@ class CreateProjectCommand extends Command {
 
   Future<void> _updateReadme(Directory projectDir, String projectName) async {
     final readmeFile = File(p.join(projectDir.path, 'README.md'));
-    String content = '';
+    var content = '';
 
-    if (await readmeFile.exists()) {
+    if (readmeFile.existsSync()) {
       content = await readmeFile.readAsString();
       if (!content.contains('DIG CLI')) {
         content +=
             '\n\n---\nGenerated by [DIG CLI](https://pub.dev/packages/dig_cli) 🚀';
       }
     } else {
-      content = '''# 📱 $projectName
+      content = '''
+# 📱 $projectName
 
 Created with building blocks from **DIG CLI**.
 
@@ -468,7 +474,7 @@ Generated by [DIG CLI](https://pub.dev/packages/dig_cli) 🚀
     final targetPubspec = File(p.join(projectDir.path, 'pubspec.yaml'));
     final templatePubspec = File(p.join(templatePath, 'pubspec.yaml'));
 
-    if (await targetPubspec.exists() && await templatePubspec.exists()) {
+    if (targetPubspec.existsSync() && templatePubspec.existsSync()) {
       String templateContent = await templatePubspec.readAsString();
       // Update name to match the new project slug
       templateContent = templateContent.replaceFirst(
@@ -493,7 +499,7 @@ Generated by [DIG CLI](https://pub.dev/packages/dig_cli) 🚀
     final buildGradle = File(
       p.join(projectDir.path, 'android', 'app', 'build.gradle'),
     );
-    if (await buildGradle.exists()) {
+    if (buildGradle.existsSync()) {
       String content = await buildGradle.readAsString();
 
       // 1. Add keystore loading logic before android {} block
@@ -511,7 +517,7 @@ if (keystorePropertiesFile.exists()) {
 
       // 2. Add signingConfigs inside android {}
       if (!content.contains('signingConfigs {')) {
-        final signingConfig = '''
+        const signingConfig = '''
     signingConfigs {
         release {
             keyAlias = keystoreProperties['keyAlias']
@@ -542,11 +548,11 @@ if (keystorePropertiesFile.exists()) {
 
   Future<void> _generateAndInjectSecureKey(Directory projectDir) async {
     final envFile = File(p.join(projectDir.path, '.env'));
-    if (await envFile.exists()) {
+    if (envFile.existsSync()) {
       // Generate 32 bytes of secure random data
       final random = Random.secure();
       final values = List<int>.generate(32, (i) => random.nextInt(256));
-      final secureKey = base64UrlEncode(values);
+      final String secureKey = base64UrlEncode(values);
 
       String content = await envFile.readAsString();
       // Replace existing API key or append if missing
@@ -559,7 +565,7 @@ if (keystorePropertiesFile.exists()) {
         content += '\nAPI_KEY=$secureKey';
       }
       await envFile.writeAsString(content);
-      kLog('🔐 Generated secure API_KEY in .env', type: LogType.info);
+      kLog('🔐 Generated secure API_KEY in .env');
     }
   }
 
@@ -576,8 +582,8 @@ if (keystorePropertiesFile.exists()) {
 
     for (final path in pathsToDelete) {
       final dir = Directory(p.join(projectDir.path, path));
-      if (await dir.exists()) {
-        await dir.delete(recursive: true);
+      if (dir.existsSync()) {
+        dir.deleteSync(recursive: true);
       }
     }
   }

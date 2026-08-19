@@ -7,12 +7,10 @@ import '../utils/logger.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
 
-class CreateJksCommand extends Command {
-  @override
-  final name = 'create-jks';
-  @override
-  final description =
-      'Generates a new Android JKS keystore and automates signing setup.';
+/// Command that generates a new Android JKS keystore and automates the
+/// project's signing setup.
+class CreateJksCommand extends Command<void> {
+  /// Registers the options accepted by `create-jks`.
   CreateJksCommand() {
     argParser.addOption('name', help: 'JKS name (without extension)');
     argParser.addOption('location', help: 'Save location path');
@@ -27,34 +25,39 @@ class CreateJksCommand extends Command {
     );
   }
   @override
+  final name = 'create-jks';
+  @override
+  final description =
+      'Generates a new Android JKS keystore and automates signing setup.';
+  @override
   Future<void> run() async {
     final noInteractive = argResults?['no-interactive'] == true;
 
     if (!noInteractive) {
-      kLog('\n🔐 Android JKS & Signing Setup Tool', type: LogType.info);
+      kLog('\n🔐 Android JKS & Signing Setup Tool');
     }
 
-    final projectRoot = findProjectRoot();
+    final Directory? projectRoot = findProjectRoot();
     final isInsideFlutter = projectRoot != null;
 
     // 1. Auto-detect JKS Name
-    String defaultJksName = 'release_keystore';
+    var defaultJksName = 'release_keystore';
     if (isInsideFlutter) {
-      final detectedId = await _detectPackageId(projectRoot.path);
+      final String? detectedId = await _detectPackageId(projectRoot.path);
       if (detectedId != null) {
-        final parts = detectedId.split('.');
+        final List<String> parts = detectedId.split('.');
         defaultJksName = parts.last;
       }
     }
 
     String baseName;
     if (argResults?['name'] != null) {
-      baseName = argResults!['name'];
+      baseName = argResults!['name'] as String;
     } else if (noInteractive) {
       baseName = defaultJksName;
     } else {
       stdout.write('Enter JKS name (default: $defaultJksName): ');
-      String? input = stdin.readLineSync()?.trim();
+      final String? input = stdin.readLineSync()?.trim();
       baseName = (input == null || input.isEmpty) ? defaultJksName : input;
     }
 
@@ -71,23 +74,23 @@ class CreateJksCommand extends Command {
 
     String finalDirPath;
     if (argResults?['location'] != null) {
-      finalDirPath = argResults!['location'];
+      finalDirPath = argResults!['location'] as String;
     } else if (noInteractive) {
       finalDirPath = defaultSavePath;
     } else {
       stdout.write('Enter save location (default: $defaultSavePath): ');
-      String? input = stdin.readLineSync()?.trim();
+      final String? input = stdin.readLineSync()?.trim();
       finalDirPath = (input == null || input.isEmpty) ? defaultSavePath : input;
     }
 
     final finalDir = Directory(finalDirPath);
-    if (!await finalDir.exists()) {
-      await finalDir.create(recursive: true);
+    if (!finalDir.existsSync()) {
+      finalDir.createSync(recursive: true);
     }
 
     final jksFile = File(p.join(finalDir.path, fullJksName));
 
-    if (await jksFile.exists() && !noInteractive) {
+    if (jksFile.existsSync() && !noInteractive) {
       stdout.write('⚠️  File $fullJksName already exists. Overwrite? (y/N): ');
       if (stdin.readLineSync()?.trim().toLowerCase() != 'y') {
         kLog('Aborted.', type: LogType.warning);
@@ -96,18 +99,22 @@ class CreateJksCommand extends Command {
     }
 
     // 3. Prompt for credentials
-    String alias = argResults?['alias'] ?? 'key';
+    String alias = argResults?['alias'] as String? ?? 'key';
     if (!noInteractive && argResults?['alias'] == null) {
       stdout.write('Enter key alias (default: key): ');
-      String? input = stdin.readLineSync()?.trim();
-      if (input != null && input.isNotEmpty) alias = input;
+      final String? input = stdin.readLineSync()?.trim();
+      if (input != null && input.isNotEmpty) {
+        alias = input;
+      }
     }
 
-    String storePass = argResults?['store-pass'] ?? '123456';
+    String storePass = argResults?['store-pass'] as String? ?? '123456';
     if (!noInteractive && argResults?['store-pass'] == null) {
       stdout.write('Enter store password (min 6 chars, default: 123456): ');
-      String? input = stdin.readLineSync()?.trim();
-      if (input != null && input.isNotEmpty) storePass = input;
+      final String? input = stdin.readLineSync()?.trim();
+      if (input != null && input.isNotEmpty) {
+        storePass = input;
+      }
     }
 
     if (storePass.length < 6) {
@@ -118,25 +125,29 @@ class CreateJksCommand extends Command {
       return;
     }
 
-    String keyPass = argResults?['key-pass'] ?? storePass;
+    String keyPass = argResults?['key-pass'] as String? ?? storePass;
     if (!noInteractive && argResults?['key-pass'] == null) {
       stdout.write('Enter key password (default: same as store password): ');
-      String? input = stdin.readLineSync()?.trim();
-      if (input != null && input.isNotEmpty) keyPass = input;
+      final String? input = stdin.readLineSync()?.trim();
+      if (input != null && input.isNotEmpty) {
+        keyPass = input;
+      }
     }
 
-    String ou = argResults?['ou'] ?? 'Android';
+    String ou = argResults?['ou'] as String? ?? 'Android';
     if (!noInteractive && argResults?['ou'] == null) {
       stdout.write('Enter Organizational Unit (e.g., Development): ');
-      String? input = stdin.readLineSync()?.trim();
-      if (input != null && input.isNotEmpty) ou = input;
+      final String? input = stdin.readLineSync()?.trim();
+      if (input != null && input.isNotEmpty) {
+        ou = input;
+      }
     }
 
     // 4. Generate JKS using keytool
     final dname = 'CN=$alias, OU=$ou, O=$ou, L=City, S=State, C=US';
 
     // Check if keytool is available
-    final keytoolCheck = await Process.run('which', ['keytool']);
+    final ProcessResult keytoolCheck = await Process.run('which', ['keytool']);
     if (keytoolCheck.exitCode != 0) {
       kLog(
         '❗ "keytool" command not found. Please ensure JDK is installed and in your PATH.',
@@ -146,7 +157,7 @@ class CreateJksCommand extends Command {
     }
 
     try {
-      final result = await runWithSpinner(
+      final ProcessResult result = await runWithSpinner(
         '🚧 Generating JKS file...',
         () => Process.run('keytool', [
           '-genkeypair',
@@ -187,10 +198,10 @@ class CreateJksCommand extends Command {
           );
 
           // Use absolute path in key.properties for "0 work" robustness
-          final propertiesContent = '''storePassword=$storePass
-keyPassword=$keyPass
-keyAlias=$alias
-storeFile=${p.basename(jksFile.path)}''';
+          final propertiesContent = 'storePassword=$storePass\n'
+              'keyPassword=$keyPass\n'
+              'keyAlias=$alias\n'
+              'storeFile=${p.basename(jksFile.path)}';
 
           await keyPropertiesFile.writeAsString(propertiesContent);
 
@@ -198,14 +209,14 @@ storeFile=${p.basename(jksFile.path)}''';
           await _updateBuildGradle(projectRoot.path);
         });
         kLog('✅ Android signing setup complete!', type: LogType.success);
-        kLog('📝 key.properties created in android/', type: LogType.info);
+        kLog('📝 key.properties created in android/');
       }
 
       // Final summary
-      kLog('\n🚀 Summary:', type: LogType.info);
-      kLog('   • JKS Path: ${jksFile.path}', type: LogType.info);
-      kLog('   • Alias: $alias', type: LogType.info);
-      kLog('   • Passwords: $storePass', type: LogType.info);
+      kLog('\n🚀 Summary:');
+      kLog('   • JKS Path: ${jksFile.path}');
+      kLog('   • Alias: $alias');
+      kLog('   • Passwords: $storePass');
       kLog(
         '   • Status: Your project is ready for "flutter build apk --release"',
         type: LogType.success,
@@ -215,23 +226,27 @@ storeFile=${p.basename(jksFile.path)}''';
     }
   }
 
+  /// Detects the app's package/bundle id for [projectPath] to suggest a
+  /// default keystore name.
   Future<String?> _detectPackageId(String projectPath) async {
-    return await getBundleId();
+    return getBundleId();
   }
 
   Future<void> _updateBuildGradle(String projectPath) async {
-    final appDir = p.join(projectPath, 'android', 'app');
+    final String appDir = p.join(projectPath, 'android', 'app');
     File? buildGradleFile;
-    bool isKotlin = false;
+    var isKotlin = false;
 
-    if (await File(p.join(appDir, 'build.gradle.kts')).exists()) {
+    if (File(p.join(appDir, 'build.gradle.kts')).existsSync()) {
       buildGradleFile = File(p.join(appDir, 'build.gradle.kts'));
       isKotlin = true;
-    } else if (await File(p.join(appDir, 'build.gradle')).exists()) {
+    } else if (File(p.join(appDir, 'build.gradle')).existsSync()) {
       buildGradleFile = File(p.join(appDir, 'build.gradle'));
     }
 
-    if (buildGradleFile == null) return;
+    if (buildGradleFile == null) {
+      return;
+    }
 
     String content = await buildGradleFile.readAsString();
 
@@ -260,7 +275,8 @@ if (keystorePropertiesFile.exists()) {
 
     if (!content.contains('keystorePropertiesFile')) {
       if (content.contains('plugins {')) {
-        int pluginsEnd = content.indexOf('}', content.indexOf('plugins {')) + 1;
+        final int pluginsEnd =
+            content.indexOf('}', content.indexOf('plugins {')) + 1;
         content =
             '${content.substring(0, pluginsEnd)}\n$loadingSnippet${content.substring(pluginsEnd)}';
       } else {
@@ -270,13 +286,15 @@ if (keystorePropertiesFile.exists()) {
 
     // 3. Define signing configs
     final releaseConfig = isKotlin
-        ? '''        create("release") {
+        ? '''
+        create("release") {
             keyAlias = keystoreProperties["keyAlias"]?.toString()
             keyPassword = keystoreProperties["keyPassword"]?.toString()
             storeFile = keystoreProperties["storeFile"]?.let { file(it) }
             storePassword = keystoreProperties["storePassword"]?.toString()
         }'''
-        : '''        release {
+        : '''
+        release {
             keyAlias keystoreProperties['keyAlias']
             keyPassword keystoreProperties['keyPassword']
             storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
@@ -318,6 +336,7 @@ if (keystorePropertiesFile.exists()) {
   }
 }
 
+/// For backward compatibility while refactoring others.
 Future<void> handleCreateJksCommand() async {
   final command = CreateJksCommand();
   await command.run();

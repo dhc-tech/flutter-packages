@@ -45,7 +45,7 @@ white_label:
           end: "#EEEEEE"
 ''');
 
-    final tenant = WhiteLabelConfig.load(projectRoot.path)['acme'];
+    final TenantConfig tenant = WhiteLabelConfig.load(projectRoot.path)['acme'];
     expect(tenant.theme.brandColors, {'logo_accent': '#FF0000'});
     expect(tenant.theme.featureColors, {'courses': '#00FF00'});
     expect(tenant.theme.sectionColors, {'header': '#0000FF'});
@@ -105,7 +105,7 @@ white_label:
         logo: "tenants/acme/assets/logo.png"
 ''');
 
-    final tenant = WhiteLabelConfig.load(projectRoot.path)['acme'];
+    final TenantConfig tenant = WhiteLabelConfig.load(projectRoot.path)['acme'];
     expect(tenant.theme.brandColors, isEmpty);
     expect(tenant.theme.featureColors, isEmpty);
     expect(tenant.theme.sectionColors, isEmpty);

@@ -34,8 +34,8 @@ abstract final class ConfigValidator {
   /// A Java/Kotlin package name: dot-separated identifiers, each starting
   /// with a letter. This is what Android's `applicationId` actually is.
   static ValidationResult androidApplicationId(String value) {
-    final segments = value.split('.');
-    final ok =
+    final List<String> segments = value.split('.');
+    final bool ok =
         segments.length >= 2 &&
         segments.every((s) => RegExp(r'^[a-zA-Z][a-zA-Z0-9_]*$').hasMatch(s));
     if (!ok) {
@@ -54,8 +54,8 @@ abstract final class ConfigValidator {
   /// the Android regex for iOS and rejecting valid bundle ids like
   /// `com.company.app-name`).
   static ValidationResult iosBundleId(String value) {
-    final segments = value.split('.');
-    final ok =
+    final List<String> segments = value.split('.');
+    final bool ok =
         segments.length >= 2 &&
         segments.every((s) => RegExp(r'^[a-zA-Z][a-zA-Z0-9-]*$').hasMatch(s));
     if (!ok) {
@@ -96,6 +96,7 @@ abstract final class ConfigValidator {
     return const Valid();
   }
 
+  /// Validates that [value] is a `#RRGGBB` or `#AARRGGBB` hex color string.
   static ValidationResult colorHex(String value) {
     if (!RegExp(r'^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$').hasMatch(value)) {
       return Invalid('Invalid color "$value". Expected #RRGGBB or #AARRGGBB.');
@@ -103,8 +104,9 @@ abstract final class ConfigValidator {
     return const Valid();
   }
 
+  /// Validates that [value] is an absolute `http`/`https` URL.
   static ValidationResult url(String value) {
-    final uri = Uri.tryParse(value);
+    final Uri? uri = Uri.tryParse(value);
     if (uri == null ||
         !uri.isAbsolute ||
         !(uri.scheme == 'http' || uri.scheme == 'https')) {
@@ -140,7 +142,7 @@ abstract final class ConfigValidator {
     if (!value.startsWith(expectedPrefix)) {
       return Invalid(
         'Asset path "$value" for tenant "$tenantId" must live under '
-        '$expectedPrefix — pointing at another tenant\'s directory (or '
+        "$expectedPrefix — pointing at another tenant's directory (or "
         'anywhere else) is not allowed.',
       );
     }
@@ -158,9 +160,10 @@ abstract final class ConfigValidator {
       // tenants/<id>/" even though it requires filesystem write access to
       // the tenant's own directory (not reachable via white_label.yaml
       // content alone).
-      final realPath = file.resolveSymbolicLinksSync();
-      final tenantRoot = Directory(p.join(projectRoot, 'tenants', tenantId))
-          .resolveSymbolicLinksSync();
+      final String realPath = file.resolveSymbolicLinksSync();
+      final String tenantRoot = Directory(
+        p.join(projectRoot, 'tenants', tenantId),
+      ).resolveSymbolicLinksSync();
       if (!p.isWithin(tenantRoot, realPath) && realPath != tenantRoot) {
         return Invalid(
           'Asset path "$value" is a symlink (or contains one) that resolves '
@@ -182,8 +185,12 @@ abstract final class ConfigValidator {
     String path,
     List<String> errors,
   ) {
-    if (node == null) return null;
-    if (node is YamlMap || node is Map) return node as Map;
+    if (node == null) {
+      return null;
+    }
+    if (node is YamlMap || node is Map) {
+      return node as Map;
+    }
     errors.add('Expected "$path" to be a map, got: $node');
     return null;
   }

@@ -1,232 +1,98 @@
-# Reusable release logic — one centralized implementation of "compute
-# independent version bumps + changelogs for the requested packages,
-# then open (or update) one coordinated release PR", called by every
-# entry point that can start a release (release.yml on every merge to
-# main, batch_release_pr.yml on manual dispatch, release_from_branches.yml
-# for a maintainer-controlled branch release) instead of each
-# duplicating the same melos/git/gh shell logic.
-#
-# Packages stay independently versioned — this never assigns one
-# version to every package. It only decides WHICH packages melos
-# considers (via the packages input); melos itself still computes each
-# package's own bump from its own conventional-commit history.
-#
-# Idempotent by design: if a release PR is already open (found by its
-# title marker), this updates that same PR's branch instead of opening
-# a second one — callers never need their own duplicate-prevention
-# logic.
-
-name: ♻️ Reusable Release Logic
-
+name: Reusable Release
 on:
   workflow_call:
     inputs:
-      packages:
-        description: '"all", or a comma-separated list of package names under packages/'
-        required: false
+      is-batch-release:
+        required: true
+        type: boolean
+      branch-name:
+        required: true
         type: string
-        default: "all"
-      pr_title:
-        description: 'Title for the release PR (also used to detect an already-open one)'
-        required: false
-        type: string
-        default: "chore(release): version packages"
-      ref:
-        description: 'Branch, tag, or commit SHA to prepare the release from — defaults to whatever ref triggered the caller'
-        required: false
-        type: string
-        default: ""
-      base:
-        description: 'Branch the release PR targets'
-        required: false
-        type: string
-        default: "main"
-    outputs:
-      versioned:
-        description: "true if any package had a release-worthy version bump"
-        value: ${{ jobs.release.outputs.versioned }}
-      pr_url:
-        description: "URL of the opened/updated release PR, if any"
-        value: ${{ jobs.release.outputs.pr_url }}
-
-permissions: {}
-
+    secrets:
+      USER_NAME:
+        required: true
+      USER_EMAIL:
+        required: true
+      PUB_CREDENTIALS:
+        required: true
 jobs:
   release:
-    name: 📦 Version, changelog & release PR
-    runs-on: ubuntu-latest
+    if: github.repository_owner == 'flutter'
+    name: release
     permissions:
-      contents: write        # pushing the release branch
-      pull-requests: write   # opening/updating + labeling the release PR
-    outputs:
-      versioned: ${{ steps.melos_version.outputs.versioned }}
-      pr_url: ${{ steps.pr.outputs.pr_url }}
-
+      # Release needs to push a tag back to the repo.
+      contents: write
+    runs-on: ubuntu-latest
     steps:
-      - name: 📥 Checkout Repository (Full History)
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          # An empty ref input means "use whatever ref the caller's own
-          # trigger already checked out" — actions/checkout treats "" as
-          # "use the default", so this doesn't need its own conditional.
-          ref: ${{ inputs.ref }}
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-          persist-credentials: true
+    # Checks out a copy of the repo.
+    - name: Check out code
+      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      with:
+        fetch-depth: 0 # Fetch all history so the tool can get all the tags to determine version.
+        ref: ${{ inputs.branch-name }}
+        persist-credentials: false
+    - name: "Install Flutter"
+      uses: ./.github/workflows/internals/install_flutter
+    - name: Set up tools
+      run: dart pub get
+      working-directory: ${{ github.workspace }}/script/tool
 
-      - name: 🛠️ Setup Dart & Flutter SDK
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          flutter-version: '3.47.0'
-          cache: true
+    # Give some time for LUCI checks to start becoming populated.
+    # Because of latency in Github Webhooks, we need to wait for a while
+    # before being able to look at checks scheduled by LUCI.
+    - name: Give webhooks a minute
+      run: sleep 60s
+      shell: bash
 
-      - name: ⚡ Activate Melos
-        run: |
-          dart pub global activate melos
-          echo "$HOME/.pub-cache/bin" >> $GITHUB_PATH
+    # The next step waits for all tests, but when there are issues with the
+    # hooks it can take a long time for the tests to even be registered. If
+    # "Wait on all tests" runs before that happens, it will pass immediately
+    # because there doesn't appear to be anything to wait for. To avoid that,
+    # explicitly wait for one LUCI test by name first.
+    - name: Wait for test check-in
+      if: inputs.branch-name == 'main'
+      uses: lewagon/wait-on-check-action@96d9100b431964d10e0136aff8b9ccb92470505e
+      with:
+        ref: ${{ github.sha }}
+        check-name: 'Linux ci_yaml packages roller'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        wait-interval: 30 # seconds
+        allowed-conclusions: success,neutral
+        # verbose:true will produce too many logs that hang github actions web UI.
+        verbose: false
 
-      - name: 📦 Bootstrap workspace
-        run: melos bootstrap
+    # This workflow should be the last to run. So wait for all the other tests to succeed.
+    - name: Wait on all tests
+      if: inputs.branch-name == 'main'
+      uses: lewagon/wait-on-check-action@96d9100b431964d10e0136aff8b9ccb92470505e
+      with:
+        ref: ${{ github.sha }}
+        running-workflow-name: 'release'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        wait-interval: 180 # seconds
+        allowed-conclusions: success,neutral
+        # verbose:true will produce too many logs that hang github actions web UI.
+        verbose: false
 
-      - name: 🔧 Configure Git Identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: ✅ Validate requested package scope
-        id: scope
-        env:
-          PACKAGES_INPUT: ${{ inputs.packages }}
-        run: |
-          if [ "$PACKAGES_INPUT" = "all" ]; then
-            echo "melos_args=--all" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          scope_args=""
-          IFS=',' read -ra names <<< "$PACKAGES_INPUT"
-          for name in "${names[@]}"; do
-            name="$(echo "$name" | xargs)"
-            if [ ! -f "packages/$name/pubspec.yaml" ]; then
-              echo "❌ 'packages/$name' isn't a real package directory. Stopping." && exit 1
-            fi
-            scope_args="$scope_args --scope=$name"
-          done
-          echo "melos_args=$scope_args" >> "$GITHUB_OUTPUT"
-
-      # Avoid duplicate release PRs: if one's already open (matched by
-      # its title), reuse its branch instead of starting a second one —
-      # this is what lets release.yml fire on every merge to main
-      # without spawning a new PR each time while an earlier one is
-      # still under review.
-      - name: 🔎 Find an already-open release PR
-        id: existing
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_TITLE: ${{ inputs.pr_title }}
-        run: |
-          existing_branch=$(gh pr list --state open --search "in:title \"$PR_TITLE\"" --json headRefName,number --jq '.[0] // empty | .headRefName')
-          existing_number=$(gh pr list --state open --search "in:title \"$PR_TITLE\"" --json headRefName,number --jq '.[0] // empty | .number')
-          echo "branch=$existing_branch" >> "$GITHUB_OUTPUT"
-          echo "number=$existing_number" >> "$GITHUB_OUTPUT"
-          if [ -n "$existing_branch" ]; then
-            echo "Found an already-open release PR (#$existing_number, branch $existing_branch) — will update it instead of opening a new one."
-          fi
-
-      - name: 🌿 Create or reuse release branch
-        id: branch
-        env:
-          RUN_ID: ${{ github.run_id }}
-          EXISTING_BRANCH: ${{ steps.existing.outputs.branch }}
-          BASE: ${{ inputs.base }}
-        run: |
-          if [ -n "$EXISTING_BRANCH" ]; then
-            git fetch origin "$EXISTING_BRANCH"
-            git checkout "$EXISTING_BRANCH"
-            # Reset to the current base tip before re-running melos
-            # version, instead of stacking a new bump on top of the
-            # existing branch's own already-bumped commit. Without this,
-            # rerunning this workflow while a release PR is still open
-            # double-bumps every package a second time (e.g.
-            # 1.3.0 -> 1.4.0 -> 1.5.0) — confirmed by exactly that on a
-            # real run. Resetting first means melos always recomputes
-            # from scratch against the real commit history since each
-            # package's last tag, so a rerun regenerates the same
-            # correct single bump instead of adding another one.
-            git fetch origin "$BASE"
-            git reset --hard "origin/$BASE"
-            echo "name=$EXISTING_BRANCH" >> "$GITHUB_OUTPUT"
-          else
-            branch="release/auto-${RUN_ID}"
-            git checkout -b "$branch"
-            # melos version runs `git pull --tags -f` internally, which
-            # fails outright ("no tracking information for the current
-            # branch") on a brand-new local branch with no upstream —
-            # confirmed by exactly that failure before this push existed.
-            # Pushing the empty branch now (with -u) gives it a tracking
-            # ref before melos ever touches git, so that internal pull
-            # has something to track.
-            git push -u origin "$branch"
-            echo "name=$branch" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: 🚀 Version & changelog (melos, no tag)
-        id: melos_version
-        env:
-          MELOS_ARGS: ${{ steps.scope.outputs.melos_args }}
-        run: |
-          # --no-git-tag-version: tags only get created once this PR's
-          # commit is actually on main (a separate, later stage) — never
-          # before the release PR merges through the normal review/CI
-          # gate, same as any other protected-branch change.
-          set +e
-          output=$(melos version $MELOS_ARGS --yes --no-git-tag-version 2>&1)
-          exit_code=$?
-          echo "$output"
-          set -e
-
-          if [ $exit_code -eq 0 ]; then
-            echo "versioned=true" >> "$GITHUB_OUTPUT"
-          elif echo "$output" | grep -qi "nothing to release\|no changes to release\|no packages need"; then
-            echo "versioned=false" >> "$GITHUB_OUTPUT"
-            echo "No selected package has release-worthy changes since its last tag."
-          else
-            echo "melos version failed for a reason other than 'nothing to release' — failing the job."
-            exit 1
-          fi
-
-      - name: 🚀 Push release branch
-        if: steps.melos_version.outputs.versioned == 'true'
-        env:
-          BRANCH: ${{ steps.branch.outputs.name }}
-        run: |
-          # --force-with-lease: an existing release branch was just reset
-          # to base above, so its history has diverged from what's
-          # already on the remote — a plain push would be rejected. This
-          # only ever rewrites this unmerged release-prep branch, never
-          # main and never a tag (tags stay force-push-free, see
-          # release_tag_on_merge.yml).
-          git push --force-with-lease origin "$BRANCH"
-
-      - name: 📬 Open or update release PR
-        if: steps.melos_version.outputs.versioned == 'true'
-        id: pr
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BRANCH: ${{ steps.branch.outputs.name }}
-          BASE: ${{ inputs.base }}
-          EXISTING_NUMBER: ${{ steps.existing.outputs.number }}
-          PR_TITLE: ${{ inputs.pr_title }}
-        run: |
-          if [ -n "$EXISTING_NUMBER" ]; then
-            pr_url=$(gh pr view "$EXISTING_NUMBER" --json url --jq '.url')
-            echo "Updated existing release PR #$EXISTING_NUMBER (new commits already pushed above)."
-          else
-            pr_url=$(gh pr create \
-              --title "$PR_TITLE" \
-              --body "Automated version bump + changelog from melos. Each package keeps its own independent version. Merging this PR triggers the release tag(s), which then trigger pub.dev publishing — one package at a time, independently." \
-              --base "$BASE" \
-              --head "$BRANCH" \
-              --label "autosubmit")
-          fi
-          echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
-          echo "Release PR: $pr_url"
+    - name: run release
+      run: |
+        gh auth setup-git
+        git config --global user.name "${{ secrets.USER_NAME }}"
+        git config --global user.email "${{ secrets.USER_EMAIL }}"
+        
+        # Build the flag string based on the input
+        BATCH_FLAG=""
+        if [ "${{ inputs.is-batch-release }}" = "true" ]; then
+          BATCH_FLAG="--batch-release-branch=${INPUTS_BRANCH_NAME}"
+        fi
+        
+        dart ./script/tool/lib/src/main.dart publish \
+          --all-changed \
+          $BATCH_FLAG \
+          --base-sha=HEAD~ \
+          --skip-confirmation \
+          --remote=origin
+      env:
+        PUB_CREDENTIALS: "${{ secrets.PUB_CREDENTIALS }}"
+        INPUTS_BRANCH_NAME: "${{ inputs.branch-name }}"
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

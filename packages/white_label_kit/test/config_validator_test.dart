@@ -1,5 +1,5 @@
-import 'package:white_label_kit/white_label_kit.dart';
 import 'package:test/test.dart';
+import 'package:white_label_kit/white_label_kit.dart';
 
 void main() {
   group('tenantId', () {
@@ -23,7 +23,9 @@ void main() {
       );
     });
     test('rejects a display-name-shaped value', () {
-      final result = ConfigValidator.androidApplicationId('Acme App');
+      final ValidationResult result = ConfigValidator.androidApplicationId(
+        'Acme App',
+      );
       expect(result, isA<Invalid>());
       expect((result as Invalid).message, contains('com.company.appname'));
     });
@@ -88,7 +90,7 @@ void main() {
         isA<Invalid>(),
       );
     });
-    test('accepts a path under the tenant\'s own directory', () {
+    test("accepts a path under the tenant's own directory", () {
       expect(
         ConfigValidator.assetPath(
           'tenants/acme/assets/logo.png',

@@ -1,19 +1,24 @@
-'p: white_label_kit':
+'p: apple_sign_in_plugin':
   - changed-files:
     - any-glob-to-any-file:
-      - packages/white_label_kit/**/*
+      - packages/apple_sign_in_plugin/apple_sign_in_plugin/**/*
+
+'p: apple_sign_in_plugin_darwin':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/apple_sign_in_plugin/apple_sign_in_plugin_darwin/**/*
+
+'p: apple_sign_in_plugin_platform_interface':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/apple_sign_in_plugin/apple_sign_in_plugin_platform_interface/**/*
 
 'p: dig_cli':
   - changed-files:
     - any-glob-to-any-file:
       - packages/dig_cli/**/*
 
-'p: apple_sign_in_plugin':
+'p: white_label_kit':
   - changed-files:
     - any-glob-to-any-file:
-      - packages/apple_sign_in_plugin/**/*
-
-'infra: workflows':
-  - changed-files:
-    - any-glob-to-any-file:
-      - .github/**/*
+      - packages/white_label_kit/**/*

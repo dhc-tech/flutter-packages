@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import 'config/tenant_config.dart';
 import 'config/white_label_config.dart';
 
 /// Interactive terminal runner & builder for `white_label_kit`.
@@ -9,7 +10,7 @@ import 'config/white_label_config.dart';
 /// Guides the developer step-by-step through selecting a tenant and running
 /// or building for that tenant without remembering long CLI flags.
 Future<int> runInteractiveMenu({String? projectRoot}) async {
-  final root = projectRoot ?? Directory.current.path;
+  final String root = projectRoot ?? Directory.current.path;
   final whiteLabelFile = File(p.join(root, 'white_label.yaml'));
 
   if (!whiteLabelFile.existsSync()) {
@@ -25,8 +26,8 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
     return 1;
   }
 
-  final defaultTenant = config.defaultTenant;
-  final tenantIds = config.tenants.keys.toList();
+  final String defaultTenant = config.defaultTenant;
+  final List<String> tenantIds = config.tenants.keys.toList();
 
   while (true) {
     stdout.writeln();
@@ -49,8 +50,8 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
     while (selectedTenant == null) {
       stdout.writeln('📌 SELECT TENANT:');
       for (var i = 0; i < tenantIds.length; i++) {
-        final id = tenantIds[i];
-        final name = config.tenants[id]?.name ?? id;
+        final String id = tenantIds[i];
+        final String name = config.tenants[id]?.name ?? id;
         final isDef = id == defaultTenant ? ' (Default)' : '';
         stdout.writeln('   [$i] $name [$id]$isDef');
       }
@@ -58,11 +59,11 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
         '\nEnter tenant number [0-${tenantIds.length - 1}, or Enter for "$defaultTenant"]: ',
       );
 
-      final input = stdin.readLineSync()?.trim();
+      final String? input = stdin.readLineSync()?.trim();
       if (input == null || input.isEmpty) {
         selectedTenant = defaultTenant;
       } else {
-        final index = int.tryParse(input);
+        final int? index = int.tryParse(input);
         if (index != null && index >= 0 && index < tenantIds.length) {
           selectedTenant = tenantIds[index];
         } else {
@@ -73,7 +74,7 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
       }
     }
 
-    final tenantObj = config.tenants[selectedTenant]!;
+    final TenantConfig tenantObj = config.tenants[selectedTenant]!;
     stdout.writeln(
       '\n🎯 Selected Tenant: ${tenantObj.name} ($selectedTenant)\n',
     );
@@ -102,7 +103,7 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
       stdout.writeln('   [0] 🚪  Exit');
       stdout.write('\nEnter action number [1-9, 0 to exit]: ');
 
-      final input = stdin.readLineSync()?.trim();
+      final String? input = stdin.readLineSync()?.trim();
       if (input != null && RegExp(r'^[0-9]$').hasMatch(input)) {
         selectedAction = input;
       } else {
@@ -130,7 +131,6 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
           selectedTenant,
           '--dart-define=TENANT_ID=$selectedTenant',
         ]);
-        break;
       case '2':
         await _execute('dart', [
           'run',
@@ -145,7 +145,6 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
           selectedTenant,
           '--dart-define=TENANT_ID=$selectedTenant',
         ]);
-        break;
       case '3':
         await _execute('dart', [
           'run',
@@ -161,7 +160,6 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
           selectedTenant,
           '--dart-define=TENANT_ID=$selectedTenant',
         ]);
-        break;
       case '4':
         await _execute('dart', [
           'run',
@@ -177,7 +175,6 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
           selectedTenant,
           '--dart-define=TENANT_ID=$selectedTenant',
         ]);
-        break;
       case '5':
         await _execute('dart', [
           'run',
@@ -193,17 +190,15 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
           selectedTenant,
           '--dart-define=TENANT_ID=$selectedTenant',
         ]);
-        break;
       case '6':
         await _execute('dart', ['run', 'white_label_kit:configure']);
-        break;
       case '7':
         stdout.write('\nEnter new tenant ID (e.g. acme): ');
-        final id = stdin.readLineSync()?.trim();
+        final String? id = stdin.readLineSync()?.trim();
         stdout.write('Enter display name (e.g. Acme College): ');
-        final name = stdin.readLineSync()?.trim();
+        final String? name = stdin.readLineSync()?.trim();
         stdout.write('Enter bundle ID (e.g. com.acme.student): ');
-        final bundleId = stdin.readLineSync()?.trim();
+        final String? bundleId = stdin.readLineSync()?.trim();
 
         if (id != null &&
             id.isNotEmpty &&
@@ -228,10 +223,9 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
         } else {
           stderr.writeln('❌ Invalid input. Tenant not created.');
         }
-        break;
       case '8':
         stdout.write('\nEnter tenant ID to remove: ');
-        final id = stdin.readLineSync()?.trim();
+        final String? id = stdin.readLineSync()?.trim();
         if (id != null && id.isNotEmpty) {
           await _execute('dart', ['run', 'white_label_kit:remove-tenant', id]);
           try {
@@ -240,11 +234,9 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
             tenantIds.addAll(config.tenants.keys);
           } catch (_) {}
         }
-        break;
       case '9':
         await _execute('flutter', ['analyze', '--no-fatal-infos']);
         await _execute('flutter', ['test', 'test/core/tenant/']);
-        break;
     }
 
     stdout.write('\nPress [Enter] to return to menu...');
@@ -256,12 +248,12 @@ Future<void> _execute(String executable, List<String> args) async {
   stdout.writeln(
     '\n➜ [white_label_kit] Executing: $executable ${args.join(" ")}',
   );
-  final process = await Process.start(
+  final Process process = await Process.start(
     executable,
     args,
     mode: ProcessStartMode.inheritStdio,
   );
-  final exitCode = await process.exitCode;
+  final int exitCode = await process.exitCode;
   if (exitCode != 0) {
     stderr.writeln('❌ [white_label_kit] Failed with exit code $exitCode');
   } else {

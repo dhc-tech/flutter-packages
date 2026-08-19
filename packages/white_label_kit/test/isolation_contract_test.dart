@@ -58,7 +58,7 @@ white_label:
   tearDown(() => projectRoot.deleteSync(recursive: true));
 
   test('mandatory scenario: build A -> build B -> build A -> failed generation stays safe', () {
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
     final stager = TenantStager(projectRoot.path);
 
     // --- Build A: only A resources enter the build (invariant 1) ---
@@ -85,7 +85,7 @@ white_label:
       File(p.join(stager.stagingDirFor('a'), 'assets', 'logo.png'))
           .readAsStringSync(),
       'A_LOGO',
-      reason: 'invariant 2/3: tenants/ tree and other tenants\' staging are never touched',
+      reason: "invariant 2/3: tenants/ tree and other tenants' staging are never touched",
     );
 
     // --- Build A again: no staleness from the intervening B build ---
@@ -158,7 +158,7 @@ white_label:
   test(
     'invariant 7: a declared-but-missing asset is rejected at stage time',
     () {
-      final config = WhiteLabelConfig.load(projectRoot.path);
+      final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
       File(p.join(projectRoot.path, 'tenants', 'a', 'assets', 'logo.png'))
           .deleteSync();
 

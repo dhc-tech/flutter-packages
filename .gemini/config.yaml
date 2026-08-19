@@ -1,16 +1,17 @@
-# Gemini Code Review & Agent Configuration
-# Gemini Code Assist configuration.
-
+# Minimize verbosity.
 have_fun: false
 code_review:
+  # For now, use the default of MEDIUM for testing. Based on desired verbosity,
+  # we can change this to LOW or HIGH in the future.
   comment_severity_threshold: MEDIUM
   pull_request_opened:
+    # Explicitly set help to false in case the default changes in the future, as
+    # having a help message on every PR would be spammy.
     help: false
-    # Was false — with no summary comment, there was no visible signal
-    # that the app is active on a PR at all, which matters right after
-    # a fresh install.
-    summary: true
+    # These tend to be verbose, and since we expect PR authors to clearly
+    # describe their PRs this would be at best duplicative.
+    summary: false
     include_drafts: false
 ignore_patterns:
-  - '**/*.g.dart'
-  - '**/*.mocks.dart'
+  - .ci/flutter_master.version
+  - .ci/flutter_stable.version

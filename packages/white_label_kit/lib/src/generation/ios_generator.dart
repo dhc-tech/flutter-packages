@@ -43,7 +43,7 @@ import '../config/tenant_config.dart';
 /// scheme file behind in that last case, since the scheme is only written
 /// after the pbxproj step has already succeeded.
 void generateIosConfig(TenantConfig tenant, {required String projectRoot}) {
-  final xcodeprojPath = p.join(projectRoot, 'ios', 'Runner.xcodeproj');
+  final String xcodeprojPath = p.join(projectRoot, 'ios', 'Runner.xcodeproj');
   if (!Directory(xcodeprojPath).existsSync()) {
     throw IosGenerationException(
       'No ios/Runner.xcodeproj found under "$projectRoot". '
@@ -72,8 +72,10 @@ void generateIosConfig(TenantConfig tenant, {required String projectRoot}) {
 ///
 /// Idempotent: safe to call even if the configuration or scheme was already deleted.
 void removeIosConfig(String tenantId, {required String projectRoot}) {
-  final xcodeprojPath = p.join(projectRoot, 'ios', 'Runner.xcodeproj');
-  if (!Directory(xcodeprojPath).existsSync()) return;
+  final String xcodeprojPath = p.join(projectRoot, 'ios', 'Runner.xcodeproj');
+  if (!Directory(xcodeprojPath).existsSync()) {
+    return;
+  }
 
   // 1. Delete scheme file if present.
   final schemeFile = File(
@@ -99,7 +101,9 @@ void removeIosConfig(String tenantId, {required String projectRoot}) {
   } catch (_) {
     // Best-effort removal: if Ruby is unavailable, file removal above is sufficient.
   } finally {
-    if (tempScript.existsSync()) tempScript.deleteSync();
+    if (tempScript.existsSync()) {
+      tempScript.deleteSync();
+    }
   }
 }
 
@@ -108,7 +112,10 @@ void removeIosConfig(String tenantId, {required String projectRoot}) {
 /// step failing) — always carries the underlying tool's stdout/stderr when
 /// available so a failure is actionable, not a bare stack trace.
 class IosGenerationException implements Exception {
+  /// Creates an [IosGenerationException] with the given [message].
   IosGenerationException(this.message);
+
+  /// Description of what went wrong, including tool output when available.
   final String message;
 
   @override
@@ -125,7 +132,7 @@ void _runXcodeprojScript(TenantConfig tenant, String xcodeprojPath) {
   );
   tempScript.writeAsStringSync(_xcodeprojRubyScript);
   try {
-    final result = Process.runSync('ruby', [
+    final ProcessResult result = Process.runSync('ruby', [
       tempScript.path,
       xcodeprojPath,
       tenant.id,
@@ -146,12 +153,14 @@ void _runXcodeprojScript(TenantConfig tenant, String xcodeprojPath) {
       'generateIosConfig.',
     );
   } finally {
-    if (tempScript.existsSync()) tempScript.deleteSync();
+    if (tempScript.existsSync()) {
+      tempScript.deleteSync();
+    }
   }
 }
 
 void _cloneScheme(String tenantId, File runnerScheme, Directory schemesDir) {
-  var content = runnerScheme.readAsStringSync();
+  String content = runnerScheme.readAsStringSync();
   for (final base in ['Debug', 'Release', 'Profile']) {
     content = content.replaceAll(
       'buildConfiguration = "$base"',

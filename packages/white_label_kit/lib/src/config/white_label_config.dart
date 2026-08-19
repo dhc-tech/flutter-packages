@@ -17,11 +17,16 @@ class WhiteLabelConfig {
     required this.tenants,
   });
 
+  /// The id of the tenant used when no explicit tenant is requested.
   final String defaultTenant;
+
+  /// All declared tenants, keyed by tenant id.
   final Map<String, TenantConfig> tenants;
 
+  /// Returns the [TenantConfig] for [tenantId], throwing [ArgumentError] if
+  /// no such tenant is declared.
   TenantConfig operator [](String tenantId) {
-    final tenant = tenants[tenantId];
+    final TenantConfig? tenant = tenants[tenantId];
     if (tenant == null) {
       throw ArgumentError.value(
         tenantId,
@@ -32,6 +37,7 @@ class WhiteLabelConfig {
     return tenant;
   }
 
+  /// Whether a tenant with id [tenantId] is declared in this config.
   bool has(String tenantId) => tenants.containsKey(tenantId);
 
   /// Whether [tenantId] is the `default_tenant` declared in
@@ -64,13 +70,13 @@ class WhiteLabelConfig {
   /// `white_label_prod.yaml`) isn't forced into one fixed name. Relative
   /// paths resolve against [projectRoot]; absolute paths are used as-is.
   static WhiteLabelConfig load(String projectRoot, {String? configPath}) {
-    final file = configFile(projectRoot, configPath: configPath);
+    final File file = configFile(projectRoot, configPath: configPath);
     if (!file.existsSync()) {
-      throw WhiteLabelConfigException([
-        '${p.basename(file.path)} not found at ${file.path}. Run `dart run '
-            'white_label_kit:init` first (or pass --config if you meant a '
-            'different file).',
-      ]);
+      final message =
+          '${p.basename(file.path)} not found at ${file.path}. Run `dart run '
+          'white_label_kit:init` first (or pass --config if you meant a '
+          'different file).';
+      throw WhiteLabelConfigException([message]);
     }
     return parse(file.readAsStringSync(), projectRoot: projectRoot);
   }
@@ -91,7 +97,9 @@ class WhiteLabelConfig {
   /// one is fixed to the default `white_label.yaml` location, since
   /// `build_runner` needs a static input path declared ahead of time).
   static File configFile(String projectRoot, {String? configPath}) {
-    if (configPath == null) return File('$projectRoot/white_label.yaml');
+    if (configPath == null) {
+      return File('$projectRoot/white_label.yaml');
+    }
     return File(
       p.isAbsolute(configPath) ? configPath : p.join(projectRoot, configPath),
     );
@@ -110,8 +118,12 @@ class WhiteLabelConfig {
     }
 
     final errors = <String>[];
-    final root = ConfigValidator.expectMap(doc, 'white_label.yaml', errors);
-    final wl = root == null
+    final Map<dynamic, dynamic>? root = ConfigValidator.expectMap(
+      doc,
+      'white_label.yaml',
+      errors,
+    );
+    final Map<dynamic, dynamic>? wl = root == null
         ? null
         : ConfigValidator.expectMap(root['white_label'], 'white_label', errors);
 
@@ -122,7 +134,7 @@ class WhiteLabelConfig {
     }
 
     final defaultTenant = wl['default_tenant']?.toString();
-    final tenantsNode = ConfigValidator.expectMap(
+    final Map<dynamic, dynamic>? tenantsNode = ConfigValidator.expectMap(
       wl['tenants'],
       'white_label.tenants',
       errors,
@@ -130,14 +142,19 @@ class WhiteLabelConfig {
 
     final tenants = <String, TenantConfig>{};
     if (tenantsNode != null) {
-      for (final entry in tenantsNode.entries) {
+      for (final MapEntry<dynamic, dynamic> entry in tenantsNode.entries) {
         final id = entry.key.toString();
-        final result = ConfigValidator.tenantId(id);
+        final ValidationResult result = ConfigValidator.tenantId(id);
         if (result is Invalid) {
           errors.add(result.message);
           continue;
         }
-        final tenant = _parseTenant(id, entry.value, errors, projectRoot);
+        final TenantConfig? tenant = _parseTenant(
+          id,
+          entry.value,
+          errors,
+          projectRoot,
+        );
         if (tenant != null) {
           if (tenants.containsKey(id)) {
             errors.add('Duplicate tenant id "$id".');
@@ -158,7 +175,7 @@ class WhiteLabelConfig {
     //  4. Omitted + zero tenants declared: falls through to the original
     //     "missing default_tenant" error below (there's nothing to infer
     //     from either).
-    String? resolvedDefaultTenant = defaultTenant;
+    var resolvedDefaultTenant = defaultTenant;
     if (defaultTenant != null) {
       if (tenants.isNotEmpty && !tenants.containsKey(defaultTenant)) {
         errors.add(
@@ -176,7 +193,9 @@ class WhiteLabelConfig {
       errors.add('Missing `white_label.default_tenant`.');
     }
 
-    if (errors.isNotEmpty) throw WhiteLabelConfigException(errors);
+    if (errors.isNotEmpty) {
+      throw WhiteLabelConfigException(errors);
+    }
 
     return WhiteLabelConfig._(
       defaultTenant: resolvedDefaultTenant!,
@@ -190,45 +209,57 @@ class WhiteLabelConfig {
     List<String> errors,
     String? projectRoot,
   ) {
-    final map = ConfigValidator.expectMap(node, 'tenants.$id', errors);
-    if (map == null) return null;
+    final Map<dynamic, dynamic>? map = ConfigValidator.expectMap(
+      node,
+      'tenants.$id',
+      errors,
+    );
+    if (map == null) {
+      return null;
+    }
 
     final name = map['name']?.toString();
     if (name == null || name.trim().isEmpty) {
       errors.add('Tenant "$id" is missing required field `name`.');
     }
 
-    final android = ConfigValidator.expectMap(
+    final Map<dynamic, dynamic>? android = ConfigValidator.expectMap(
       map['android'],
       'tenants.$id.android',
       errors,
     );
     final applicationId = android?['application_id']?.toString();
-    final androidAppName = android?['app_name']?.toString() ?? name;
+    final String? androidAppName = android?['app_name']?.toString() ?? name;
     if (applicationId == null) {
       errors.add(
         'Tenant "$id" is missing required field `android.application_id`.',
       );
     } else {
-      final r = ConfigValidator.androidApplicationId(applicationId);
-      if (r is Invalid) errors.add('Tenant "$id": ${r.message}');
+      final ValidationResult r = ConfigValidator.androidApplicationId(
+        applicationId,
+      );
+      if (r is Invalid) {
+        errors.add('Tenant "$id": ${r.message}');
+      }
     }
 
-    final ios = ConfigValidator.expectMap(
+    final Map<dynamic, dynamic>? ios = ConfigValidator.expectMap(
       map['ios'],
       'tenants.$id.ios',
       errors,
     );
     final bundleId = ios?['bundle_id']?.toString();
-    final iosAppName = ios?['app_name']?.toString() ?? name;
+    final String? iosAppName = ios?['app_name']?.toString() ?? name;
     if (bundleId == null) {
       errors.add('Tenant "$id" is missing required field `ios.bundle_id`.');
     } else {
-      final r = ConfigValidator.iosBundleId(bundleId);
-      if (r is Invalid) errors.add('Tenant "$id": ${r.message}');
+      final ValidationResult r = ConfigValidator.iosBundleId(bundleId);
+      if (r is Invalid) {
+        errors.add('Tenant "$id": ${r.message}');
+      }
     }
 
-    final assetsNode = ConfigValidator.expectMap(
+    final Map<dynamic, dynamic>? assetsNode = ConfigValidator.expectMap(
       map['assets'],
       'tenants.$id.assets',
       errors,
@@ -239,30 +270,32 @@ class WhiteLabelConfig {
     if (logo == null) {
       errors.add('Tenant "$id" is missing required field `assets.logo`.');
     }
-    for (final path in [logo, icon, splash].whereType<String>()) {
-      final r = ConfigValidator.assetPath(
+    for (final String path in [logo, icon, splash].whereType<String>()) {
+      final ValidationResult r = ConfigValidator.assetPath(
         path,
         tenantId: id,
         projectRoot: projectRoot,
       );
-      if (r is Invalid) errors.add('Tenant "$id": ${r.message}');
+      if (r is Invalid) {
+        errors.add('Tenant "$id": ${r.message}');
+      }
     }
 
-    final sharedVersion =
+    final TenantVersion sharedVersion =
         _parseVersion(map['version'], 'tenants.$id.version', errors) ??
         const TenantVersion(name: '1.0.0', buildNumber: 1);
-    final androidVersionOverride = android?['version'] == null
+    final TenantVersion? androidVersionOverride = android?['version'] == null
         ? null
         : _parseVersion(
             android!['version'],
             'tenants.$id.android.version',
             errors,
           );
-    final iosVersionOverride = ios?['version'] == null
+    final TenantVersion? iosVersionOverride = ios?['version'] == null
         ? null
         : _parseVersion(ios!['version'], 'tenants.$id.ios.version', errors);
 
-    final themeNode = map['theme'];
+    final dynamic themeNode = map['theme'];
     String? primaryColor;
     String? secondaryColor;
     var brandColors = const <String, String>{};
@@ -270,16 +303,21 @@ class WhiteLabelConfig {
     var sectionColors = const <String, String>{};
     var gradientColors = const <String, String>{};
     if (themeNode != null) {
-      final theme = ConfigValidator.expectMap(
+      final Map<dynamic, dynamic>? theme = ConfigValidator.expectMap(
         themeNode,
         'tenants.$id.theme',
         errors,
       );
       primaryColor = theme?['primary_color']?.toString();
       secondaryColor = theme?['secondary_color']?.toString();
-      for (final c in [primaryColor, secondaryColor].whereType<String>()) {
-        final r = ConfigValidator.colorHex(c);
-        if (r is Invalid) errors.add('Tenant "$id": ${r.message}');
+      for (final String c in [
+        primaryColor,
+        secondaryColor,
+      ].whereType<String>()) {
+        final ValidationResult r = ConfigValidator.colorHex(c);
+        if (r is Invalid) {
+          errors.add('Tenant "$id": ${r.message}');
+        }
       }
       brandColors = _parseColorMap(
         theme,
@@ -308,24 +346,26 @@ class WhiteLabelConfig {
     }
 
     String? apiBaseUrl;
-    final envNode = map['environment'];
+    final dynamic envNode = map['environment'];
     if (envNode != null) {
-      final env = ConfigValidator.expectMap(
+      final Map<dynamic, dynamic>? env = ConfigValidator.expectMap(
         envNode,
         'tenants.$id.environment',
         errors,
       );
       apiBaseUrl = env?['api_base_url']?.toString();
       if (apiBaseUrl != null) {
-        final r = ConfigValidator.url(apiBaseUrl);
-        if (r is Invalid) errors.add('Tenant "$id": ${r.message}');
+        final ValidationResult r = ConfigValidator.url(apiBaseUrl);
+        if (r is Invalid) {
+          errors.add('Tenant "$id": ${r.message}');
+        }
       }
     }
 
-    final featuresNode = map['features'];
+    final dynamic featuresNode = map['features'];
     final features = <String, bool>{};
     if (featuresNode != null) {
-      final f = ConfigValidator.expectMap(
+      final Map<dynamic, dynamic>? f = ConfigValidator.expectMap(
         featuresNode,
         'tenants.$id.features',
         errors,
@@ -347,9 +387,9 @@ class WhiteLabelConfig {
     // assets.logo/icon/splash — no separate/weaker validation for Firebase
     // files.
     TenantFirebaseConfig? firebase;
-    final firebaseNode = map['firebase'];
+    final dynamic firebaseNode = map['firebase'];
     if (firebaseNode != null) {
-      final fb = ConfigValidator.expectMap(
+      final Map<dynamic, dynamic>? fb = ConfigValidator.expectMap(
         firebaseNode,
         'tenants.$id.firebase',
         errors,
@@ -357,16 +397,18 @@ class WhiteLabelConfig {
       final googleServicesJson = fb?['google_services_json']?.toString();
       final googleServiceInfoPlist = fb?['google_service_info_plist']
           ?.toString();
-      for (final path in [
+      for (final String path in [
         googleServicesJson,
         googleServiceInfoPlist,
       ].whereType<String>()) {
-        final r = ConfigValidator.assetPath(
+        final ValidationResult r = ConfigValidator.assetPath(
           path,
           tenantId: id,
           projectRoot: projectRoot,
         );
-        if (r is Invalid) errors.add('Tenant "$id": ${r.message}');
+        if (r is Invalid) {
+          errors.add('Tenant "$id": ${r.message}');
+        }
       }
       firebase = TenantFirebaseConfig(
         googleServicesJson: googleServicesJson,
@@ -429,16 +471,24 @@ class WhiteLabelConfig {
     String path,
     List<String> errors,
   ) {
-    final node = theme?[key];
-    if (node == null) return const {};
-    final map = ConfigValidator.expectMap(node, path, errors);
-    if (map == null) return const {};
+    final dynamic node = theme?[key];
+    if (node == null) {
+      return const {};
+    }
+    final Map<dynamic, dynamic>? map = ConfigValidator.expectMap(
+      node,
+      path,
+      errors,
+    );
+    if (map == null) {
+      return const {};
+    }
 
     final result = <String, String>{};
     map.forEach((k, v) {
       final colorKey = k.toString();
       final colorValue = v.toString();
-      final r = ConfigValidator.colorHex(colorValue);
+      final ValidationResult r = ConfigValidator.colorHex(colorValue);
       if (r is Invalid) {
         errors.add('$path.$colorKey: ${r.message}');
       } else {
@@ -453,32 +503,46 @@ class WhiteLabelConfig {
     String path,
     List<String> errors,
   ) {
-    if (node == null) return null;
-    final map = ConfigValidator.expectMap(node, path, errors);
-    if (map == null) return null;
+    if (node == null) {
+      return null;
+    }
+    final Map<dynamic, dynamic>? map = ConfigValidator.expectMap(
+      node,
+      path,
+      errors,
+    );
+    if (map == null) {
+      return null;
+    }
 
     final name = map['name']?.toString();
     if (name == null) {
       errors.add('Expected "$path.name" to be set (e.g. "1.2.0").');
       return null;
     }
-    final nameResult = ConfigValidator.semanticVersion(name);
-    if (nameResult is Invalid) errors.add('$path: ${nameResult.message}');
+    final ValidationResult nameResult = ConfigValidator.semanticVersion(name);
+    if (nameResult is Invalid) {
+      errors.add('$path: ${nameResult.message}');
+    }
 
-    final buildNumberRaw = map['build_number'];
-    final buildNumber = buildNumberRaw is int
+    final dynamic buildNumberRaw = map['build_number'];
+    final int? buildNumber = buildNumberRaw is int
         ? buildNumberRaw
         : int.tryParse(buildNumberRaw?.toString() ?? '');
     if (buildNumber == null) {
       errors.add('Expected "$path.build_number" to be a positive integer.');
       return null;
     }
-    final buildNumberResult = ConfigValidator.buildNumber(buildNumber);
+    final ValidationResult buildNumberResult = ConfigValidator.buildNumber(
+      buildNumber,
+    );
     if (buildNumberResult is Invalid) {
       errors.add('$path: ${buildNumberResult.message}');
     }
 
-    if (nameResult is Invalid || buildNumberResult is Invalid) return null;
+    if (nameResult is Invalid || buildNumberResult is Invalid) {
+      return null;
+    }
     return TenantVersion(name: name, buildNumber: buildNumber);
   }
 }
@@ -487,7 +551,10 @@ class WhiteLabelConfig {
 /// found (not just the first), so a CLI can print them all at once instead
 /// of forcing a fix-one-rerun-fix-next loop.
 class WhiteLabelConfigException implements Exception {
+  /// Creates an exception carrying the given list of validation [errors].
   WhiteLabelConfigException(this.errors);
+
+  /// All validation error messages collected while parsing the config.
   final List<String> errors;
 
   @override

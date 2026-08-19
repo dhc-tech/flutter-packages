@@ -3,20 +3,15 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as p;
 
+import '../ui/box_painter.dart';
 import '../utils/logger.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
-import '../ui/box_painter.dart';
 
-class CreateModuleCommand extends Command {
-  @override
-  final name = 'create-module';
-  @override
-  final aliases = ['add-module'];
-  @override
-  final description =
-      'Creates a new GetX module (View, Controller, Binding) and registers routes.';
-
+/// Command that scaffolds a new GetX module (View, Controller, Binding)
+/// and registers its routes.
+class CreateModuleCommand extends Command<void> {
+  /// Registers the `--name` option.
   CreateModuleCommand() {
     argParser.addOption(
       'name',
@@ -24,6 +19,13 @@ class CreateModuleCommand extends Command {
       help: 'The name of the new module (e.g., "auth")',
     );
   }
+  @override
+  final name = 'create-module';
+  @override
+  final aliases = ['add-module'];
+  @override
+  final description =
+      'Creates a new GetX module (View, Controller, Binding) and registers routes.';
 
   @override
   Future<void> run() async {
@@ -35,7 +37,7 @@ class CreateModuleCommand extends Command {
       return;
     }
 
-    String? moduleName = argResults?['name'] as String?;
+    var moduleName = argResults?['name'] as String?;
     if (moduleName == null || moduleName.isEmpty) {
       if (argResults!.rest.isNotEmpty) {
         moduleName = argResults!.rest.first;
@@ -60,11 +62,11 @@ class CreateModuleCommand extends Command {
         )
         .trim();
 
-    final slug = _toSnakeCase(cleanModuleName);
-    final className = _toPascalCase(cleanModuleName);
+    final String slug = _toSnakeCase(cleanModuleName);
+    final String className = _toPascalCase(cleanModuleName);
     final moduleDir = Directory(p.join('lib', 'app', 'module', slug));
 
-    if (await moduleDir.exists()) {
+    if (moduleDir.existsSync()) {
       kLog('❗ Module $slug already exists.', type: LogType.error);
       return;
     }
@@ -89,12 +91,13 @@ class CreateModuleCommand extends Command {
     });
 
     final painter = BoxPainter();
+    // ignore: avoid_print
     print('');
-    painter.drawHeader('MODULE CREATED SUCCESSFULLY', width: 50);
-    painter.drawRow('Module', className, width: 50);
-    painter.drawRow('Route', 'AppRoute.${_toCamelCase(slug)}', width: 50);
-    painter.drawRow('Files', 'Scaffolded in lib/app/module/$slug/', width: 50);
-    painter.drawFooter(width: 50);
+    painter.drawHeader('MODULE CREATED SUCCESSFULLY');
+    painter.drawRow('Module', className);
+    painter.drawRow('Route', 'AppRoute.${_toCamelCase(slug)}');
+    painter.drawRow('Files', 'Scaffolded in lib/app/module/$slug/');
+    painter.drawFooter();
 
     kLog('\n✅ Module $className is ready to use!', type: LogType.success);
   }
@@ -182,7 +185,7 @@ export 'view/${slug}_view.dart';
     final exportFile = File(
       p.join('lib', 'app', 'module', 'module_export.dart'),
     );
-    if (!await exportFile.exists()) {
+    if (!exportFile.existsSync()) {
       await exportFile.parent.create(recursive: true);
       await exportFile.writeAsString('''
 // ignore_for_file: directives_ordering
@@ -194,17 +197,19 @@ export 'splash/splash_export.dart';
 ''');
     }
 
-    final content = await exportFile.readAsString();
+    final String content = await exportFile.readAsString();
     final exportLine = "export '$slug/${slug}_export.dart';";
-    if (content.contains(exportLine)) return;
+    if (content.contains(exportLine)) {
+      return;
+    }
 
-    final lines = content.split('\n');
+    final List<String> lines = content.split('\n');
     lines.add(exportLine);
 
     // Header and non-export lines
-    final headerLines =
+    final List<String> headerLines =
         lines.where((l) => !l.trim().startsWith('export')).toList();
-    final exportLines =
+    final List<String> exportLines =
         lines.where((l) => l.trim().startsWith('export')).toList();
     exportLines.sort();
 
@@ -215,7 +220,7 @@ export 'splash/splash_export.dart';
 
   Future<void> _registerRoute(String className, String slug) async {
     final file = File(p.join('lib', 'app', 'routes', 'app_route.dart'));
-    if (!await file.exists()) {
+    if (!file.existsSync()) {
       await file.parent.create(recursive: true);
       await file.writeAsString('''
 abstract class AppRoute {
@@ -225,24 +230,28 @@ abstract class AppRoute {
 ''');
     }
 
-    final content = await file.readAsString();
-    final routeName = _toCamelCase(slug);
-    if (content.contains('$routeName =')) return;
+    final String content = await file.readAsString();
+    final String routeName = _toCamelCase(slug);
+    if (content.contains('$routeName =')) {
+      return;
+    }
 
     // Find the last closing brace of the AppRoute class
-    final lastBraceIndex = content.lastIndexOf('}');
-    if (lastBraceIndex == -1) return;
+    final int lastBraceIndex = content.lastIndexOf('}');
+    if (lastBraceIndex == -1) {
+      return;
+    }
 
-    final updatedContent = "${content.substring(0, lastBraceIndex)}"
+    final updatedContent = '${content.substring(0, lastBraceIndex)}'
         "  static const String $routeName = '/$className';\n"
-        "${content.substring(lastBraceIndex)}";
+        '${content.substring(lastBraceIndex)}';
 
     await file.writeAsString(updatedContent);
   }
 
   Future<void> _registerPage(String className, String slug) async {
     final file = File(p.join('lib', 'app', 'routes', 'app_page.dart'));
-    if (!await file.exists()) {
+    if (!file.existsSync()) {
       await file.parent.create(recursive: true);
       await file.writeAsString('''
 import '../module/module_export.dart';
@@ -263,7 +272,7 @@ abstract class AppPage {
     }
 
     String content = await file.readAsString();
-    final routeName = _toCamelCase(slug);
+    final String routeName = _toCamelCase(slug);
 
     // Ensure module_export.dart is imported
     if (!content.contains("import '../module/module_export.dart';")) {
@@ -279,12 +288,14 @@ abstract class AppPage {
     ),''';
 
       // Look for the end of the static final List<GetPage> routes
-      final listEndIndex = content.lastIndexOf('];');
-      if (listEndIndex == -1) return;
+      final int listEndIndex = content.lastIndexOf('];');
+      if (listEndIndex == -1) {
+        return;
+      }
 
-      final updatedContent = "${content.substring(0, listEndIndex)}"
-          "$newPage"
-          "${content.substring(listEndIndex)}";
+      final updatedContent = '${content.substring(0, listEndIndex)}'
+          '$newPage'
+          '${content.substring(listEndIndex)}';
 
       await file.writeAsString(updatedContent);
     }
@@ -301,8 +312,10 @@ abstract class AppPage {
   }
 
   String _toPascalCase(String input) {
-    if (input.isEmpty) return '';
-    final snake = _toSnakeCase(input);
+    if (input.isEmpty) {
+      return '';
+    }
+    final String snake = _toSnakeCase(input);
     return snake
         .split('_')
         .where((s) => s.isNotEmpty)
@@ -311,9 +324,13 @@ abstract class AppPage {
   }
 
   String _toCamelCase(String input) {
-    if (input.isEmpty) return '';
-    final pascal = _toPascalCase(input);
-    if (pascal.isEmpty) return '';
+    if (input.isEmpty) {
+      return '';
+    }
+    final String pascal = _toPascalCase(input);
+    if (pascal.isEmpty) {
+      return '';
+    }
     return pascal[0].toLowerCase() + pascal.substring(1);
   }
 }

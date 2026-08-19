@@ -1,72 +1,157 @@
-# AGENTS.md
+# Agent Guide for the Flutter Packages Repository
 
-This document is the authoritative engineering standard for the `flutter-packages` monorepo.
+This document provides guidance for AI agents to effectively contribute to the `flutter/packages` repository.
 
-All AI coding assistants (Antigravity, Gemini, Claude Code, Cursor, Copilot) must follow these rules.
+## Guiding Principles for Contributions
 
-## Core Engineering Rules
+- **Format All Code**: Every code change must be formatted using the repository's tools.
+- **Pass All Tests**: All changes must pass linting, analysis, and relevant tests.
+- **Update CHANGELOGs**: Any user-facing change or bug fix in a package requires an update to its `CHANGELOG.md` and `pubspec.yaml` version. Ensure you follow the [CHANGELOG style guide](https://github.com/flutter/flutter/blob/master/docs/ecosystem/contributing/README.md#changelog-style).
+- **Follow Conventions**: Adhere to the repository's specific conventions, such as federated plugin structure and code generation steps.
 
-1. **Zero Proprietary Data:** Never hardcode private app IDs, customer company names, or sensitive tokens. Always use neutral placeholders (`com.example.acme`, `Acme App`).
-2. **Pana Quality Score:** Every package in `packages/` must maintain maximum Pana points (160/160) on Pub.dev.
-3. **Dual Flutter & Pure Dart Support:**
-   - Pure Dart packages (`white_label_kit`, `dig_cli`) use `dart test` and `dart analyze`.
-   - Flutter plugin packages (`apple_sign_in_plugin`) use `flutter test` and `flutter analyze`.
-4. **Fatal Infos Enforcement:** Code must be free of all analysis warnings, lints, and fatal info issues (`--fatal-infos`).
-5. **Atomic Versioning:** Each package maintains its own independent `pubspec.yaml` and `CHANGELOG.md`.
-6. **Format Everything:** Every code change must be formatted with `melos run format:fix` (`dart format` under the hood) before commit.
-7. **CHANGELOG Discipline:** Any user-facing change or bug fix in a package requires an entry in that package's `CHANGELOG.md`, alongside the version bump. In this repo that bump/changelog step is automated by Melos' conventional-commit release preparation (see `docs/release_architecture.md`), not by a manually-run `update-release-info` command as in upstream flutter/packages.
+## Agent Environment Setup
+
+To ensure a consistent and functional environment, configure your VM with the following setup. This provides the necessary Flutter SDK and dependencies for building and testing packages.
+
+```bash
+curl -L https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.32.8-stable.tar.xz | tar -xJ -C $HOME
+export FLUTTER_HOME=$HOME/flutter
+export PATH=$FLUTTER_HOME/bin:$PATH
+flutter --disable-analytics
+flutter precache --force
+# Sanity check the configuration.
+flutter doctor --verbose
+```
 
 ## Repository Overview
 
-This is a monorepo containing 3 first-party packages, all in `packages/`:
+This is a monorepo containing many Flutter packages.
+- First-party packages developed entirely by the Flutter team are in `packages/`.
+- Packages that were originally developed by a third party, but are now maintained by the Flutter team are in `third_party/packages/`.
+- The repository tooling is in `script/tool/`.
 
-- `white_label_kit` — pure Dart, multi-tenant/white-label configuration.
-- `dig_cli` — pure Dart CLI tooling.
-- `apple_sign_in_plugin` — a Flutter plugin (native iOS/Android/Web platform channels).
+Many packages are part of **federated plugins**. A federated plugin has a main package (e.g., `path_provider`) that defines the API used by plugin clients, a platform interface package (e.g., `path_provider_platform_interface`) that defines the interface that each platform implementation must implement, and one or more platform implementation packages (e.g., `path_provider_android`, `path_provider_ios`) that implement that platform interface. When working on a federated plugin, you may need to modify multiple packages.
 
-Unlike flutter/packages, none of these are **federated plugins** (no
-separate `_platform_interface`/`_android`/`_ios` package split) and
-there is no `third_party/packages/` directory — everything here is
-first-party. The release/publish tooling is vendored under
-`script/tool/` (a structural clone of flutter/packages' own
-`script/tool`); see `docs/release_architecture.md` for how it's wired.
+For more details, see the main `README.md` and `CONTRIBUTING.md`.
 
 ## Core Tooling and Workflows
 
-Day-to-day development uses **Melos**, not `script/tool` directly —
-`script/tool` (`dart ./script/tool/lib/src/main.dart publish ...`) is
-reserved for the automated `release.yml` publish job. Local/PR-time
-commands:
+The primary tool for this repository is `flutter_plugin_tools.dart`.
 
-- **Bootstrap:** `melos bootstrap`
-- **Format:** `melos run format:fix`
-- **Analyze:** `melos run analyze` (`--fatal-infos`, zero warnings)
-- **Test:** `melos run test`
-- **Pana health check:** `melos run pana` (target: 160/160)
+### Initial Setup
+
+First, define an environment variable for the repository root directory and initialize the tooling:
+```bash
+# Define an environment variable for the repository root.
+export REPO_ROOT=$(pwd)
+
+# Verify that the environment variable is working correctly.
+echo "Repository root directory: $REPO_ROOT"
+
+dart pub get -C $REPO_ROOT/script/tool
+```
+
+### Identifying Target Packages
+
+Most tool commands take a `--packages` argument. You must correctly identify all packages affected by your changes. You can derive this from git diff.
+
+For example, to find changed files against the main branch of the upstream remote (assuming the upstream remote is named `origin`):
+
+```bash
+git diff --name-only origin/main...HEAD
+```
+
+Then, for each file path, find its enclosing package. A package is a directory containing a `pubspec.yaml` file. The directory name is usually the package name. Ignore `pubspec.yaml` files within `example/` directories when determining the package for a file.
+
+#### Targeting All Packages
+
+Running a tool command without a `--packages` argument will run the command on all packages. For example, a dependency can be updated for all packages in the repository:
+
+```bash
+dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart update-dependency --pub-package <dependency_name>
+```
+
+### Common Commands
+
+- **Formatting**: Always format your changes.
+
+  ```bash
+  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart format --packages <changed_packages>
+  ```
+- **Testing**: All changes must pass analysis and tests:
+
+  ```bash
+  # Run static analysis
+  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart analyze --packages <changed_packages>
+  # Run Dart unit tests
+  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart dart-test --packages <changed_packages>
+  ```
+
+  The tool can also run native and integration tests, but these may require a more complete environment than is available.
+- **Validation**: Run these checks to ensure that changes follow team guidelines:
+  ```bash
+  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart validate --packages <changed_packages>
+  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart publish-check --packages <changed_packages>
+  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart license-check
+  ```
+
+### Specialized Workflows
+
+- **Federated Plugin Development**: If you change multiple packages in a federated plugin that depend on each other, use `make-deps-path-based` to make their pubspec.yaml files use `path:` dependencies. This allows you to test them together locally.
+  ```bash
+  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart make-deps-path-based --target-dependencies=<changed_plugin_packages>
+  ```
+
+  The CI system will run tests with path-based dependencies automatically, so this is not required for PRs, but can be useful for local testing.
+- **Updating Dependencies**: To update a dependency across multiple packages:
+  ```bash
+  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart update-dependency --pub-package <dependency_name> --packages <packages_to_update>
+  ```
+- **Updating README Code Samples**: If you change example code that is included in a README.md:
+  ```bash
+  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart update-excerpts --packages <changed_packages>
+  ```
 
 ## Code Generators
 
-`white_label_kit` uses `build_runner`. If you change a file that a
-generator reads (e.g. anything feeding `.g.dart`/`.freezed.dart`
-output), regenerate before committing:
+Some packages use code generators, and changes to those packages require running the relevant code generators.
 
-```bash
-dart run build_runner build -d
-```
-
-Generated output (`*.g.dart`, `*.freezed.dart`, `*.mocks.dart`) is
-never hand-edited and never staged in commits — CI regenerates it
-fresh. No package here uses Pigeon (no `pigeons/` directory) or
-Mockito (no `mockito` dev-dependency), so those flutter/packages-
-specific generator steps do not apply.
+- **Pigeon**: If you change a file in a `pigeons/` directory, you must run the Pigeon generator:
+  ```bash
+  # Run from the package's directory
+  dart run pigeon --input pigeons/<changed_file>.dart
+  ```
+- **Mockito**: If you change code in a package that uses `mockito` for tests (check `dev_dependencies` in `pubspec.yaml`), you must run its mock generator:
+  ```bash
+  # Run from the package's directory
+  dart run build_runner build -d
+  ```
 
 ## Code Style
 
-- **Dart**: standard Dart/Flutter style, formatted with `dart format`
-  (via `melos run format:fix`). This repo is Dart/Flutter-only — the
-  upstream per-language style list (C++/Java/Kotlin/Objective-C/Swift)
-  does not apply since `apple_sign_in_plugin`'s native glue is thin
-  platform-channel code, not a separately-styled implementation package.
-- **Comments**: avoid redundant comments that restate what the code
-  does; explain the *why* behind non-obvious logic, or serve as public
-  API documentation.
+All code must adhere to the repository's style guides. The `format` command handles most of this, but be aware of the specific style guides for each language, as detailed in [CONTRIBUTING.md](./CONTRIBUTING.md#style):
+- **Dart**: Flutter style, formatted with `dart format`.
+- **C++**: Google style, formatted with `clang-format`.
+- **Java**: Google style, formatted with `google-java-format`.
+- **Kotlin**: Android Kotlin style, formatted with `ktfmt`.
+- **Objective-C**: Google style, formatted with `clang-format`.
+- **Swift**: Google style, formatted with `swift-format`.
+- **Comments**: Avoid adding redundant or trivial comments that simply restate what the code itself does (e.g., repeating method calls in English). Comments should explain the *why* behind complex or non-obvious logic, or serve as public API documentation.
+
+## Version and CHANGELOG updates
+
+Any PR that changes non-test code in a package should update its version in pubspec.yaml and add a corresponding entry in CHANGELOG.md.
+
+**This process can be automated**. The `update-release-info` command is the preferred way to handle this. It determines changed packages, bumps versions, and updates changelogs automatically.
+```bash
+dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart update-release-info \
+  --version=minimal \
+  --base-branch=origin/main \
+  --changelog="A description of the changes."
+```
+
+- `--version=minimal`: Bumps patch for bug fixes, and skips unchanged packages. This is usually the best option unless a new feature is being added.
+  - When making public API changes, use `--version=minor` instead.
+- `--base-branch=origin/main`: Diffs against the `main` branch to find changed packages.
+
+If you update manually, follow semantic versioning and the [repository's CHANGELOG style](https://github.com/flutter/flutter/blob/master/docs/ecosystem/contributing/README.md#changelog-style).

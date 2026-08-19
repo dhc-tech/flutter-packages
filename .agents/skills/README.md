@@ -1,11 +1,12 @@
-# DHC Tech Agent Skills & Workflows
+# Flutter Agent Skills
 
-Welcome to the `.agents/skills` directory. This directory contains agent skills and guidelines designed for AI assistants and contributors to the `dhc-tech/flutter-packages` repository.
+Welcome to the `.agent/skills` directory. This directory contains agent skills designed for consumption by Flutter package contributors.
 
-## Base Guidance
+## Base guidance
 
-All packages follow DHC Tech architectural and engineering standards:
-- Strict typing and fatal-infos linting
-- Maximum Pana health scores (160/160)
-- Automated unit/widget test suites
-- Zero proprietary leaks and robust error handling
+flutter/packages follows the same guidance that flutter/flutter uses.
+https://github.com/flutter/flutter/blob/master/.agents/skills/README.md
+
+## Packages specific guidance
+
+When there is specific guidance for packages it will go here.

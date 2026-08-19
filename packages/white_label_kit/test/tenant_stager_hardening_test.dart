@@ -5,8 +5,8 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:white_label_kit/white_label_kit.dart';
 import 'package:test/test.dart';
+import 'package:white_label_kit/white_label_kit.dart';
 
 void main() {
   late Directory projectRoot;

@@ -3,18 +3,14 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as p;
 
+import '../ui/box_painter.dart';
 import '../utils/logger.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
-import '../ui/box_painter.dart';
 
-class RemoveModuleCommand extends Command {
-  @override
-  final name = 'remove-module';
-  @override
-  final description =
-      'Removes an existing GetX module and unregisters its routes.';
-
+/// Removes an existing GetX module and unregisters its routes.
+class RemoveModuleCommand extends Command<dynamic> {
+  /// Registers the `--name` option for the module to remove.
   RemoveModuleCommand() {
     argParser.addOption(
       'name',
@@ -22,6 +18,11 @@ class RemoveModuleCommand extends Command {
       help: 'The name of the module to remove (e.g., "auth")',
     );
   }
+  @override
+  final name = 'remove-module';
+  @override
+  final description =
+      'Removes an existing GetX module and unregisters its routes.';
 
   @override
   Future<void> run() async {
@@ -33,7 +34,7 @@ class RemoveModuleCommand extends Command {
       return;
     }
 
-    String? moduleName = argResults?['name'] as String?;
+    var moduleName = argResults?['name'] as String?;
     if (moduleName == null || moduleName.isEmpty) {
       if (argResults!.rest.isNotEmpty) {
         moduleName = argResults!.rest.first;
@@ -48,18 +49,18 @@ class RemoveModuleCommand extends Command {
       return;
     }
 
-    final cleanModuleName = moduleName
+    final String cleanModuleName = moduleName
         .replaceAll(
           RegExp(r'_?(View|Controller|Binding|Module)$', caseSensitive: false),
           '',
         )
         .trim();
 
-    final slug = _toSnakeCase(cleanModuleName);
-    final className = _toPascalCase(cleanModuleName);
+    final String slug = _toSnakeCase(cleanModuleName);
+    final String className = _toPascalCase(cleanModuleName);
     final moduleDir = Directory(p.join('lib', 'app', 'module', slug));
 
-    if (!await moduleDir.exists()) {
+    if (!moduleDir.existsSync()) {
       kLog('❗ Module $slug does not exist.', type: LogType.error);
       return;
     }
@@ -68,8 +69,8 @@ class RemoveModuleCommand extends Command {
       '🗑️  Removing $className module components...',
       () async {
         // 1. Delete Module Directory
-        if (await moduleDir.exists()) {
-          await moduleDir.delete(recursive: true);
+        if (moduleDir.existsSync()) {
+          moduleDir.deleteSync(recursive: true);
           kLog(
             '  - Deleted module directory: ${moduleDir.path}',
             type: LogType.success,
@@ -93,12 +94,13 @@ class RemoveModuleCommand extends Command {
     );
 
     final painter = BoxPainter();
+    // ignore: avoid_print
     print('');
-    painter.drawHeader('MODULE REMOVAL SUMMARY', width: 50);
-    painter.drawRow('Module', className, width: 50);
-    painter.drawRow('Slug', slug, width: 50);
-    painter.drawRow('Route', 'AppRoute.${_toCamelCase(slug)}', width: 50);
-    painter.drawFooter(width: 50);
+    painter.drawHeader('MODULE REMOVAL SUMMARY');
+    painter.drawRow('Module', className);
+    painter.drawRow('Slug', slug);
+    painter.drawRow('Route', 'AppRoute.${_toCamelCase(slug)}');
+    painter.drawFooter();
 
     kLog(
       '\n✅ Module $className has been completely removed!',
@@ -106,7 +108,6 @@ class RemoveModuleCommand extends Command {
     );
     kLog(
       '💡 Note: You may need to run "flutter pub get" if imports are lingering.',
-      type: LogType.info,
     );
   }
 
@@ -114,9 +115,11 @@ class RemoveModuleCommand extends Command {
     final exportFile = File(
       p.join('lib', 'app', 'module', 'module_export.dart'),
     );
-    if (!await exportFile.exists()) return;
+    if (!exportFile.existsSync()) {
+      return;
+    }
 
-    final content = await exportFile.readAsString();
+    final String content = await exportFile.readAsString();
     final exportLine = "export '$slug/${slug}_export.dart';";
 
     if (!content.contains(exportLine)) {
@@ -127,7 +130,7 @@ class RemoveModuleCommand extends Command {
       return;
     }
 
-    final lines = content.split('\n');
+    final List<String> lines = content.split('\n');
     lines.removeWhere((l) => l.trim() == exportLine);
     await exportFile.writeAsString(lines.join('\n'));
     kLog('  - Removed export from module_export.dart', type: LogType.success);
@@ -135,10 +138,12 @@ class RemoveModuleCommand extends Command {
 
   Future<void> _unregisterRoute(String className, String slug) async {
     final file = File(p.join('lib', 'app', 'routes', 'app_route.dart'));
-    if (!await file.exists()) return;
+    if (!file.existsSync()) {
+      return;
+    }
 
-    final content = await file.readAsString();
-    final routeName = _toCamelCase(slug);
+    final String content = await file.readAsString();
+    final String routeName = _toCamelCase(slug);
 
     if (!content.contains(routeName)) {
       kLog(
@@ -148,7 +153,7 @@ class RemoveModuleCommand extends Command {
       return;
     }
 
-    final lines = content.split('\n');
+    final List<String> lines = content.split('\n');
     lines.removeWhere((l) => l.contains('static const String $routeName ='));
     await file.writeAsString(lines.join('\n'));
     kLog('  - Removed static route from app_route.dart', type: LogType.success);
@@ -156,10 +161,12 @@ class RemoveModuleCommand extends Command {
 
   Future<void> _unregisterPage(String className, String slug) async {
     final file = File(p.join('lib', 'app', 'routes', 'app_page.dart'));
-    if (!await file.exists()) return;
+    if (!file.existsSync()) {
+      return;
+    }
 
     String content = await file.readAsString();
-    final routeName = _toCamelCase(slug);
+    final String routeName = _toCamelCase(slug);
     final blockId = 'AppRoute.$routeName';
 
     if (!content.contains(blockId)) {
@@ -172,11 +179,15 @@ class RemoveModuleCommand extends Command {
 
     // 1. Find the occurrence of the route name
     final int nameIndex = content.indexOf(blockId);
-    if (nameIndex == -1) return;
+    if (nameIndex == -1) {
+      return;
+    }
 
     // 2. Find the start of this specific GetPage block (the closest 'GetPage(' before the name)
     int startIndex = content.lastIndexOf('GetPage(', nameIndex);
-    if (startIndex == -1) return;
+    if (startIndex == -1) {
+      return;
+    }
 
     // Move startIndex back to include potential leading whitespace/indentation on that line
     while (startIndex > 0 &&
@@ -190,11 +201,11 @@ class RemoveModuleCommand extends Command {
     }
 
     // 3. Find the end of this GetPage block by counting parentheses
-    int endIndex = -1;
-    int counter = 0;
-    bool foundStart = false;
+    var endIndex = -1;
+    var counter = 0;
+    var foundStart = false;
 
-    for (int i = startIndex; i < content.length; i++) {
+    for (var i = startIndex; i < content.length; i++) {
       if (content[i] == '(') {
         counter++;
         foundStart = true;
@@ -214,7 +225,7 @@ class RemoveModuleCommand extends Command {
     }
 
     if (endIndex != -1 && endIndex > startIndex) {
-      final removedBlock = content.substring(startIndex, endIndex + 1);
+      final String removedBlock = content.substring(startIndex, endIndex + 1);
       content = content.replaceFirst(removedBlock, '');
 
       // Clean up multiple newlines or leading spaces left behind
@@ -244,8 +255,10 @@ class RemoveModuleCommand extends Command {
   }
 
   String _toPascalCase(String input) {
-    if (input.isEmpty) return '';
-    final snake = _toSnakeCase(input);
+    if (input.isEmpty) {
+      return '';
+    }
+    final String snake = _toSnakeCase(input);
     return snake
         .split('_')
         .where((s) => s.isNotEmpty)
@@ -254,9 +267,13 @@ class RemoveModuleCommand extends Command {
   }
 
   String _toCamelCase(String input) {
-    if (input.isEmpty) return '';
-    final pascal = _toPascalCase(input);
-    if (pascal.isEmpty) return '';
+    if (input.isEmpty) {
+      return '';
+    }
+    final String pascal = _toPascalCase(input);
+    if (pascal.isEmpty) {
+      return '';
+    }
     return pascal[0].toLowerCase() + pascal.substring(1);
   }
 }

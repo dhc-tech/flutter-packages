@@ -3,17 +3,13 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 
 import '../utils/logger.dart';
+import '../utils/project_rebrander.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
-import '../utils/project_rebrander.dart';
 
-class RenameCommand extends Command {
-  @override
-  final name = 'rename';
-  @override
-  final description =
-      'Renames the Flutter app and changes the bundle ID / package name.';
-
+/// Command to rename the Flutter app and change its bundle ID / package name.
+class RenameCommand extends Command<void> {
+  /// Creates the rename command and registers its options.
   RenameCommand() {
     argParser.addOption(
       'name',
@@ -26,6 +22,11 @@ class RenameCommand extends Command {
       help: 'New bundle ID / package name (e.g., com.example.app)',
     );
   }
+  @override
+  final name = 'rename';
+  @override
+  final description =
+      'Renames the Flutter app and changes the bundle ID / package name.';
 
   @override
   Future<void> run() async {
@@ -37,20 +38,24 @@ class RenameCommand extends Command {
       return;
     }
 
-    String? newName = argResults?['name'] as String?;
-    String? newBundleId = argResults?['bundle-id'] as String?;
+    var newName = argResults?['name'] as String?;
+    var newBundleId = argResults?['bundle-id'] as String?;
 
     if (newName == null && newBundleId == null) {
-      kLog('\n🏷️  APP RENAMING', type: LogType.info);
+      kLog('\n🏷️  APP RENAMING');
       stdout.write('Enter new app display name (leave empty to skip): ');
       newName = stdin.readLineSync()?.trim();
-      if (newName?.isEmpty ?? true) newName = null;
+      if (newName?.isEmpty ?? true) {
+        newName = null;
+      }
 
       stdout.write(
         'Enter new bundle ID (e.g., com.example.app, leave empty to skip): ',
       );
       newBundleId = stdin.readLineSync()?.trim();
-      if (newBundleId?.isEmpty ?? true) newBundleId = null;
+      if (newBundleId?.isEmpty ?? true) {
+        newBundleId = null;
+      }
 
       if (newName == null && newBundleId == null) {
         kLog('❗ No changes provided.', type: LogType.warning);
@@ -58,9 +63,9 @@ class RenameCommand extends Command {
       }
     }
 
-    final currentProjectName = await getProjectName() ?? 'app';
-    final currentAppLabel = await getAppLabel() ?? currentProjectName;
-    final currentBundleId = await getBundleId() ?? 'com.example.app';
+    final String currentProjectName = await getProjectName() ?? 'app';
+    final String currentAppLabel = await getAppLabel() ?? currentProjectName;
+    final String currentBundleId = await getBundleId() ?? 'com.example.app';
 
     if (newBundleId != null && !_isValidBundleId(newBundleId)) {
       kLog(
@@ -70,8 +75,8 @@ class RenameCommand extends Command {
       return;
     }
 
-    final targetName = newName ?? currentAppLabel;
-    final targetBundleId = newBundleId ?? currentBundleId;
+    final String targetName = newName ?? currentAppLabel;
+    final String targetBundleId = newBundleId ?? currentBundleId;
 
     await runWithSpinner('🏗️  Rebranding project...', () async {
       final rebrander = ProjectRebrander(
@@ -86,7 +91,6 @@ class RenameCommand extends Command {
     kLog('✅ App successfully renamed!', type: LogType.success);
     kLog(
       '💡 Run "flutter clean" and "flutter pub get" to refresh all artifacts.',
-      type: LogType.info,
     );
   }
 
@@ -95,7 +99,9 @@ class RenameCommand extends Command {
   }
 }
 
+/// Handles the rename command from the interactive menu.
 Future<void> handleRenameCommand(List<String> args) async {
-  final runner = CommandRunner('dg', 'Rename app')..addCommand(RenameCommand());
+  final CommandRunner<dynamic> runner = CommandRunner('dg', 'Rename app')
+    ..addCommand(RenameCommand());
   await runner.run(args);
 }

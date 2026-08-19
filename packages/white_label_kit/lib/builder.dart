@@ -25,6 +25,7 @@ import 'package:build/build.dart';
 import 'src/config/white_label_config.dart';
 import 'src/generation/dart_config_generator.dart';
 
+/// Builder factory registered via `build.yaml`'s `white_label_generator`.
 Builder whiteLabelBuilder(BuilderOptions options) => WhiteLabelBuilder();
 
 /// See this library's dartdoc — a thin `build_runner` wrapper around
@@ -32,6 +33,8 @@ Builder whiteLabelBuilder(BuilderOptions options) => WhiteLabelBuilder();
 /// prefer triggering generation via `build_runner` instead of the direct
 /// `generate` CLI command.
 class WhiteLabelBuilder implements Builder {
+  /// Creates the builder, optionally overriding the environment used for
+  /// tenant-selection.
   WhiteLabelBuilder({this.environmentOverride});
 
   /// Overrides [Platform.environment] for tenant-selection purposes —
@@ -47,7 +50,7 @@ class WhiteLabelBuilder implements Builder {
 
   @override
   Future<void> build(BuildStep buildStep) async {
-    final yamlText = await buildStep.readAsString(buildStep.inputId);
+    final String yamlText = await buildStep.readAsString(buildStep.inputId);
 
     final WhiteLabelConfig config;
     try {
@@ -57,7 +60,7 @@ class WhiteLabelBuilder implements Builder {
       rethrow;
     }
 
-    final selectedId = resolveGeneratorTenantId(
+    final String selectedId = resolveGeneratorTenantId(
       config,
       environment: environmentOverride,
     );

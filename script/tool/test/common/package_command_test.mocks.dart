@@ -46,54 +46,43 @@ class MockGitDir extends _i1.Mock implements _i4.GitDir {
   }
 
   @override
-  String get path =>
-      (super.noSuchMethod(
-            Invocation.getter(#path),
-            returnValue: _i5.dummyValue<String>(this, Invocation.getter(#path)),
-          )
-          as String);
+  String get path => (super.noSuchMethod(
+    Invocation.getter(#path),
+    returnValue: _i5.dummyValue<String>(this, Invocation.getter(#path)),
+  ) as String);
 
   @override
-  _i6.Future<int> commitCount([String? branchName = r'HEAD']) =>
-      (super.noSuchMethod(
-            Invocation.method(#commitCount, [branchName]),
-            returnValue: _i6.Future<int>.value(0),
-          )
-          as _i6.Future<int>);
+  _i6.Future<int> commitCount([String? branchName = r'HEAD']) => (super.noSuchMethod(
+    Invocation.method(#commitCount, [branchName]),
+    returnValue: _i6.Future<int>.value(0),
+  ) as _i6.Future<int>);
 
   @override
-  _i6.Future<_i2.Commit> commitFromRevision(String? revision) =>
-      (super.noSuchMethod(
-            Invocation.method(#commitFromRevision, [revision]),
-            returnValue: _i6.Future<_i2.Commit>.value(
-              _FakeCommit_0(this, Invocation.method(#commitFromRevision, [revision])),
-            ),
-          )
-          as _i6.Future<_i2.Commit>);
+  _i6.Future<_i2.Commit> commitFromRevision(String? revision) => (super.noSuchMethod(
+    Invocation.method(#commitFromRevision, [revision]),
+    returnValue: _i6.Future<_i2.Commit>.value(
+      _FakeCommit_0(this, Invocation.method(#commitFromRevision, [revision])),
+    ),
+  ) as _i6.Future<_i2.Commit>);
 
   @override
   _i6.Future<Map<String, _i2.Commit>> commits([String? branchName = r'HEAD']) =>
       (super.noSuchMethod(
-            Invocation.method(#commits, [branchName]),
-            returnValue: _i6.Future<Map<String, _i2.Commit>>.value(<String, _i2.Commit>{}),
-          )
-          as _i6.Future<Map<String, _i2.Commit>>);
+        Invocation.method(#commits, [branchName]),
+        returnValue: _i6.Future<Map<String, _i2.Commit>>.value(<String, _i2.Commit>{}),
+      ) as _i6.Future<Map<String, _i2.Commit>>);
 
   @override
-  _i6.Future<_i3.BranchReference?> branchReference(String? branchName) =>
-      (super.noSuchMethod(
-            Invocation.method(#branchReference, [branchName]),
-            returnValue: _i6.Future<_i3.BranchReference?>.value(),
-          )
-          as _i6.Future<_i3.BranchReference?>);
+  _i6.Future<_i3.BranchReference?> branchReference(String? branchName) => (super.noSuchMethod(
+    Invocation.method(#branchReference, [branchName]),
+    returnValue: _i6.Future<_i3.BranchReference?>.value(),
+  ) as _i6.Future<_i3.BranchReference?>);
 
   @override
-  _i6.Future<List<_i3.BranchReference>> branches() =>
-      (super.noSuchMethod(
-            Invocation.method(#branches, []),
-            returnValue: _i6.Future<List<_i3.BranchReference>>.value(<_i3.BranchReference>[]),
-          )
-          as _i6.Future<List<_i3.BranchReference>>);
+  _i6.Future<List<_i3.BranchReference>> branches() => (super.noSuchMethod(
+    Invocation.method(#branches, []),
+    returnValue: _i6.Future<List<_i3.BranchReference>>.value(<_i3.BranchReference>[]),
+  ) as _i6.Future<List<_i3.BranchReference>>);
 
   @override
   _i6.Stream<_i7.Tag> tags() =>
@@ -103,136 +92,109 @@ class MockGitDir extends _i1.Mock implements _i4.GitDir {
   @override
   _i6.Future<List<_i8.CommitReference>> showRef({bool? heads = false, bool? tags = false}) =>
       (super.noSuchMethod(
-            Invocation.method(#showRef, [], {#heads: heads, #tags: tags}),
-            returnValue: _i6.Future<List<_i8.CommitReference>>.value(<_i8.CommitReference>[]),
-          )
-          as _i6.Future<List<_i8.CommitReference>>);
+        Invocation.method(#showRef, [], {#heads: heads, #tags: tags}),
+        returnValue: _i6.Future<List<_i8.CommitReference>>.value(<_i8.CommitReference>[]),
+      ) as _i6.Future<List<_i8.CommitReference>>);
 
   @override
-  _i6.Future<_i3.BranchReference> currentBranch() =>
-      (super.noSuchMethod(
-            Invocation.method(#currentBranch, []),
-            returnValue: _i6.Future<_i3.BranchReference>.value(
-              _FakeBranchReference_1(this, Invocation.method(#currentBranch, [])),
-            ),
-          )
-          as _i6.Future<_i3.BranchReference>);
+  _i6.Future<_i3.BranchReference> currentBranch() => (super.noSuchMethod(
+    Invocation.method(#currentBranch, []),
+    returnValue: _i6.Future<_i3.BranchReference>.value(
+      _FakeBranchReference_1(this, Invocation.method(#currentBranch, [])),
+    ),
+  ) as _i6.Future<_i3.BranchReference>);
 
   @override
   _i6.Future<List<_i9.TreeEntry>> lsTree(
     String? treeish, {
     bool? subTreesOnly = false,
     String? path,
-  }) =>
-      (super.noSuchMethod(
-            Invocation.method(#lsTree, [treeish], {#subTreesOnly: subTreesOnly, #path: path}),
-            returnValue: _i6.Future<List<_i9.TreeEntry>>.value(<_i9.TreeEntry>[]),
-          )
-          as _i6.Future<List<_i9.TreeEntry>>);
+  }) => (super.noSuchMethod(
+    Invocation.method(#lsTree, [treeish], {#subTreesOnly: subTreesOnly, #path: path}),
+    returnValue: _i6.Future<List<_i9.TreeEntry>>.value(<_i9.TreeEntry>[]),
+  ) as _i6.Future<List<_i9.TreeEntry>>);
 
   @override
   _i6.Future<String?> createOrUpdateBranch(
     String? branchName,
     String? treeSha,
     String? commitMessage,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#createOrUpdateBranch, [branchName, treeSha, commitMessage]),
-            returnValue: _i6.Future<String?>.value(),
-          )
-          as _i6.Future<String?>);
+  ) => (super.noSuchMethod(
+    Invocation.method(#createOrUpdateBranch, [branchName, treeSha, commitMessage]),
+    returnValue: _i6.Future<String?>.value(),
+  ) as _i6.Future<String?>);
 
   @override
   _i6.Future<String> commitTree(
     String? treeSha,
     String? commitMessage, {
     List<String>? parentCommitShas,
-  }) =>
-      (super.noSuchMethod(
-            Invocation.method(
-              #commitTree,
-              [treeSha, commitMessage],
-              {#parentCommitShas: parentCommitShas},
-            ),
-            returnValue: _i6.Future<String>.value(
-              _i5.dummyValue<String>(
-                this,
-                Invocation.method(
-                  #commitTree,
-                  [treeSha, commitMessage],
-                  {#parentCommitShas: parentCommitShas},
-                ),
-              ),
-            ),
-          )
-          as _i6.Future<String>);
+  }) => (super.noSuchMethod(
+    Invocation.method(#commitTree, [treeSha, commitMessage], {#parentCommitShas: parentCommitShas}),
+    returnValue: _i6.Future<String>.value(
+      _i5.dummyValue<String>(
+        this,
+        Invocation.method(
+          #commitTree,
+          [treeSha, commitMessage],
+          {#parentCommitShas: parentCommitShas},
+        ),
+      ),
+    ),
+  ) as _i6.Future<String>);
 
   @override
-  _i6.Future<Map<String, String>> writeObjects(List<String>? paths) =>
-      (super.noSuchMethod(
-            Invocation.method(#writeObjects, [paths]),
-            returnValue: _i6.Future<Map<String, String>>.value(<String, String>{}),
-          )
-          as _i6.Future<Map<String, String>>);
+  _i6.Future<Map<String, String>> writeObjects(List<String>? paths) => (super.noSuchMethod(
+    Invocation.method(#writeObjects, [paths]),
+    returnValue: _i6.Future<Map<String, String>>.value(<String, String>{}),
+  ) as _i6.Future<Map<String, String>>);
 
   @override
   _i6.Future<_i10.ProcessResult> runCommand(
     Iterable<String>? args, {
     bool? throwOnError = true,
     bool? echoOutput = false,
-  }) =>
-      (super.noSuchMethod(
-            Invocation.method(
-              #runCommand,
-              [args],
-              {#throwOnError: throwOnError, #echoOutput: echoOutput},
-            ),
-            returnValue: _i6.Future<_i10.ProcessResult>.value(
-              _i5.dummyValue<_i10.ProcessResult>(
-                this,
-                Invocation.method(
-                  #runCommand,
-                  [args],
-                  {#throwOnError: throwOnError, #echoOutput: echoOutput},
-                ),
-              ),
-            ),
-          )
-          as _i6.Future<_i10.ProcessResult>);
+  }) => (super.noSuchMethod(
+    Invocation.method(#runCommand, [args], {#throwOnError: throwOnError, #echoOutput: echoOutput}),
+    returnValue: _i6.Future<_i10.ProcessResult>.value(
+      _i5.dummyValue<_i10.ProcessResult>(
+        this,
+        Invocation.method(
+          #runCommand,
+          [args],
+          {#throwOnError: throwOnError, #echoOutput: echoOutput},
+        ),
+      ),
+    ),
+  ) as _i6.Future<_i10.ProcessResult>);
 
   @override
-  _i6.Future<bool> isWorkingTreeClean() =>
-      (super.noSuchMethod(
-            Invocation.method(#isWorkingTreeClean, []),
-            returnValue: _i6.Future<bool>.value(false),
-          )
-          as _i6.Future<bool>);
+  _i6.Future<bool> isWorkingTreeClean() => (super.noSuchMethod(
+    Invocation.method(#isWorkingTreeClean, []),
+    returnValue: _i6.Future<bool>.value(false),
+  ) as _i6.Future<bool>);
 
   @override
   _i6.Future<_i2.Commit?> updateBranch(
     String? branchName,
     _i6.Future<void> Function(_i10.Directory)? populater,
     String? commitMessage,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#updateBranch, [branchName, populater, commitMessage]),
-            returnValue: _i6.Future<_i2.Commit?>.value(),
-          )
-          as _i6.Future<_i2.Commit?>);
+  ) => (super.noSuchMethod(
+    Invocation.method(#updateBranch, [branchName, populater, commitMessage]),
+    returnValue: _i6.Future<_i2.Commit?>.value(),
+  ) as _i6.Future<_i2.Commit?>);
 
   @override
   _i6.Future<_i2.Commit?> updateBranchWithDirectoryContents(
     String? branchName,
     String? sourceDirectoryPath,
     String? commitMessage,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#updateBranchWithDirectoryContents, [
-              branchName,
-              sourceDirectoryPath,
-              commitMessage,
-            ]),
-            returnValue: _i6.Future<_i2.Commit?>.value(),
-          )
-          as _i6.Future<_i2.Commit?>);
+  ) => (super.noSuchMethod(
+    Invocation.method(#updateBranchWithDirectoryContents, [
+      branchName,
+      sourceDirectoryPath,
+      commitMessage,
+    ]),
+    returnValue: _i6.Future<_i2.Commit?>.value(),
+  ) as _i6.Future<_i2.Commit?>);
 }

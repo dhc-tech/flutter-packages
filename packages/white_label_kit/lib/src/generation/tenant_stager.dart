@@ -50,10 +50,13 @@ import '../validation/validation_result.dart';
 ///    silent overwrite — this used to lose one of the two files with no
 ///    warning and exit code 0.
 class TenantStager {
+  /// Creates a stager rooted at [projectRoot].
   TenantStager(this.projectRoot);
 
+  /// Absolute path to the project root staged files are resolved relative to.
   final String projectRoot;
 
+  /// Absolute path to the tenant's staging output directory.
   String stagingDirFor(String tenantId) =>
       p.join(projectRoot, '.generated', tenantId);
 
@@ -76,8 +79,8 @@ class TenantStager {
     // touching disk at all — Firebase paths go through the identical
     // ConfigValidator.assetPath check as asset paths.
     for (final group in groups) {
-      for (final relativePath in group.paths) {
-        final result = ConfigValidator.assetPath(
+      for (final String relativePath in group.paths) {
+        final ValidationResult result = ConfigValidator.assetPath(
           relativePath,
           tenantId: tenant.id,
           projectRoot: projectRoot,
@@ -99,14 +102,16 @@ class TenantStager {
     // is untouched until that swap.
     final finalDir = Directory(stagingDirFor(tenant.id));
     final tempDir = Directory('${finalDir.path}.tmp-${tenant.id}');
-    if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    if (tempDir.existsSync()) {
+      tempDir.deleteSync(recursive: true);
+    }
     tempDir.createSync(recursive: true);
 
     try {
       for (final group in groups) {
         final destDir = Directory(p.join(tempDir.path, group.name))
           ..createSync(recursive: true);
-        for (final relativePath in group.paths) {
+        for (final String relativePath in group.paths) {
           final source = File(p.join(projectRoot, relativePath));
           if (!source.existsSync()) {
             throw StateError(
@@ -123,7 +128,9 @@ class TenantStager {
       rethrow;
     }
 
-    if (finalDir.existsSync()) finalDir.deleteSync(recursive: true);
+    if (finalDir.existsSync()) {
+      finalDir.deleteSync(recursive: true);
+    }
     tempDir.renameSync(finalDir.path);
 
     return p.join(finalDir.path, 'assets');
@@ -134,9 +141,9 @@ class TenantStager {
   /// basename is a hard error, not a silent overwrite.
   void _checkBasenameCollisions(String tenantId, _StageGroup group) {
     final destinationsByBasename = <String, String>{}; // basename -> source
-    for (final relativePath in group.paths) {
-      final basename = p.basename(relativePath);
-      final existing = destinationsByBasename[basename];
+    for (final String relativePath in group.paths) {
+      final String basename = p.basename(relativePath);
+      final String? existing = destinationsByBasename[basename];
       if (existing != null && existing != relativePath) {
         throw StateError(
           'Tenant "$tenantId" declares two different ${group.name} files '
@@ -153,9 +160,13 @@ class TenantStager {
   /// was ever staged.
   void clean(String tenantId) {
     final dir = Directory(stagingDirFor(tenantId));
-    if (dir.existsSync()) dir.deleteSync(recursive: true);
+    if (dir.existsSync()) {
+      dir.deleteSync(recursive: true);
+    }
     final tempDir = Directory('${dir.path}.tmp-$tenantId');
-    if (tempDir.existsSync()) tempDir.deleteSync(recursive: true);
+    if (tempDir.existsSync()) {
+      tempDir.deleteSync(recursive: true);
+    }
   }
 
   /// Lists the basenames present in a tenant's staged `assets/` dir — the
@@ -173,7 +184,9 @@ class TenantStager {
 
   List<String> _listStagedBasenames(String tenantId, String subdir) {
     final dir = Directory(p.join(stagingDirFor(tenantId), subdir));
-    if (!dir.existsSync()) return const [];
+    if (!dir.existsSync()) {
+      return const [];
+    }
     return dir
         .listSync()
         .whereType<File>()

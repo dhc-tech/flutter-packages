@@ -14,8 +14,8 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:white_label_kit/white_label_kit.dart';
 import 'package:test/test.dart';
+import 'package:white_label_kit/white_label_kit.dart';
 
 void main() {
   late Directory projectRoot;
@@ -41,7 +41,7 @@ ${_tenantYaml('acme')}
 ${_tenantYaml('beta')}
 ''');
 
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
 
     expect(config.defaultTenant, 'beta');
     expect(config.isDefault('beta'), isTrue);
@@ -58,7 +58,7 @@ white_label:
 ${_tenantYaml('acme')}
 ''');
 
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
 
     expect(config.defaultTenant, 'acme');
     expect(config.isDefault('acme'), isTrue);
@@ -127,7 +127,7 @@ ${_tenantYaml('acme')}
 ${_tenantYaml('beta')}
 ''');
 
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
 
     expect(config.defaultTenant, 'acme');
     expect(config.resolve().id, 'acme');

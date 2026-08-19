@@ -7,11 +7,8 @@ import 'logger.dart';
 
 /// Helper class to handle project rebranding (renaming app, bundle ID, updating imports).
 class ProjectRebrander {
-  final Directory projectDir;
-  final String newSlug;
-  final String newAppName;
-  final String newBundleId;
-
+  /// Creates a rebrander for [projectDir], applying [newSlug], [newAppName]
+  /// and [newBundleId] across the project's platform files.
   ProjectRebrander({
     required this.projectDir,
     required this.newSlug,
@@ -19,9 +16,23 @@ class ProjectRebrander {
     required this.newBundleId,
   });
 
+  /// Root directory of the Flutter project being rebranded.
+  final Directory projectDir;
+
+  /// New package/module slug (used for Dart package imports).
+  final String newSlug;
+
+  /// New human-readable application name.
+  final String newAppName;
+
+  /// New Android/iOS bundle identifier.
+  final String newBundleId;
+
+  /// Runs the full rebrand: detects the old slug, then rewrites imports,
+  /// app names, and bundle IDs across all platform folders.
   Future<void> rebrand() async {
     // 1. Detect old slug from pubspec.yaml
-    final oldSlug = await _detectOldSlug();
+    final String? oldSlug = await _detectOldSlug();
 
     // 2. Perform replacements
     await _updateDartImports(oldSlug);
@@ -31,9 +42,9 @@ class ProjectRebrander {
 
   Future<String?> _detectOldSlug() async {
     final pubspec = File(p.join(projectDir.path, 'pubspec.yaml'));
-    if (await pubspec.exists()) {
-      final content = await pubspec.readAsString();
-      final yaml = loadYaml(content);
+    if (pubspec.existsSync()) {
+      final String content = await pubspec.readAsString();
+      final Map<dynamic, dynamic> yaml = loadYaml(content) as YamlMap;
       return yaml['name'] as String?;
     }
     return null;
@@ -41,7 +52,7 @@ class ProjectRebrander {
 
   Future<void> _updateDartImports(String? oldSlug) async {
     try {
-      final absolutePath = p.absolute(projectDir.path);
+      final String absolutePath = p.absolute(projectDir.path);
       final dirsToProcess = [
         Directory(p.join(absolutePath, 'lib')),
         Directory(p.join(absolutePath, 'test')),
@@ -54,7 +65,9 @@ class ProjectRebrander {
       ];
 
       for (final dir in dirsToProcess) {
-        if (!await dir.exists()) continue;
+        if (!dir.existsSync()) {
+          continue;
+        }
         await _processDirectoryForImports(dir, oldSlug);
       }
       await _processDirectoryForImports(
@@ -73,10 +86,13 @@ class ProjectRebrander {
     bool recursive = true,
   }) async {
     try {
-      final entities = dir.listSync(recursive: recursive);
-      for (var entity in entities) {
-        if (entity is! File) continue;
-        final ext = p.extension(entity.path);
+      final List<FileSystemEntity> entities =
+          dir.listSync(recursive: recursive);
+      for (final entity in entities) {
+        if (entity is! File) {
+          continue;
+        }
+        final String ext = p.extension(entity.path);
         if (const {
           '.dart',
           '.yaml',
@@ -93,7 +109,7 @@ class ProjectRebrander {
         }.contains(ext)) {
           try {
             String content = await entity.readAsString();
-            bool changed = false;
+            var changed = false;
 
             // Replace PROJECT_NAME placeholder
             if (content.contains('PROJECT_NAME')) {
@@ -133,7 +149,7 @@ class ProjectRebrander {
     final manifestFile = File(
       p.join(projectDir.path, 'android/app/src/main/AndroidManifest.xml'),
     );
-    if (await manifestFile.exists()) {
+    if (manifestFile.existsSync()) {
       String content = await manifestFile.readAsString();
       content = content.replaceFirst(
         RegExp(r'android:label="[^"]*"'),
@@ -144,7 +160,7 @@ class ProjectRebrander {
 
     // iOS Info.plist
     final infoPlist = File(p.join(projectDir.path, 'ios/Runner/Info.plist'));
-    if (await infoPlist.exists()) {
+    if (infoPlist.existsSync()) {
       String content = await infoPlist.readAsString();
       content = content.replaceFirst(
         RegExp(r'<key>CFBundleDisplayName</key>\s*<string>[^<]*</string>'),
@@ -159,7 +175,7 @@ class ProjectRebrander {
 
     // macOS Info.plist & AppInfo.xcconfig
     final macPlist = File(p.join(projectDir.path, 'macos/Runner/Info.plist'));
-    if (await macPlist.exists()) {
+    if (macPlist.existsSync()) {
       String content = await macPlist.readAsString();
       content = content.replaceFirst(
         RegExp(r'<key>CFBundleDisplayName</key>\s*<string>[^<]*</string>'),
@@ -174,7 +190,7 @@ class ProjectRebrander {
     final macConfig = File(
       p.join(projectDir.path, 'macos/Runner/Configs/AppInfo.xcconfig'),
     );
-    if (await macConfig.exists()) {
+    if (macConfig.existsSync()) {
       String content = await macConfig.readAsString();
       content = content.replaceFirst(
         RegExp(r'PRODUCT_NAME = .*'),
@@ -185,7 +201,7 @@ class ProjectRebrander {
 
     // Windows rc & cpp
     final winRc = File(p.join(projectDir.path, 'windows/runner/Runner.rc'));
-    if (await winRc.exists()) {
+    if (winRc.existsSync()) {
       String content = await winRc.readAsString();
       content = content.replaceFirst(
         RegExp(r'VALUE "ProductName", "[^"]*"'),
@@ -194,7 +210,7 @@ class ProjectRebrander {
       await winRc.writeAsString(content);
     }
     final winCpp = File(p.join(projectDir.path, 'windows/runner/main.cpp'));
-    if (await winCpp.exists()) {
+    if (winCpp.existsSync()) {
       String content = await winCpp.readAsString();
       content = content.replaceFirst(
         RegExp(r'window.CreateAndShow\(L"[^"]*"'),
@@ -205,7 +221,7 @@ class ProjectRebrander {
 
     // Linux CMake
     final linCMake = File(p.join(projectDir.path, 'linux/CMakeLists.txt'));
-    if (await linCMake.exists()) {
+    if (linCMake.existsSync()) {
       String content = await linCMake.readAsString();
       content = content.replaceFirst(
         RegExp(r'set\(BINARY_NAME "[^"]*"\)'),
@@ -216,7 +232,7 @@ class ProjectRebrander {
 
     // Web index.html & manifest.json
     final webHtml = File(p.join(projectDir.path, 'web/index.html'));
-    if (await webHtml.exists()) {
+    if (webHtml.existsSync()) {
       String content = await webHtml.readAsString();
       content = content.replaceFirst(
         RegExp(r'<title>[^<]*</title>'),
@@ -229,7 +245,7 @@ class ProjectRebrander {
       await webHtml.writeAsString(content);
     }
     final webManifest = File(p.join(projectDir.path, 'web/manifest.json'));
-    if (await webManifest.exists()) {
+    if (webManifest.existsSync()) {
       String content = await webManifest.readAsString();
       content = content.replaceFirst(
         RegExp(r'"name": "[^"]*"'),
@@ -246,7 +262,7 @@ class ProjectRebrander {
     final appConstantFile = File(
       p.join(projectDir.path, 'lib/app/constants/app_constant.dart'),
     );
-    if (await appConstantFile.exists()) {
+    if (appConstantFile.existsSync()) {
       String content = await appConstantFile.readAsString();
       content = content.replaceFirst(
         RegExp(r"static const String appName = '[^']*'"),
@@ -263,17 +279,17 @@ class ProjectRebrander {
     );
     final gradle = File(p.join(projectDir.path, 'android/app/build.gradle'));
 
-    if (await gradleKts.exists()) {
+    if (gradleKts.existsSync()) {
       buildGradle = gradleKts;
-    } else if (await gradle.exists()) {
+    } else if (gradle.existsSync()) {
       buildGradle = gradle;
     }
 
     if (buildGradle != null) {
       String content = await buildGradle.readAsString();
-      final appIdMatch =
+      final RegExpMatch? appIdMatch =
           RegExp(r'applicationId\s*[=]?\s*"([^"]+)"').firstMatch(content);
-      final oldId = appIdMatch?.group(1);
+      final String? oldId = appIdMatch?.group(1);
 
       content = content.replaceAllMapped(
         RegExp(r'applicationId\s*(=)?\s*"[^"]+"'),
@@ -296,7 +312,7 @@ class ProjectRebrander {
       final manifestFile = File(
         p.join(projectDir.path, 'android/app/src/main/AndroidManifest.xml'),
       );
-      if (await manifestFile.exists()) {
+      if (manifestFile.existsSync()) {
         String mContent = await manifestFile.readAsString();
         mContent = mContent.replaceAll(
           RegExp(r'package="[^"]*"'),
@@ -319,7 +335,7 @@ class ProjectRebrander {
     final iosProj = File(
       p.join(projectDir.path, 'ios/Runner.xcodeproj/project.pbxproj'),
     );
-    if (await iosProj.exists()) {
+    if (iosProj.existsSync()) {
       String content = await iosProj.readAsString();
       content = content.replaceAll(
         RegExp(r'PRODUCT_BUNDLE_IDENTIFIER = [^;]+;'),
@@ -330,7 +346,7 @@ class ProjectRebrander {
     final macProj = File(
       p.join(projectDir.path, 'macos/Runner.xcodeproj/project.pbxproj'),
     );
-    if (await macProj.exists()) {
+    if (macProj.existsSync()) {
       String content = await macProj.readAsString();
       content = content.replaceAll(
         RegExp(r'PRODUCT_BUNDLE_IDENTIFIER = [^;]+;'),
@@ -341,7 +357,7 @@ class ProjectRebrander {
 
     // iOS Info.plist Identifier (if hardcoded)
     final iosPlist = File(p.join(projectDir.path, 'ios/Runner/Info.plist'));
-    if (await iosPlist.exists()) {
+    if (iosPlist.existsSync()) {
       String content = await iosPlist.readAsString();
       if (!content.contains(r'$(PRODUCT_BUNDLE_IDENTIFIER)')) {
         content = content.replaceFirst(
@@ -355,7 +371,7 @@ class ProjectRebrander {
 
   Future<void> _globalReplaceBundleId(String oldId, String newId) async {
     try {
-      final absolutePath = p.absolute(projectDir.path);
+      final String absolutePath = p.absolute(projectDir.path);
       final dirsToProcess = [
         Directory(p.join(absolutePath, 'lib')),
         Directory(p.join(absolutePath, 'android')),
@@ -365,11 +381,15 @@ class ProjectRebrander {
       ];
 
       for (final dir in dirsToProcess) {
-        if (!await dir.exists()) continue;
-        final entities = dir.listSync(recursive: true);
-        for (var entity in entities) {
-          if (entity is! File) continue;
-          final ext = p.extension(entity.path);
+        if (!dir.existsSync()) {
+          continue;
+        }
+        final List<FileSystemEntity> entities = dir.listSync(recursive: true);
+        for (final entity in entities) {
+          if (entity is! File) {
+            continue;
+          }
+          final String ext = p.extension(entity.path);
           if (const {
             '.dart',
             '.xml',
@@ -393,19 +413,19 @@ class ProjectRebrander {
   }
 
   Future<void> _restructureAndroidDirs(String oldId, String newId) async {
-    final oldPath = oldId.replaceAll('.', '/');
-    final newPath = newId.replaceAll('.', '/');
-    final appSrc = p.join(projectDir.path, 'android/app/src');
+    final String oldPath = oldId.replaceAll('.', '/');
+    final String newPath = newId.replaceAll('.', '/');
+    final String appSrc = p.join(projectDir.path, 'android/app/src');
 
-    for (var type in ['main', 'debug', 'profile']) {
-      for (var lang in ['kotlin', 'java']) {
+    for (final type in ['main', 'debug', 'profile']) {
+      for (final lang in ['kotlin', 'java']) {
         final sourceDir = Directory(p.join(appSrc, type, lang, oldPath));
-        if (await sourceDir.exists()) {
-          final targetPath = p.join(appSrc, type, lang, newPath);
+        if (sourceDir.existsSync()) {
+          final String targetPath = p.join(appSrc, type, lang, newPath);
           await Directory(targetPath).create(recursive: true);
 
-          await for (var entity in sourceDir.list()) {
-            final base = p.basename(entity.path);
+          await for (final FileSystemEntity entity in sourceDir.list()) {
+            final String base = p.basename(entity.path);
             await entity.rename(p.join(targetPath, base));
           }
 
@@ -413,7 +433,7 @@ class ProjectRebrander {
           var current = sourceDir;
           while (current.path != p.join(appSrc, type, lang) &&
               (await current.list().isEmpty)) {
-            final parent = current.parent;
+            final Directory parent = current.parent;
             await current.delete();
             current = parent;
           }
@@ -422,12 +442,13 @@ class ProjectRebrander {
     }
 
     // Update package declarations
-    final newPathSegment = newId.replaceAll('.', '/');
-    for (var type in ['main', 'debug', 'profile']) {
-      for (var lang in ['kotlin', 'java']) {
+    final String newPathSegment = newId.replaceAll('.', '/');
+    for (final type in ['main', 'debug', 'profile']) {
+      for (final lang in ['kotlin', 'java']) {
         final sourceDir = Directory(p.join(appSrc, type, lang, newPathSegment));
-        if (await sourceDir.exists()) {
-          await for (var entity in sourceDir.list(recursive: true)) {
+        if (sourceDir.existsSync()) {
+          await for (final FileSystemEntity entity
+              in sourceDir.list(recursive: true)) {
             if (entity is File &&
                 (entity.path.endsWith('.kt') ||
                     entity.path.endsWith('.java'))) {

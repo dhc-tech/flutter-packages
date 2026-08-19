@@ -7,13 +7,9 @@ import '../utils/logger.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
 
-class BuildCommand extends Command {
-  @override
-  final name =
-      'create'; // Kept as 'create' for compatibility with previous version
-  @override
-  final description = 'Builds the Flutter project into an APK or App Bundle.';
-
+/// Command to build the Flutter project into an APK or App Bundle.
+class BuildCommand extends Command<void> {
+  /// Creates the build command and registers its options/flags.
   BuildCommand() {
     argParser.addOption('output', abbr: 'o', help: 'Specify output directory');
     argParser.addOption(
@@ -27,19 +23,24 @@ class BuildCommand extends Command {
       help: 'Include date and time in the filename',
     );
   }
+  @override
+  final name =
+      'create'; // Kept as 'create' for compatibility with previous version
+  @override
+  final description = 'Builds the Flutter project into an APK or App Bundle.';
 
   @override
   Future<void> run() async {
-    final buildType =
-        argResults?.rest.isNotEmpty == true ? argResults!.rest.first : 'apk';
-    String? outputDir = argResults?['output'] as String?;
-    String? customName = argResults?['name'] as String?;
+    final String buildType =
+        argResults?.rest.isNotEmpty ?? false ? argResults!.rest.first : 'apk';
+    var outputDir = argResults?['output'] as String?;
+    var customName = argResults?['name'] as String?;
     bool includeTimestamp = argResults?['timestamp'] as bool? ?? true;
 
     if (stdin.hasTerminal && outputDir == null && customName == null) {
-      kLog('\n🏗️  BUILD CONFIGURATION', type: LogType.info);
+      kLog('\n🏗️  BUILD CONFIGURATION');
       stdout.write('Enter output directory (press enter for Desktop): ');
-      final outInput = stdin.readLineSync()?.trim();
+      final String? outInput = stdin.readLineSync()?.trim();
       if (outInput != null && outInput.isNotEmpty) {
         outputDir = outInput;
       }
@@ -47,13 +48,13 @@ class BuildCommand extends Command {
       stdout.write(
         'Enter custom name prefix (press enter to use project name): ',
       );
-      final nameInput = stdin.readLineSync()?.trim();
+      final String? nameInput = stdin.readLineSync()?.trim();
       if (nameInput != null && nameInput.isNotEmpty) {
         customName = nameInput;
       }
 
       stdout.write('Include date and time in filename? (Y/n): ');
-      final timeInput = stdin.readLineSync()?.trim().toLowerCase();
+      final String? timeInput = stdin.readLineSync()?.trim().toLowerCase();
       if (timeInput == 'n' || timeInput == 'no') {
         includeTimestamp = false;
       }
@@ -121,7 +122,7 @@ class BuildCommand extends Command {
     }
 
     try {
-      final projectName = customName ?? await getProjectName();
+      final String? projectName = customName ?? await getProjectName();
       if (projectName == null || projectName.isEmpty) {
         kLog(
           '❗ Project name not found and no custom name was provided!',
@@ -135,8 +136,8 @@ class BuildCommand extends Command {
         final now = DateTime.now();
         final date =
             '${now.year.toString().padLeft(4, '0')}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-        final hour = now.hour.toString().padLeft(2, '0');
-        final minute = now.minute.toString().padLeft(2, '0');
+        final String hour = now.hour.toString().padLeft(2, '0');
+        final String minute = now.minute.toString().padLeft(2, '0');
         filename = '$projectName-$date-$hour-$minute.$fileExtension';
         kLog('📅 Date: $date @ $hour:$minute');
       } else {
@@ -145,7 +146,7 @@ class BuildCommand extends Command {
 
       kLog('📱 APP PREFIX: $projectName');
 
-      final result = await runWithSpinner(
+      final ProcessResult result = await runWithSpinner(
         '🚧 Building $buildDisplayType (release)...',
         () => Process.run('flutter', buildArgs),
       );
@@ -157,7 +158,7 @@ class BuildCommand extends Command {
       }
 
       final srcFile = File(sourcePath);
-      if (!await srcFile.exists()) {
+      if (!srcFile.existsSync()) {
         kLog(
           '❗ Build failed. Output file not found at: $sourcePath',
           type: LogType.error,
@@ -169,8 +170,8 @@ class BuildCommand extends Command {
       await srcFile.copy(destFile.path);
       await srcFile.delete();
 
-      final fileSize = await destFile.length();
-      final sizeInMB = (fileSize / (1024 * 1024)).toStringAsFixed(2);
+      final int fileSize = await destFile.length();
+      final String sizeInMB = (fileSize / (1024 * 1024)).toStringAsFixed(2);
 
       kLog(
         '\n✅ $buildDisplayType created successfully!',
@@ -178,7 +179,7 @@ class BuildCommand extends Command {
       );
       kLog('-------------------------------------------');
       kLog('📁 Location: ${destFile.path}', type: LogType.success);
-      kLog('📊 Size: ${sizeInMB}MB', type: LogType.info);
+      kLog('📊 Size: ${sizeInMB}MB');
       kLog('-------------------------------------------\n');
     } catch (e) {
       kLog(
@@ -190,9 +191,9 @@ class BuildCommand extends Command {
   }
 }
 
-// For backward compatibility while refactoring others
+/// Handles the build command from the interactive menu (for backward compatibility while refactoring others).
 Future<void> handleBuildCommand(List<String> args) async {
-  final runner = CommandRunner('dig', 'DIG CLI tool');
+  final CommandRunner<dynamic> runner = CommandRunner('dig', 'DIG CLI tool');
   runner.addCommand(BuildCommand());
   await runner.run(['create', ...args]);
 }

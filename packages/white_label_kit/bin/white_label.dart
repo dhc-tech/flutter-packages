@@ -73,7 +73,7 @@ Future<void> main(List<String> args) async => runCli(args);
 /// instead of duplicating this whole dispatch table.
 Future<void> runCli(List<String> args) async {
   if (args.isEmpty && File('white_label.yaml').existsSync()) {
-    final exitCode = await runInteractiveMenu();
+    final int exitCode = await runInteractiveMenu();
     exit(exitCode);
   }
 
@@ -82,10 +82,10 @@ Future<void> runCli(List<String> args) async {
     exit(args.isEmpty ? 1 : 0);
   }
 
-  final command = args.first;
+  final String command = args.first;
 
   if (command == 'menu' || command == 'runner') {
-    final exitCode = await runInteractiveMenu();
+    final int exitCode = await runInteractiveMenu();
     exit(exitCode);
   }
 
@@ -152,9 +152,9 @@ Future<void> runCli(List<String> args) async {
   }
 
   if (command == 'auto-onboard') {
-    final config = _loadConfig();
-    final rest = args.skip(1).toList();
-    final tenantId = rest.isNotEmpty ? rest.first : config['tenant_id'];
+    final Map<String, String> config = _loadConfig();
+    final List<String> rest = args.skip(1).toList();
+    final String? tenantId = rest.isNotEmpty ? rest.first : config['tenant_id'];
     if (tenantId == null) {
       stderr.writeln(
         '❌ auto-onboard needs a tenant id (arg or tenant_id: in $_defaultConfigFile)\n',
@@ -162,7 +162,7 @@ Future<void> runCli(List<String> args) async {
       _printUsage();
       exit(1);
     }
-    final ok = autoOnboardTenant(
+    final bool ok = autoOnboardTenant(
       tenantId,
       root: Directory.current,
       dryRun: rest.contains('--dry-run'),
@@ -174,17 +174,21 @@ Future<void> runCli(List<String> args) async {
     exit(await _configureTenants(args.skip(1).toList()));
   }
 
-  final script = _commands[command];
+  final String? script = _commands[command];
   if (script == null) {
     stderr.writeln("❌ Unknown command: '$command'\n");
     _printUsage();
     exit(1);
   }
 
-  final config = _loadConfig();
-  final forwardedArgs = _resolveArgs(command, args.skip(1).toList(), config);
+  final Map<String, String> config = _loadConfig();
+  final List<String> forwardedArgs = _resolveArgs(
+    command,
+    args.skip(1).toList(),
+    config,
+  );
 
-  final result = await Process.start('dart', [
+  final Process result = await Process.start('dart', [
     'run',
     script,
     ...forwardedArgs,
@@ -199,12 +203,14 @@ Future<void> runCli(List<String> args) async {
 /// "Default tenant: `<id>`" summary AND a per-tenant `(default)` marker —
 /// intentionally redundant so it's unmissable either way you're scanning.
 void _listTenants() {
-  final config = _tryLoadWhiteLabelConfig();
-  if (config == null) exit(1);
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  if (config == null) {
+    exit(1);
+  }
 
   stdout.writeln('Default tenant: ${config.defaultTenant}');
   stdout.writeln('Tenants (from white_label.yaml):');
-  for (final id in config.tenants.keys.toList()..sort()) {
+  for (final String id in config.tenants.keys.toList()..sort()) {
     final marker = config.isDefault(id) ? '  (default)' : '';
     stdout.writeln('  - $id — ${config[id].name}$marker');
   }
@@ -226,12 +232,14 @@ WhiteLabelConfig? _tryLoadWhiteLabelConfig() {
 /// anything else (no staging, no asset copying). Returns the process exit
 /// code (0 valid, 1 invalid).
 int _validate() {
-  final config = _tryLoadWhiteLabelConfig();
-  if (config == null) return 1;
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  if (config == null) {
+    return 1;
+  }
 
   stdout.writeln('✅ white_label.yaml is valid');
   stdout.writeln('Default tenant: ${config.defaultTenant}');
-  for (final id in config.tenants.keys.toList()..sort()) {
+  for (final String id in config.tenants.keys.toList()..sort()) {
     final marker = config.isDefault(id) ? ' (default)' : '';
     stdout.writeln('  - $id — ${config[id].name}$marker');
   }
@@ -245,21 +253,25 @@ int _validate() {
 /// declares (a stale/missing generated file is a common real mistake — ran
 /// `generate` once, then added/renamed tenants and forgot to re-run it).
 int _doctor() {
-  final config = _tryLoadWhiteLabelConfig();
-  if (config == null) return 1;
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  if (config == null) {
+    return 1;
+  }
 
   stdout.writeln('✅ white_label.yaml is valid');
   stdout.writeln('Default tenant: ${config.defaultTenant}');
   var healthy = true;
 
-  for (final id in config.tenants.keys.toList()..sort()) {
-    final tenant = config[id];
+  for (final String id in config.tenants.keys.toList()..sort()) {
+    final TenantConfig tenant = config[id];
     final marker = config.isDefault(id) ? ' (default)' : '';
     stdout.writeln('  - $id — ${tenant.name}$marker');
-    for (final assetPath in tenant.assets.all) {
-      final exists = File(assetPath).existsSync();
+    for (final String assetPath in tenant.assets.all) {
+      final bool exists = File(assetPath).existsSync();
       stdout.writeln('      ${exists ? '✅' : '❌'} $assetPath');
-      if (!exists) healthy = false;
+      if (!exists) {
+        healthy = false;
+      }
     }
   }
 
@@ -271,9 +283,10 @@ int _doctor() {
     );
     healthy = false;
   } else {
-    final content = generated.readAsStringSync();
-    final tenantIdMatch = RegExp("tenantId: '([^']+)'").firstMatch(content);
-    final generatedFor = tenantIdMatch?.group(1);
+    final String content = generated.readAsStringSync();
+    final RegExpMatch? tenantIdMatch = RegExp("tenantId: '([^']+)'")
+        .firstMatch(content);
+    final String? generatedFor = tenantIdMatch?.group(1);
     if (generatedFor == null || !config.has(generatedFor)) {
       stdout.writeln(
         '⚠️  lib/white_label.g.dart looks stale (tenant "$generatedFor" no '
@@ -319,7 +332,7 @@ int _init(List<String> args) {
     }
   }
 
-  final targetDir = path ?? Directory.current.path;
+  final String targetDir = path ?? Directory.current.path;
 
   final pubspecFile = File(p.join(targetDir, 'pubspec.yaml'));
   if (!pubspecFile.existsSync()) {
@@ -337,13 +350,13 @@ int _init(List<String> args) {
     stderr.writeln('❌ ${pubspecFile.path} is not valid YAML: ${e.message}');
     return 1;
   }
-  final looksLikeFlutterProject =
+  final bool looksLikeFlutterProject =
       pubspecDoc is Map && pubspecDoc.containsKey('flutter');
   if (!looksLikeFlutterProject) {
     stderr.writeln(
-      '❌ ${pubspecFile.path} has no `flutter:` key — this doesn\'t look '
+      "❌ ${pubspecFile.path} has no `flutter:` key — this doesn't look "
       'like a Flutter project. `init` refuses to scaffold white_label.yaml '
-      'somewhere it wouldn\'t make sense.',
+      "somewhere it wouldn't make sense.",
     );
     return 1;
   }
@@ -444,7 +457,7 @@ int _generate(List<String> args) {
     }
   }
 
-  final configFile = WhiteLabelConfig.configFile(
+  final File configFile = WhiteLabelConfig.configFile(
     Directory.current.path,
     configPath: configPath,
   );
@@ -492,9 +505,14 @@ int _generate(List<String> args) {
 /// Shared by `update-tenant`/`remove-tenant` so both edit exactly the same
 /// span add-tenant would have inserted. Returns `null` if [id] isn't found.
 (int start, int end)? _findTenantBlock(String text, String id) {
-  final startMatch = RegExp('^    $id:\r?\n', multiLine: true).firstMatch(text);
-  if (startMatch == null) return null;
-  final nextMatch = RegExp(
+  final RegExpMatch? startMatch = RegExp(
+    '^    $id:\r?\n',
+    multiLine: true,
+  ).firstMatch(text);
+  if (startMatch == null) {
+    return null;
+  }
+  final RegExpMatch? nextMatch = RegExp(
     r'^    [a-z][a-z0-9_]*:',
     multiLine: true,
   ).allMatches(text).where((m) => m.start > startMatch.start).firstOrNull;
@@ -542,32 +560,34 @@ int _updateTenant(List<String> args) {
     );
     return 1;
   }
-  final id = positional[0];
+  final String id = positional[0];
 
-  final config = _tryLoadWhiteLabelConfig();
-  if (config == null) return 1;
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  if (config == null) {
+    return 1;
+  }
   if (!config.has(id)) {
     stderr.writeln('❌ No such tenant "$id" in white_label.yaml.');
     return 1;
   }
-  final current = config[id];
+  final TenantConfig current = config[id];
 
   if (androidId != null) {
-    final r = ConfigValidator.androidApplicationId(androidId);
+    final ValidationResult r = ConfigValidator.androidApplicationId(androidId);
     if (r is Invalid) {
       stderr.writeln('❌ ${r.message}');
       return 1;
     }
   }
   if (iosId != null) {
-    final r = ConfigValidator.iosBundleId(iosId);
+    final ValidationResult r = ConfigValidator.iosBundleId(iosId);
     if (r is Invalid) {
       stderr.writeln('❌ ${r.message}');
       return 1;
     }
   }
   if (apiUrl != null) {
-    final r = ConfigValidator.url(apiUrl);
+    final ValidationResult r = ConfigValidator.url(apiUrl);
     if (r is Invalid) {
       stderr.writeln('❌ ${r.message}');
       return 1;
@@ -575,8 +595,8 @@ int _updateTenant(List<String> args) {
   }
 
   final whiteLabelFile = File('white_label.yaml');
-  final originalYaml = whiteLabelFile.readAsStringSync();
-  final range = _findTenantBlock(originalYaml, id);
+  final String originalYaml = whiteLabelFile.readAsStringSync();
+  final (int, int)? range = _findTenantBlock(originalYaml, id);
   if (range == null) {
     stderr.writeln(
       '❌ Could not locate tenant "$id"\'s block in white_label.yaml.',
@@ -584,11 +604,11 @@ int _updateTenant(List<String> args) {
     return 1;
   }
 
-  final resolvedName = name ?? current.name;
-  final resolvedAndroidId = androidId ?? current.android.applicationId;
-  final resolvedIosId = iosId ?? current.ios.bundleId;
-  final resolvedApiUrl = apiUrl ?? current.environment.apiBaseUrl;
-  final resolvedLogo = logoPath != null
+  final String resolvedName = name ?? current.name;
+  final String resolvedAndroidId = androidId ?? current.android.applicationId;
+  final String resolvedIosId = iosId ?? current.ios.bundleId;
+  final String? resolvedApiUrl = apiUrl ?? current.environment.apiBaseUrl;
+  final String resolvedLogo = logoPath != null
       ? 'tenants/$id/assets/logo.png'
       : current.assets.logo;
 
@@ -625,7 +645,7 @@ int _updateTenant(List<String> args) {
   }
   buffer.writeln();
 
-  var updatedYaml = originalYaml.replaceRange(
+  String updatedYaml = originalYaml.replaceRange(
     range.$1,
     range.$2,
     buffer.toString(),
@@ -650,7 +670,9 @@ int _updateTenant(List<String> args) {
   }
 
   stdout.writeln('✅ Updated tenant "$id" in white_label.yaml');
-  if (makeDefault) stdout.writeln('✅ Set "$id" as default_tenant');
+  if (makeDefault) {
+    stdout.writeln('✅ Set "$id" as default_tenant');
+  }
   stdout.writeln();
   stdout.writeln('Next: dart run white_label_kit:generate --tenant $id');
   return 0;
@@ -676,10 +698,12 @@ int _removeTenant(List<String> args) {
     stderr.writeln('❌ Usage: remove-tenant <id> [--keep-assets]');
     return 1;
   }
-  final id = positional[0];
+  final String id = positional[0];
 
-  final config = _tryLoadWhiteLabelConfig();
-  if (config == null) return 1;
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  if (config == null) {
+    return 1;
+  }
   if (!config.has(id)) {
     stderr.writeln('❌ No such tenant "$id" in white_label.yaml.');
     return 1;
@@ -690,8 +714,8 @@ int _removeTenant(List<String> args) {
   }
 
   final whiteLabelFile = File('white_label.yaml');
-  final originalYaml = whiteLabelFile.readAsStringSync();
-  final range = _findTenantBlock(originalYaml, id);
+  final String originalYaml = whiteLabelFile.readAsStringSync();
+  final (int, int)? range = _findTenantBlock(originalYaml, id);
   if (range == null) {
     stderr.writeln(
       '❌ Could not locate tenant "$id"\'s block in white_label.yaml.',
@@ -699,7 +723,7 @@ int _removeTenant(List<String> args) {
     return 1;
   }
 
-  var updatedYaml = originalYaml.replaceRange(range.$1, range.$2, '');
+  String updatedYaml = originalYaml.replaceRange(range.$1, range.$2, '');
 
   String? newDefault;
   if (config.isDefault(id)) {
@@ -726,11 +750,13 @@ int _removeTenant(List<String> args) {
 
   if (!keepAssets) {
     final dir = Directory(p.join('tenants', id));
-    if (dir.existsSync()) dir.deleteSync(recursive: true);
+    if (dir.existsSync()) {
+      dir.deleteSync(recursive: true);
+    }
   }
 
   // Native & IDE cleanup: remove Android flavor, iOS Xcode configs/schemes, and IDE run configs
-  final projectRoot = Directory.current.path;
+  final String projectRoot = Directory.current.path;
   try {
     removeAndroidFlavor(id, projectRoot: projectRoot);
     removeIosConfig(id, projectRoot: projectRoot);
@@ -740,7 +766,7 @@ int _removeTenant(List<String> args) {
   }
 
   // Regenerate white_label.g.dart for the active default tenant
-  final effectiveDefault = newDefault ?? config.defaultTenant;
+  final String effectiveDefault = newDefault ?? config.defaultTenant;
   _generate(['--tenant', effectiveDefault]);
 
   stdout.writeln('✅ Removed tenant "$id" from white_label.yaml');
@@ -749,7 +775,9 @@ int _removeTenant(List<String> args) {
       '⚠️  "$id" was default_tenant — auto-promoted "$newDefault" instead.',
     );
   }
-  if (!keepAssets) stdout.writeln('✅ Deleted tenants/$id/');
+  if (!keepAssets) {
+    stdout.writeln('✅ Deleted tenants/$id/');
+  }
   stdout.writeln(
     '✅ Cleaned native Android flavors and iOS Xcode configs for "$id"',
   );
@@ -782,21 +810,23 @@ int _addTenant(List<String> args) {
     );
     return 1;
   }
-  final id = positional[0];
-  final name = positional[1];
-  final bundleId = positional[2];
+  final String id = positional[0];
+  final String name = positional[1];
+  final String bundleId = positional[2];
 
-  final idResult = ConfigValidator.tenantId(id);
+  final ValidationResult idResult = ConfigValidator.tenantId(id);
   if (idResult is Invalid) {
     stderr.writeln('❌ ${idResult.message}');
     return 1;
   }
-  final appIdResult = ConfigValidator.androidApplicationId(bundleId);
+  final ValidationResult appIdResult = ConfigValidator.androidApplicationId(
+    bundleId,
+  );
   if (appIdResult is Invalid) {
     stderr.writeln('❌ ${appIdResult.message}');
     return 1;
   }
-  final bundleIdResult = ConfigValidator.iosBundleId(bundleId);
+  final ValidationResult bundleIdResult = ConfigValidator.iosBundleId(bundleId);
   if (bundleIdResult is Invalid) {
     stderr.writeln('❌ ${bundleIdResult.message}');
     return 1;
@@ -810,7 +840,7 @@ int _addTenant(List<String> args) {
     );
     return 1;
   }
-  final originalYaml = whiteLabelFile.readAsStringSync();
+  final String originalYaml = whiteLabelFile.readAsStringSync();
   if (RegExp('^    $id:', multiLine: true).hasMatch(originalYaml)) {
     stderr.writeln('❌ Tenant "$id" already exists in white_label.yaml.');
     return 1;
@@ -854,7 +884,7 @@ int _addTenant(List<String> args) {
 ''';
 
   final tenantsMarker = RegExp(r'^  tenants:\r?\n', multiLine: true);
-  final match = tenantsMarker.firstMatch(originalYaml);
+  final RegExpMatch? match = tenantsMarker.firstMatch(originalYaml);
   if (match == null) {
     Directory(p.join('tenants', id)).deleteSync(recursive: true);
     stderr.writeln(
@@ -862,7 +892,7 @@ int _addTenant(List<String> args) {
     );
     return 1;
   }
-  var updatedYaml = originalYaml.replaceRange(
+  String updatedYaml = originalYaml.replaceRange(
     match.end,
     match.end,
     tenantBlock,
@@ -896,25 +926,13 @@ int _addTenant(List<String> args) {
   stdout.writeln(
     '✅ Created ${logoFile.path}${logoIsPlaceholder ? ' (placeholder — replace with the real logo)' : ''}',
   );
-  if (makeDefault) stdout.writeln('✅ Set "$id" as default_tenant');
+  if (makeDefault) {
+    stdout.writeln('✅ Set "$id" as default_tenant');
+  }
   stdout.writeln();
   stdout.writeln('Next: dart run white_label_kit:build --tenant $id');
   return 0;
 }
-
-/// Sample content for the OPTIONAL `build.yaml` a project can add itself if
-/// it wants the `build_runner`-based alternative generation path (see
-/// `lib/builder.dart`) in addition to (or instead of) `generate` — printed
-/// in `--help` text, not written by `init` (which only sets up the primary,
-/// direct-command path).
-const optionalBuildYamlSample = '''
-targets:
-  \$default:
-    sources:
-      - white_label.yaml
-      - lib/**
-      - \$package\$
-''';
 
 const _starterWhiteLabelYaml = '''
 # Generic white-label config — see docs/white_label_flavors.md.
@@ -1032,8 +1050,10 @@ Future<int> _genericBuild(List<String> args) async {
     return 0;
   }
 
-  final config = _tryLoadWhiteLabelConfig();
-  if (config == null) return 1;
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  if (config == null) {
+    return 1;
+  }
 
   final TenantConfig tenant;
   try {
@@ -1043,7 +1063,9 @@ Future<int> _genericBuild(List<String> args) async {
     // Failure safety: never leave stale staging output behind, even though
     // nothing was staged yet in this particular failure — cheap and
     // consistent with every other failure path below.
-    if (tenantId != null) stager.clean(tenantId);
+    if (tenantId != null) {
+      stager.clean(tenantId);
+    }
     return 1;
   }
 
@@ -1064,7 +1086,7 @@ Future<int> _genericBuild(List<String> args) async {
   }
 
   try {
-    final stagedPath = stager.stage(tenant);
+    final String stagedPath = stager.stage(tenant);
     stdout.writeln('Staged assets at: $stagedPath');
   } catch (e) {
     stderr.writeln('❌ Build failed while staging tenant "${tenant.id}": $e');
@@ -1093,7 +1115,7 @@ Future<int> _genericBuild(List<String> args) async {
   // handles the Xcode project configuration (generateIosConfig) but cannot
   // and should not manage provisioning profiles or signing certificates.
   var overallExitCode = 0;
-  final projectRoot = Directory.current.path;
+  final String projectRoot = Directory.current.path;
 
   if (platform == 'android' || platform == 'android-aab' || platform == 'all') {
     // ── Android ─────────────────────────────────────────────────────────────
@@ -1109,8 +1131,8 @@ Future<int> _genericBuild(List<String> args) async {
     }
 
     final buildCommand = platform == 'android-aab' ? 'appbundle' : 'apk';
-    final androidVersion = tenant.androidVersion;
-    final androidArgs = [
+    final TenantVersion androidVersion = tenant.androidVersion;
+    final List<String> androidArgs = [
       'build',
       buildCommand,
       '--flavor',
@@ -1124,22 +1146,24 @@ Future<int> _genericBuild(List<String> args) async {
     ];
 
     stdout.writeln('➜ flutter ${androidArgs.join(' ')}');
-    final androidProcess = await Process.start(
+    final Process androidProcess = await Process.start(
       'flutter',
       androidArgs,
       workingDirectory: projectRoot,
       mode: ProcessStartMode.inheritStdio,
     );
-    final androidExitCode = await androidProcess.exitCode;
+    final int androidExitCode = await androidProcess.exitCode;
     if (androidExitCode != 0) {
       stderr.writeln(
         '❌ flutter build android failed for "${tenant.id}" '
         '(exit code $androidExitCode).',
       );
-      if (platform != 'all') return androidExitCode;
+      if (platform != 'all') {
+        return androidExitCode;
+      }
       overallExitCode = androidExitCode;
     } else {
-      final artifactPath = _findBuiltArtifact(
+      final String? artifactPath = _findBuiltArtifact(
         tenantId: tenant.id,
         buildCommand: buildCommand,
         mode: mode,
@@ -1151,11 +1175,13 @@ Future<int> _genericBuild(List<String> args) async {
           '"app-${tenant.id}-$mode.${buildCommand == 'appbundle' ? 'aab' : 'apk'}" '
           'found for "${tenant.id}".',
         );
-        if (platform != 'all') return 1;
+        if (platform != 'all') {
+          return 1;
+        }
         overallExitCode = 1;
       } else {
-        final sizeBytes = File(artifactPath).lengthSync();
-        final sizeMb = (sizeBytes / (1024 * 1024)).toStringAsFixed(2);
+        final int sizeBytes = File(artifactPath).lengthSync();
+        final String sizeMb = (sizeBytes / (1024 * 1024)).toStringAsFixed(2);
         stdout.writeln('✅ Android artifact: $artifactPath ($sizeMb MB)');
       }
     }
@@ -1172,7 +1198,9 @@ Future<int> _genericBuild(List<String> args) async {
         '❌ iOS: No ios/Runner.xcodeproj found — iOS platform is not '
         'set up in this project. Run `flutter create --platforms=ios .` first.',
       );
-      if (platform != 'all') return 1;
+      if (platform != 'all') {
+        return 1;
+      }
       overallExitCode = 1;
     } else {
       try {
@@ -1185,13 +1213,15 @@ Future<int> _genericBuild(List<String> args) async {
         stderr.writeln(
           '   Install Ruby + xcodeproj gem: gem install xcodeproj',
         );
-        if (platform != 'all') return 1;
+        if (platform != 'all') {
+          return 1;
+        }
         overallExitCode = 1;
       }
 
       if (overallExitCode == 0 || platform == 'all') {
-        final iosVersion = tenant.iosVersion;
-        final iosArgs = [
+        final TenantVersion iosVersion = tenant.iosVersion;
+        final List<String> iosArgs = [
           'build',
           'ipa',
           '--flavor', tenant.id,
@@ -1205,13 +1235,13 @@ Future<int> _genericBuild(List<String> args) async {
         ];
 
         stdout.writeln('➜ flutter ${iosArgs.join(' ')}');
-        final iosProcess = await Process.start(
+        final Process iosProcess = await Process.start(
           'flutter',
           iosArgs,
           workingDirectory: projectRoot,
           mode: ProcessStartMode.inheritStdio,
         );
-        final iosExitCode = await iosProcess.exitCode;
+        final int iosExitCode = await iosProcess.exitCode;
         if (iosExitCode != 0) {
           stderr.writeln(
             '❌ flutter build ios failed for "${tenant.id}" '
@@ -1247,8 +1277,10 @@ String? _findBuiltArtifact({
   final outputsDir = Directory(
     p.join(Directory.current.path, 'build', 'app', 'outputs'),
   );
-  if (!outputsDir.existsSync()) return null;
-  for (final entity in outputsDir.listSync(recursive: true)) {
+  if (!outputsDir.existsSync()) {
+    return null;
+  }
+  for (final FileSystemEntity entity in outputsDir.listSync(recursive: true)) {
     if (entity is File && p.basename(entity.path) == expectedName) {
       return entity.path;
     }
@@ -1276,8 +1308,10 @@ Future<int> _run(List<String> args) async {
     }
   }
 
-  final config = _tryLoadWhiteLabelConfig();
-  if (config == null) return 1;
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  if (config == null) {
+    return 1;
+  }
 
   final stager = TenantStager(Directory.current.path);
 
@@ -1286,7 +1320,9 @@ Future<int> _run(List<String> args) async {
     tenant = config.resolve(tenantId);
   } on ArgumentError catch (e) {
     stderr.writeln('❌ ${e.message}');
-    if (tenantId != null) stager.clean(tenantId);
+    if (tenantId != null) {
+      stager.clean(tenantId);
+    }
     return 1;
   }
 
@@ -1295,7 +1331,7 @@ Future<int> _run(List<String> args) async {
   );
 
   try {
-    final stagedPath = stager.stage(tenant);
+    final String stagedPath = stager.stage(tenant);
     stdout.writeln('Staged assets at: $stagedPath');
   } catch (e) {
     stderr.writeln('❌ Failed to stage tenant "${tenant.id}": $e');
@@ -1378,8 +1414,10 @@ Future<int> _configureTenants(List<String> args) async {
     return 1;
   }
 
-  final config = _tryLoadWhiteLabelConfig();
-  if (config == null) return 1;
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  if (config == null) {
+    return 1;
+  }
 
   final List<TenantConfig> tenants;
   if (tenantId != null) {
@@ -1394,13 +1432,15 @@ Future<int> _configureTenants(List<String> args) async {
     ];
   }
 
-  final projectRoot = Directory.current.path;
+  final String projectRoot = Directory.current.path;
   stdout.writeln(
     '🔧 Configuring ${tenants.length} tenant(s): '
     '${tenants.map((t) => t.id).join(', ')}',
   );
   stdout.writeln('   Platform: $platform');
-  if (dryRun) stdout.writeln('   (dry run — no changes will be made)');
+  if (dryRun) {
+    stdout.writeln('   (dry run — no changes will be made)');
+  }
   stdout.writeln();
 
   var overallSuccess = true;
@@ -1491,7 +1531,7 @@ Future<int> _configureTenants(List<String> args) async {
       '🔄 Regenerating lib/white_label.g.dart '
       'for tenant "${config.defaultTenant}"...',
     );
-    final generateExitCode = _generate(['--tenant', config.defaultTenant]);
+    final int generateExitCode = _generate(['--tenant', config.defaultTenant]);
     if (generateExitCode != 0) {
       stderr.writeln('❌ Failed to regenerate lib/white_label.g.dart');
       overallSuccess = false;
@@ -1533,9 +1573,11 @@ Future<int> _configureTenants(List<String> args) async {
 /// same as before this existed.
 Map<String, String> _loadConfig() {
   final file = File(_defaultConfigFile);
-  if (!file.existsSync()) return const {};
+  if (!file.existsSync()) {
+    return const {};
+  }
 
-  final doc = loadYaml(file.readAsStringSync());
+  final dynamic doc = loadYaml(file.readAsStringSync());
   if (doc is! Map) {
     stderr.writeln(
       "⚠️  $_defaultConfigFile doesn't look like a map at the top level — ignoring it.",
@@ -1558,14 +1600,16 @@ List<String> _resolveArgs(
   List<String> rest,
   Map<String, String> config,
 ) {
-  if (config.isEmpty) return rest;
+  if (config.isEmpty) {
+    return rest;
+  }
 
   switch (command) {
     case 'add':
       final resolved = [...rest];
       final fields = ['tenant_id', 'display_name', 'bundle_id', 'api_base_url'];
-      for (var i = resolved.length; i < fields.length; i++) {
-        final value = config[fields[i]];
+      for (int i = resolved.length; i < fields.length; i++) {
+        final String? value = config[fields[i]];
         if (value == null) {
           break; // stop at the first missing field, don't leave gaps
         }
@@ -1577,10 +1621,14 @@ List<String> _resolveArgs(
       // First positional arg is the tenant id for both; only fill it in if
       // the user didn't pass one (flags like --strict/--json/--platform
       // don't count as the tenant id).
-      final hasTenantId = rest.isNotEmpty && !rest.first.startsWith('-');
-      if (hasTenantId) return rest;
-      final tenantId = config['tenant_id'];
-      if (tenantId == null) return rest;
+      final bool hasTenantId = rest.isNotEmpty && !rest.first.startsWith('-');
+      if (hasTenantId) {
+        return rest;
+      }
+      final String? tenantId = config['tenant_id'];
+      if (tenantId == null) {
+        return rest;
+      }
       return [tenantId, ...rest];
     default:
       return rest;

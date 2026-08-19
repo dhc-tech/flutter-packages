@@ -6,7 +6,8 @@ import 'package:args/command_runner.dart';
 import '../utils/version_utils.dart';
 import '../version_helper.dart';
 
-class VersionCommand extends Command {
+/// Shows the current DIG CLI version and update status.
+class VersionCommand extends Command<dynamic> {
   @override
   final name = 'version';
   @override
@@ -15,7 +16,7 @@ class VersionCommand extends Command {
 
   @override
   Future<void> run() async {
-    const currentVersion = kDigCliVersion;
+    const String currentVersion = kDigCliVersion;
     final String? latestVersion = await VersionUtils.getLatestStableVersion();
 
     final borderPen = AnsiPen()..blue();
@@ -24,17 +25,21 @@ class VersionCommand extends Command {
     final versionPen = AnsiPen()..green();
     final warningPen = AnsiPen()..yellow();
 
-    final title = 'DIG CLI TOOL';
-    final author = 'Made with ❤️ by Digvijaysinh Chauhan';
-    final totalWidth = 50; // Increased width for version info
+    const title = 'DIG CLI TOOL';
+    const author = 'Made with ❤️ by Digvijaysinh Chauhan';
+    const totalWidth = 50; // Increased width for version info
 
     final topBorder = '╔${'═' * (totalWidth - 2)}╗';
     final bottomBorder = '╚${'═' * (totalWidth - 2)}╝';
 
+    // Structured box-drawing output printed directly to stdout by design.
+    // ignore: avoid_print
     print('');
+    // ignore: avoid_print
     print(borderPen(topBorder));
 
     // Title
+    // ignore: avoid_print
     print(
       borderPen('║') +
           ' ' * ((totalWidth - title.length - 2) / 2).floor() +
@@ -43,10 +48,12 @@ class VersionCommand extends Command {
           borderPen('║'),
     );
 
+    // ignore: avoid_print
     print(borderPen('║') + ' ' * (totalWidth - 2) + borderPen('║'));
 
     // Version Info
-    final installedText = 'Installed: v$currentVersion';
+    const installedText = 'Installed: v$currentVersion';
+    // ignore: avoid_print
     print(
       borderPen('║') +
           ' ' * ((totalWidth - installedText.length - 2) / 2).floor() +
@@ -56,12 +63,13 @@ class VersionCommand extends Command {
     );
 
     // Executable Path (Local verification)
-    final scriptPath = Platform.script.toFilePath();
+    final String scriptPath = Platform.script.toFilePath();
     // Truncate if too long
     final displayPath = scriptPath.length > (totalWidth - 4)
         ? '...${scriptPath.substring(scriptPath.length - (totalWidth - 7))}'
         : scriptPath;
 
+    // ignore: avoid_print
     print(
       borderPen('║') +
           ' ' * ((totalWidth - displayPath.length - 2) / 2).floor() +
@@ -72,6 +80,7 @@ class VersionCommand extends Command {
 
     if (latestVersion != null) {
       final latestText = 'Latest: v$latestVersion';
+      // ignore: avoid_print
       print(
         borderPen('║') +
             ' ' * ((totalWidth - latestText.length - 2) / 2).floor() +
@@ -83,8 +92,10 @@ class VersionCommand extends Command {
       );
 
       if (VersionUtils.isNewer(latestVersion, currentVersion)) {
+        // ignore: avoid_print
         print(borderPen('║') + ' ' * (totalWidth - 2) + borderPen('║'));
-        final updateMsg = 'Update available!';
+        const updateMsg = 'Update available!';
+        // ignore: avoid_print
         print(
           borderPen('║') +
               ' ' * ((totalWidth - updateMsg.length - 2) / 2).floor() +
@@ -94,7 +105,8 @@ class VersionCommand extends Command {
         );
       }
     } else {
-      final checkingText = 'Latest: (Check failed)';
+      const checkingText = 'Latest: (Check failed)';
+      // ignore: avoid_print
       print(
         borderPen('║') +
             ' ' * ((totalWidth - checkingText.length - 2) / 2).floor() +
@@ -104,10 +116,12 @@ class VersionCommand extends Command {
       );
     }
 
+    // ignore: avoid_print
     print(borderPen('║') + ' ' * (totalWidth - 2) + borderPen('║'));
 
     // Author
     final authorPen = AnsiPen()..yellow(bold: true);
+    // ignore: avoid_print
     print(
       borderPen('║') +
           ' ' * ((totalWidth - author.length - 2) / 2).floor() +
@@ -115,12 +129,14 @@ class VersionCommand extends Command {
           ' ' * ((totalWidth - author.length - 2) / 2).ceil() +
           borderPen('║'),
     );
+    // ignore: avoid_print
     print(borderPen(bottomBorder));
+    // ignore: avoid_print
     print('');
   }
 }
 
-// For backward compatibility while refactoring others
+/// For backward compatibility while refactoring others.
 Future<void> handleShowVersionCommand() async {
   await VersionCommand().run();
 }

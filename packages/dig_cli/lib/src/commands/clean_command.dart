@@ -7,13 +7,9 @@ import '../utils/logger.dart';
 import '../utils/project_utils.dart';
 import '../utils/spinner.dart';
 
-class CleanCommand extends Command {
-  @override
-  final name = 'clean';
-  @override
-  final description =
-      'Thoroughly cleans the Flutter project and build artifacts.';
-
+/// Command to thoroughly clean the Flutter project and build artifacts.
+class CleanCommand extends Command<void> {
+  /// Creates the clean command and registers its flags.
   CleanCommand() {
     argParser.addFlag(
       'global',
@@ -22,10 +18,15 @@ class CleanCommand extends Command {
       help: 'Also clean global caches (Xcode DerivedData, Gradle caches)',
     );
   }
+  @override
+  final name = 'clean';
+  @override
+  final description =
+      'Thoroughly cleans the Flutter project and build artifacts.';
 
   @override
   Future<void> run() async {
-    final root = findProjectRoot();
+    final Directory? root = findProjectRoot();
 
     if (root == null) {
       kLog(
@@ -36,14 +37,14 @@ class CleanCommand extends Command {
     }
     Directory.current = root;
 
-    final bool cleanGlobal = argResults?['global'] ?? false;
+    final bool cleanGlobal = argResults?['global'] as bool? ?? false;
 
     try {
-      kLog('🚀 Starting thorough project cleanup...', type: LogType.info);
+      kLog('🚀 Starting thorough project cleanup...');
 
       await runWithSpinner('🧹 Cleaning Flutter project (flutter clean)',
           () async {
-        final result = await Process.run('flutter', ['clean']);
+        final ProcessResult result = await Process.run('flutter', ['clean']);
         if (result.exitCode != 0) {
           throw Exception(
             'flutter clean failed with exit code ${result.exitCode}\n${result.stderr}',
@@ -52,11 +53,12 @@ class CleanCommand extends Command {
       });
 
       await _deleteIfExists('build');
-      kLog('🗑️  Removed build directory', type: LogType.info);
+      kLog('🗑️  Removed build directory');
 
       await runWithSpinner('📦 Getting Dart packages (flutter pub get)',
           () async {
-        final result = await Process.run('flutter', ['pub', 'get']);
+        final ProcessResult result =
+            await Process.run('flutter', ['pub', 'get']);
         if (result.exitCode != 0) {
           throw Exception(
             'flutter pub get failed with exit code ${result.exitCode}\n${result.stderr}',
@@ -64,30 +66,30 @@ class CleanCommand extends Command {
         }
       });
 
-      final homeDir = Platform.isWindows
+      final String? homeDir = Platform.isWindows
           ? Platform.environment['USERPROFILE']
           : Platform.environment['HOME'];
 
       if (Platform.isMacOS) {
-        kLog(' macOS: Running iOS specific cleanup...', type: LogType.info);
+        kLog(' macOS: Running iOS specific cleanup...');
         await runWithSpinner(
           '📦 Pre-caching Flutter iOS artifacts',
-          () async => await Process.run('flutter', ['precache', '--ios']),
+          () async => Process.run('flutter', ['precache', '--ios']),
         );
 
         final iosDir = Directory('ios');
         final podfile = File(p.join(iosDir.path, 'Podfile'));
-        if (await iosDir.exists() && await podfile.exists()) {
+        if (iosDir.existsSync() && podfile.existsSync()) {
           await _deleteIfExists(p.join(iosDir.path, '.symlinks'));
           await _deleteIfExists(p.join(iosDir.path, 'Podfile.lock'));
           await _deleteIfExists(p.join(iosDir.path, 'Pods'));
           await _deleteIfExists(p.join(iosDir.path, 'build'));
-          kLog('🧼 Cleaned local iOS workspace.', type: LogType.info);
+          kLog('🧼 Cleaned local iOS workspace.');
 
           await runWithSpinner(
             '📥 Installing CocoaPods (pod install)',
             () async {
-              final result = await Process.run(
+              final ProcessResult result = await Process.run(
                   'pod',
                   [
                     'install',
@@ -107,41 +109,39 @@ class CleanCommand extends Command {
           final derivedData = Directory(
             p.join(homeDir, 'Library', 'Developer', 'Xcode', 'DerivedData'),
           );
-          if (await derivedData.exists()) {
-            kLog('🧹 Cleaning global Xcode DerivedData...', type: LogType.info);
-            await derivedData.delete(recursive: true);
+          if (derivedData.existsSync()) {
+            kLog('🧹 Cleaning global Xcode DerivedData...');
+            derivedData.deleteSync(recursive: true);
           }
         }
       } else if (Platform.isWindows) {
         kLog(
           '🪟 Windows: Running platform specific cleanup...',
-          type: LogType.info,
         );
         await _deleteIfExists('windows/build');
         await _deleteIfExists('windows/flutter/ephemeral');
-        kLog('🧼 Cleaned local Windows build artifacts.', type: LogType.info);
+        kLog('🧼 Cleaned local Windows build artifacts.');
 
         if (cleanGlobal && homeDir != null) {
           final gradleCache = Directory(p.join(homeDir, '.gradle', 'caches'));
-          if (await gradleCache.exists()) {
-            kLog('🧹 Cleaning global Gradle caches...', type: LogType.info);
-            await gradleCache.delete(recursive: true);
+          if (gradleCache.existsSync()) {
+            kLog('🧹 Cleaning global Gradle caches...');
+            gradleCache.deleteSync(recursive: true);
           }
         }
       } else if (Platform.isLinux) {
         kLog(
           '🐧 Linux: Running platform specific cleanup...',
-          type: LogType.info,
         );
         await _deleteIfExists('linux/build');
         await _deleteIfExists('linux/flutter/ephemeral');
-        kLog('🧼 Cleaned local Linux build artifacts.', type: LogType.info);
+        kLog('🧼 Cleaned local Linux build artifacts.');
 
         if (cleanGlobal && homeDir != null) {
           final gradleCache = Directory(p.join(homeDir, '.gradle', 'caches'));
-          if (await gradleCache.exists()) {
-            kLog('🧹 Cleaning global Gradle caches...', type: LogType.info);
-            await gradleCache.delete(recursive: true);
+          if (gradleCache.existsSync()) {
+            kLog('🧹 Cleaning global Gradle caches...');
+            gradleCache.deleteSync(recursive: true);
           }
         }
       }
@@ -156,12 +156,12 @@ class CleanCommand extends Command {
   Future<void> _deleteIfExists(String path) async {
     try {
       final entity = Directory(path);
-      if (await entity.exists()) {
-        await entity.delete(recursive: true);
+      if (entity.existsSync()) {
+        entity.deleteSync(recursive: true);
       } else {
         final file = File(path);
-        if (await file.exists()) {
-          await file.delete();
+        if (file.existsSync()) {
+          file.deleteSync();
         }
       }
     } catch (e) {
@@ -170,7 +170,7 @@ class CleanCommand extends Command {
   }
 }
 
-// For backward compatibility while refactoring others
+/// Handles the clean command from the interactive menu (for backward compatibility while refactoring others).
 Future<void> handleCleanCommand() async {
   await CleanCommand().run();
 }

@@ -38,10 +38,13 @@ import 'config/tenant_config.dart';
 import 'generation/android_generator.dart';
 import 'generation/ios_generator.dart';
 
+/// Signature for a logging callback: a [message] with an optional severity
+/// [level] (e.g. `'INFO'`, `'WARN'`, `'ERROR'`, `'SUCCESS'`, `'STEP'`).
 typedef Logger = void Function(String message, [String level]);
 
+/// Default [Logger] implementation: writes an emoji-prefixed line to stdout.
 void defaultLogger(String message, [String level = 'INFO']) {
-  final prefix =
+  final String prefix =
       {
         'INFO': '💡',
         'WARN': '⚠️',
@@ -171,7 +174,9 @@ bool autoOnboardTenant(
   ];
 
   for (final step in generatorSteps) {
-    if (!_run(step, root, log)) return false;
+    if (!_run(step, root, log)) {
+      return false;
+    }
   }
 
   log(
@@ -193,7 +198,7 @@ class _Step {
 
 bool _run(_Step step, Directory root, Logger log) {
   log('Running ${step.label}...', 'STEP');
-  final result = Process.runSync(
+  final ProcessResult result = Process.runSync(
     step.executable,
     step.args,
     workingDirectory: root.path,
@@ -220,7 +225,9 @@ void _cloneXcodeScheme(
     '${root.path}/ios/Runner.xcodeproj/xcshareddata/xcschemes',
   );
   final dest = File('${schemesDir.path}/$tenantId.xcscheme');
-  if (dest.existsSync()) return;
+  if (dest.existsSync()) {
+    return;
+  }
 
   final template = File('${schemesDir.path}/$templateFlavor.xcscheme');
   if (!template.existsSync()) {

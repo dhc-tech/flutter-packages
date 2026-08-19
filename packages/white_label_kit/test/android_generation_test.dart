@@ -85,7 +85,7 @@ void main() {
   });
 
   test('throws if android/app/build.gradle.kts does not exist', () {
-    final emptyRoot = Directory.systemTemp.createTempSync(
+    final Directory emptyRoot = Directory.systemTemp.createTempSync(
       'android_generation_test_missing_',
     );
     addTearDown(() => emptyRoot.deleteSync(recursive: true));
@@ -102,7 +102,7 @@ void main() {
       projectRoot: projectRoot.path,
     );
 
-    final content = gradleFile.readAsStringSync();
+    final String content = gradleFile.readAsStringSync();
 
     expect(content, contains('flavorDimensions += listOf("tenant")'));
     expect(content, contains('productFlavors {'));
@@ -114,34 +114,34 @@ void main() {
     // regression that inserted a stray '{' or dropped a '}' would corrupt
     // the whole file for Gradle, so assert this explicitly rather than
     // just trusting the substring checks above.
-    final opens = '{'.allMatches(content).length;
-    final closes = '}'.allMatches(content).length;
+    final int opens = '{'.allMatches(content).length;
+    final int closes = '}'.allMatches(content).length;
     expect(opens, closes);
   });
 
   test(
     'calling twice for the same tenant does not duplicate the flavor block',
     () {
-      final tenant = _tenant(
+      final TenantConfig tenant = _tenant(
         'acme',
         applicationId: 'com.example.acme',
         appName: 'Acme',
       );
 
       generateAndroidFlavor(tenant, projectRoot: projectRoot.path);
-      final afterFirst = gradleFile.readAsStringSync();
+      final String afterFirst = gradleFile.readAsStringSync();
 
       generateAndroidFlavor(tenant, projectRoot: projectRoot.path);
-      final afterSecond = gradleFile.readAsStringSync();
+      final String afterSecond = gradleFile.readAsStringSync();
 
       // Byte-for-byte identical: the idempotency guard fires before any part
       // of the file is touched a second time.
       expect(afterSecond, equals(afterFirst));
 
-      final occurrences = 'create("acme")'.allMatches(afterSecond).length;
+      final int occurrences = 'create("acme")'.allMatches(afterSecond).length;
       expect(occurrences, 1);
 
-      final flavorDimensionsOccurrences = 'flavorDimensions'
+      final int flavorDimensionsOccurrences = 'flavorDimensions'
           .allMatches(afterSecond)
           .length;
       expect(flavorDimensionsOccurrences, 1);
@@ -158,7 +158,7 @@ void main() {
       projectRoot: projectRoot.path,
     );
 
-    final content = gradleFile.readAsStringSync();
+    final String content = gradleFile.readAsStringSync();
 
     expect(content, contains('create("acme")'));
     expect(content, contains('applicationId = "com.example.acme"'));
@@ -170,8 +170,8 @@ void main() {
     expect('flavorDimensions'.allMatches(content).length, 1);
     expect('productFlavors {'.allMatches(content).length, 1);
 
-    final opens = '{'.allMatches(content).length;
-    final closes = '}'.allMatches(content).length;
+    final int opens = '{'.allMatches(content).length;
+    final int closes = '}'.allMatches(content).length;
     expect(opens, closes);
   });
 
@@ -185,7 +185,7 @@ void main() {
       projectRoot: projectRoot.path,
     );
 
-    final content = gradleFile.readAsStringSync();
+    final String content = gradleFile.readAsStringSync();
 
     // Nothing pre-existing was clobbered.
     expect(content, contains('namespace = "com.example.example_app"'));

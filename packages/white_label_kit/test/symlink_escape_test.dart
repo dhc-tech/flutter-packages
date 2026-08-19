@@ -34,10 +34,10 @@ void main() {
     final assetsDir = Directory(
       p.join(projectRoot.path, 'tenants', 'acme', 'assets'),
     )..createSync(recursive: true);
-    final linkPath = p.join(assetsDir.path, 'logo.png');
+    final String linkPath = p.join(assetsDir.path, 'logo.png');
     Link(linkPath).createSync(secret.path);
 
-    final result = ConfigValidator.assetPath(
+    final ValidationResult result = ConfigValidator.assetPath(
       'tenants/acme/assets/logo.png',
       tenantId: 'acme',
       projectRoot: projectRoot.path,
@@ -53,7 +53,7 @@ void main() {
     )..createSync(recursive: true);
     File(p.join(assetsDir.path, 'logo.png')).writeAsStringSync('REAL_LOGO');
 
-    final result = ConfigValidator.assetPath(
+    final ValidationResult result = ConfigValidator.assetPath(
       'tenants/acme/assets/logo.png',
       tenantId: 'acme',
       projectRoot: projectRoot.path,

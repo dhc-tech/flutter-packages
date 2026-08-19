@@ -11,8 +11,8 @@
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
-import 'package:white_label_kit/white_label_kit.dart';
 import 'package:test/test.dart';
+import 'package:white_label_kit/white_label_kit.dart';
 
 void main() {
   late Directory projectRoot;
@@ -69,14 +69,14 @@ white_label:
   });
 
   test('config parses both tenants with distinct identities', () {
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
     expect(config.tenants.keys, unorderedEquals(['acme', 'beta']));
     expect(config['acme'].android.applicationId, 'com.example.acme');
     expect(config['beta'].android.applicationId, 'com.example.beta');
   });
 
   test('default tenant is always resolvable and clearly marked', () {
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
 
     expect(config.defaultTenant, 'acme');
     expect(config.isDefault('acme'), isTrue);
@@ -92,15 +92,15 @@ white_label:
   });
 
   test('building tenant A stages only A assets, never B', () {
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
     final stager = TenantStager(projectRoot.path);
 
     stager.stage(config['acme']);
 
-    final acmeAssets = stager.stagedAssetNames('acme');
+    final List<String> acmeAssets = stager.stagedAssetNames('acme');
     expect(acmeAssets, containsAll(['logo.png', 'icon.png']));
 
-    final acmeLogo = File(
+    final String acmeLogo = File(
       p.join(stager.stagingDirFor('acme'), 'assets', 'logo.png'),
     ).readAsStringSync();
     expect(acmeLogo, 'ACME_LOGO_BYTES');
@@ -115,12 +115,12 @@ white_label:
   });
 
   test('building tenant B stages only B assets, never A', () {
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
     final stager = TenantStager(projectRoot.path);
 
     stager.stage(config['beta']);
 
-    final betaLogo = File(
+    final String betaLogo = File(
       p.join(stager.stagingDirFor('beta'), 'assets', 'logo.png'),
     ).readAsStringSync();
     expect(betaLogo, 'BETA_LOGO_BYTES');
@@ -128,7 +128,7 @@ white_label:
   });
 
   test('A -> B -> A: no stale asset survives across repeated builds', () {
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
     final stager = TenantStager(projectRoot.path);
 
     stager.stage(config['acme']);
@@ -137,7 +137,7 @@ white_label:
 
     // Prove A's re-stage is genuinely A again, byte-for-byte — not a stale
     // leftover from the B build that happened in between.
-    final acmeLogo = File(
+    final String acmeLogo = File(
       p.join(stager.stagingDirFor('acme'), 'assets', 'logo.png'),
     ).readAsStringSync();
     expect(acmeLogo, 'ACME_LOGO_BYTES');
@@ -145,7 +145,7 @@ white_label:
 
     // B's staging directory from the middle step is untouched by the final
     // A stage — each tenant's staging output is independent.
-    final betaLogo = File(
+    final String betaLogo = File(
       p.join(stager.stagingDirFor('beta'), 'assets', 'logo.png'),
     ).readAsStringSync();
     expect(betaLogo, 'BETA_LOGO_BYTES');

@@ -1,36 +1,16 @@
-#!/usr/bin/env bash
-# Validates repository health, licenses, changelogs, and package integrity.
-
+#!/bin/bash
+# Copyright 2013 The Flutter Authors
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
 set -e
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-
-echo "🛡️ Validating repository licenses and structure..."
-
-for PKG_DIR in "$REPO_ROOT"/packages/*; do
-  if [ -d "$PKG_DIR" ]; then
-    PKG_NAME=$(basename "$PKG_DIR")
-    
-    # Verify LICENSE exists
-    if [ ! -f "$PKG_DIR/LICENSE" ]; then
-      echo "❌ Error: Missing LICENSE in $PKG_NAME"
-      exit 1
-    fi
-
-    # Verify CHANGELOG.md exists
-    if [ ! -f "$PKG_DIR/CHANGELOG.md" ]; then
-      echo "❌ Error: Missing CHANGELOG.md in $PKG_NAME"
-      exit 1
-    fi
-
-    # Verify README.md exists
-    if [ ! -f "$PKG_DIR/README.md" ]; then
-      echo "❌ Error: Missing README.md in $PKG_NAME"
-      exit 1
-    fi
-
-    echo "  ✓ $PKG_NAME has LICENSE, CHANGELOG.md, and README.md"
-  fi
-done
-
-echo "✅ Repository structure and integrity validated successfully!"
+# For pre-submit, check for missing or breaking changes that don't have a
+# corresponding override label.
+# For post-submit, ignore platform interface breaking version changes and
+# missing version/CHANGELOG detection since PR-level overrides aren't available
+# in post-submit.
+if [[ $LUCI_PR == "" ]]; then
+  .ci/scripts/tool_runner.sh validate --ignore-platform-interface-breaks
+else
+  .ci/scripts/tool_runner.sh validate --check-for-missing-changes --pr-labels="$PR_OVERRIDE_LABELS"
+fi

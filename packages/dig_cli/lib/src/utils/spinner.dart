@@ -9,16 +9,17 @@ final AnsiPen _infoPen = AnsiPen()..blue();
 final AnsiPen _successPen = AnsiPen()..green();
 final AnsiPen _errorPen = AnsiPen()..red();
 
+/// Runs [future] while displaying an animated spinner with [message].
 Future<T> runWithSpinner<T>(String message, Future<T> Function() future) async {
   final spinner = ['|', '/', '-', r'\'];
-  int i = 0;
+  var i = 0;
 
   final timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
     stdout.write('\r${_infoPen(message)} ${spinner[i++ % spinner.length]}');
   });
 
   try {
-    final result = await future();
+    final T result = await future();
     timer.cancel();
     stdout.write('\r${_successPen(message)} ✅ Done!   \n');
     return result;

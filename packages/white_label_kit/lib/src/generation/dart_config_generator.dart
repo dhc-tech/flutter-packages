@@ -39,16 +39,20 @@ String resolveGeneratorTenantId(
   Map<String, String>? environment,
 }) {
   if (explicitTenantId != null) {
-    if (config.has(explicitTenantId)) return explicitTenantId;
+    if (config.has(explicitTenantId)) {
+      return explicitTenantId;
+    }
     throw ArgumentError.value(
       explicitTenantId,
       'explicitTenantId',
       'No such tenant in white_label.yaml',
     );
   }
-  final env = environment ?? Platform.environment;
-  final envTenantId = env['TENANT_ID'];
-  if (envTenantId != null && config.has(envTenantId)) return envTenantId;
+  final Map<String, String> env = environment ?? Platform.environment;
+  final String? envTenantId = env['TENANT_ID'];
+  if (envTenantId != null && config.has(envTenantId)) {
+    return envTenantId;
+  }
   return config.defaultTenant;
 }
 
@@ -57,8 +61,8 @@ String resolveGeneratorTenantId(
 /// testable; see [writeGeneratedFile] for the CLI's actual file-writing
 /// entry point.
 String generateWhiteLabelSource(WhiteLabelConfig config, String tenantId) {
-  final tenantIds = config.tenants.keys.toList()..sort();
-  final selected = config[tenantId];
+  final List<String> tenantIds = config.tenants.keys.toList()..sort();
+  final TenantConfig selected = config[tenantId];
 
   final buffer = StringBuffer()
     ..writeln('// GENERATED CODE - DO NOT MODIFY BY HAND')
@@ -68,7 +72,7 @@ String generateWhiteLabelSource(WhiteLabelConfig config, String tenantId) {
     ..writeln('// editing white_label.yaml or changing tenants.')
     ..writeln('//')
     ..writeln('// SECURITY: only "$tenantId"\'s data is in this file — see')
-    ..writeln('// lib/src/generation/dart_config_generator.dart\'s doc')
+    ..writeln("// lib/src/generation/dart_config_generator.dart's doc")
     ..writeln('// comment for why that matters.')
     ..writeln()
     ..writeln("import 'package:white_label_kit/white_label_kit.dart';")
@@ -82,7 +86,7 @@ String generateWhiteLabelSource(WhiteLabelConfig config, String tenantId) {
       '/// Every tenant id declared in white_label.yaml, sorted — NAMES\n'
       '/// only, not their config. Fine to ship in every build; use this\n'
       '/// for things like a tenant picker in an internal/dev build, not\n'
-      '/// for reading another tenant\'s actual data (which isn\'t here).',
+      "/// for reading another tenant's actual data (which isn't here).",
     )
     ..writeln(
       'const List<String> whiteLabelTenantIds = ${_dartStringList(tenantIds)};',
@@ -90,7 +94,7 @@ String generateWhiteLabelSource(WhiteLabelConfig config, String tenantId) {
     ..writeln()
     ..writeln(
       "/// This build's tenant, resolved when `generate` last ran (see\n"
-      '/// resolveGeneratorTenantId) — the ONLY tenant\'s data in this file.',
+      "/// resolveGeneratorTenantId) — the ONLY tenant's data in this file.",
     )
     ..writeln(
       'const WhiteLabelRuntime whiteLabelRuntime = ${_runtimeLiteral(selected)};',
@@ -118,35 +122,32 @@ void writeGeneratedFile(
 /// matches WhiteLabelRuntime.fromConfig" test, which pins the two mappings
 /// together so they can't silently drift).
 String _runtimeLiteral(TenantConfig config) {
-  final androidVersion = config.androidVersion;
-  final iosVersion = config.iosVersion;
+  final TenantVersion androidVersion = config.androidVersion;
+  final TenantVersion iosVersion = config.iosVersion;
   return 'WhiteLabelRuntime('
       'tenantId: ${_dartString(config.id)}, '
       'tenantName: ${_dartString(config.name)}, '
-      'theme: WhiteLabelTheme('
-      'primaryColorHex: ${_dartStringOrNull(config.theme.primaryColor)}, '
+      'theme: WhiteLabelTheme(primaryColorHex: '
+      '${_dartStringOrNull(config.theme.primaryColor)}, '
       'secondaryColorHex: ${_dartStringOrNull(config.theme.secondaryColor)}, '
       'brandColors: ${_dartStringMap(config.theme.brandColors)}, '
       'featureColors: ${_dartStringMap(config.theme.featureColors)}, '
       'sectionColors: ${_dartStringMap(config.theme.sectionColors)}, '
       'gradientColors: ${_dartStringMap(config.theme.gradientColors)}'
-      '), '
-      'environment: WhiteLabelEnvironment('
-      'apiBaseUrl: ${_dartStringOrNull(config.environment.apiBaseUrl)}'
-      '), '
-      'features: ${_dartBoolMap(config.features)}, '
-      'android: WhiteLabelAndroidInfo('
-      'applicationId: ${_dartString(config.android.applicationId)}, '
-      'appName: ${_dartString(config.android.appName)}, '
-      'version: WhiteLabelVersion('
+      '), environment: WhiteLabelEnvironment(apiBaseUrl: '
+      '${_dartStringOrNull(config.environment.apiBaseUrl)}'
+      '), features: ${_dartBoolMap(config.features)}, '
+      'android: WhiteLabelAndroidInfo(applicationId: '
+      '${_dartString(config.android.applicationId)}, '
+      'appName: ${_dartString(config.android.appName)}, version: '
+      'WhiteLabelVersion('
       'name: ${_dartString(androidVersion.name)}, '
       'buildNumber: ${androidVersion.buildNumber}'
       ')'
-      '), '
-      'ios: WhiteLabelIosInfo('
-      'bundleId: ${_dartString(config.ios.bundleId)}, '
-      'appName: ${_dartString(config.ios.appName)}, '
-      'version: WhiteLabelVersion('
+      '), ios: WhiteLabelIosInfo(bundleId: '
+      '${_dartString(config.ios.bundleId)}, '
+      'appName: ${_dartString(config.ios.appName)}, version: '
+      'WhiteLabelVersion('
       'name: ${_dartString(iosVersion.name)}, '
       'buildNumber: ${iosVersion.buildNumber}'
       ')'
@@ -154,7 +155,7 @@ String _runtimeLiteral(TenantConfig config) {
       ')';
 }
 
-String _dartString(String value) => "'${value.replaceAll("'", "\\'")}'";
+String _dartString(String value) => "'${value.replaceAll("'", r"\'")}'";
 
 String _dartStringOrNull(String? value) =>
     value == null ? 'null' : _dartString(value);

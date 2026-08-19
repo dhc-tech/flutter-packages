@@ -4,6 +4,7 @@
 /// [ConfigValidator] must accept the raw parse before a [TenantConfig] is
 /// built from it (see `WhiteLabelConfig.parse`).
 class TenantConfig {
+  /// Creates a tenant config. See [ConfigValidator] and `WhiteLabelConfig.parse`.
   const TenantConfig({
     required this.id,
     required this.name,
@@ -26,8 +27,13 @@ class TenantConfig {
   /// Human-readable display name, e.g. "Acme Corp".
   final String name;
 
+  /// Android-specific tenant configuration.
   final AndroidTenantConfig android;
+
+  /// iOS-specific tenant configuration.
   final IosTenantConfig ios;
+
+  /// This tenant's logo/icon/splash asset paths.
   final TenantAssets assets;
 
   /// The shared version used for both platforms unless [AndroidTenantConfig]
@@ -38,7 +44,10 @@ class TenantConfig {
   /// actually-resolved-per-platform value.
   final TenantVersion version;
 
+  /// This tenant's color/theming overrides.
   final TenantTheme theme;
+
+  /// This tenant's public runtime environment configuration.
   final TenantEnvironment environment;
 
   /// Arbitrary boolean feature toggles. Deliberately `bool`-only (not
@@ -65,7 +74,10 @@ class TenantConfig {
   TenantVersion get iosVersion => ios.version ?? version;
 }
 
+/// Android-specific tenant configuration (application ID, app name, and an
+/// optional Android-only version override).
 class AndroidTenantConfig {
+  /// Creates an Android tenant config.
   const AndroidTenantConfig({
     required this.applicationId,
     required this.appName,
@@ -74,6 +86,8 @@ class AndroidTenantConfig {
 
   /// Must be a valid Java package name — see [ConfigValidator.androidApplicationId].
   final String applicationId;
+
+  /// The app's display name shown on the Android home screen.
   final String appName;
 
   /// Overrides [TenantConfig.version] for Android only, if set. Use
@@ -83,7 +97,10 @@ class AndroidTenantConfig {
   final TenantVersion? version;
 }
 
+/// iOS-specific tenant configuration (bundle ID, app name, and an optional
+/// iOS-only version override).
 class IosTenantConfig {
+  /// Creates an iOS tenant config.
   const IosTenantConfig({
     required this.bundleId,
     required this.appName,
@@ -92,6 +109,8 @@ class IosTenantConfig {
 
   /// Must be a valid reverse-DNS bundle identifier — see [ConfigValidator.iosBundleId].
   final String bundleId;
+
+  /// The app's display name shown on the iOS home screen.
   final String appName;
 
   /// Overrides [TenantConfig.version] for iOS only, if set. Use
@@ -104,6 +123,7 @@ class IosTenantConfig {
 /// own release history (see `AndroidTenantConfig.version`/`IosTenantConfig.version`
 /// for per-platform overrides when Android and iOS releases diverge).
 class TenantVersion {
+  /// Creates a tenant version from a semantic version [name] and [buildNumber].
   const TenantVersion({required this.name, required this.buildNumber});
 
   /// Semantic version string, e.g. `"1.2.0"` — maps to Android's
@@ -128,12 +148,19 @@ class TenantVersion {
 /// absolute and never allowed to escape it — enforced by
 /// [ConfigValidator.assetPath], not just convention.
 class TenantAssets {
+  /// Creates a tenant's asset paths.
   const TenantAssets({required this.logo, this.icon, this.splash});
 
+  /// Path to the tenant's logo asset.
   final String logo;
+
+  /// Path to the tenant's app icon asset, if provided.
   final String? icon;
+
+  /// Path to the tenant's splash screen asset, if provided.
   final String? splash;
 
+  /// All non-null asset paths declared for this tenant.
   Iterable<String> get all => [logo, ?icon, ?splash];
 }
 
@@ -144,6 +171,7 @@ class TenantAssets {
 /// directory (`tenants/<id>/`), exactly like [TenantAssets] — enforced by
 /// the same [ConfigValidator.assetPath], not a separate/weaker rule.
 class TenantFirebaseConfig {
+  /// Creates a tenant's optional Firebase config file paths.
   const TenantFirebaseConfig({
     this.googleServicesJson,
     this.googleServiceInfoPlist,
@@ -157,10 +185,13 @@ class TenantFirebaseConfig {
   /// on iOS.
   final String? googleServiceInfoPlist;
 
+  /// All non-null Firebase config file paths declared for this tenant.
   Iterable<String> get all => [?googleServicesJson, ?googleServiceInfoPlist];
 }
 
+/// A tenant's color/theming overrides.
 class TenantTheme {
+  /// Creates a tenant's theme configuration.
   const TenantTheme({
     this.primaryColor,
     this.secondaryColor,
@@ -172,6 +203,8 @@ class TenantTheme {
 
   /// `#RRGGBB` or `#AARRGGBB` — see [ConfigValidator.colorHex].
   final String? primaryColor;
+
+  /// `#RRGGBB` or `#AARRGGBB` — see [ConfigValidator.colorHex].
   final String? secondaryColor;
 
   /// Four independent, arbitrarily-keyed hex-color maps for apps whose UI
@@ -182,8 +215,14 @@ class TenantTheme {
   /// validation path for these maps. Empty by default; a tenant that only
   /// needs primary/secondary declares nothing here.
   final Map<String, String> brandColors;
+
+  /// Arbitrarily-keyed hex colors for per-feature-area theming.
   final Map<String, String> featureColors;
+
+  /// Arbitrarily-keyed hex colors for per-section theming.
   final Map<String, String> sectionColors;
+
+  /// Arbitrarily-keyed hex colors for gradient stops.
   final Map<String, String> gradientColors;
 }
 
@@ -192,6 +231,7 @@ class TenantTheme {
 /// section. This is baked into the built app and readable by anyone who
 /// unzips the APK/IPA, same as any other Flutter asset.
 class TenantEnvironment {
+  /// Creates a tenant's public runtime environment configuration.
   const TenantEnvironment({this.apiBaseUrl});
 
   /// Must be a valid absolute URL — see [ConfigValidator.url].

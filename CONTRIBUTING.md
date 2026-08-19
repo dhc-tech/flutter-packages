@@ -1,50 +1,53 @@
-# Contributing to DHC Tech Flutter Packages
+## Welcome
 
-We welcome contributions to DHC Tech Flutter Packages!
+For an introduction to contributing to Flutter, see [our contributor
+guide](https://github.com/flutter/flutter/blob/master/CONTRIBUTING.md).
 
-## Getting Started
+Additional resources specific to the packages repository:
+- [Setting up the Packages development
+  environment](https://github.com/flutter/flutter/blob/master/docs/ecosystem/contributing/Setting-up-the-Packages-development-environment.md),
+  which covers the setup process for this repository.
+- [Packages repository structure](https://github.com/flutter/flutter/blob/master/docs/ecosystem/Plugins-and-Packages-repository-structure.md),
+  to get an overview of how this repository is laid out.
+- [Contributing to Plugins and Packages](https://github.com/flutter/flutter/blob/master/docs/ecosystem/contributing/README.md),
+  for more information about how to make PRs for this repository, especially when
+  changing federated plugins.
+- [Plugin tests](https://github.com/flutter/flutter/blob/master/docs/ecosystem/testing/Plugin-Tests.md),
+  which explains the different kinds of tests used for plugins, where to find them, and how to run them.
+  As explained in the Flutter guide,
+  [**PRs need tests**](https://github.com/flutter/flutter/blob/master/docs/contributing/Tree-hygiene.md#tests), so
+  this is critical to read before submitting a plugin PR.
 
-1. **Fork the repository** on GitHub.
-2. **Clone your fork** locally:
-   ```bash
-   git clone https://github.com/<your-username>/flutter-packages.git
-   cd flutter-packages
-   ```
-3. **Bootstrap the workspace with Melos**:
-   ```bash
-   dart pub global activate melos
-   melos bootstrap
-   ```
+### Code review processes and automation
 
-## Development Workflow
+PRs will automatically be assigned to
+[code owners](https://github.com/flutter/packages/blob/main/CODEOWNERS)
+for review.
+If a code owner is creating a PR, they should explicitly pick another
+[Flutter team member](https://github.com/flutter/flutter/blob/master/docs/contributing/Contributor-access.md)
+as a code reviewer.
 
-### 1. Code Formatting
-All Dart files must be formatted with the official Dart formatter:
-```bash
-melos run format:fix
-```
+### Style
 
-### 2. Static Analysis
-All code must pass static analysis with zero warnings and fatal infos enforced:
-```bash
-melos run analyze
-```
+Flutter packages and plugins follow Google style—or Flutter style for Dart—for the languages they
+use, and use auto-formatters:
+- [Dart](https://github.com/flutter/flutter/blob/master/docs/contributing/Style-guide-for-Flutter-repo.md) formatted
+  with `dart format`
+- [C++](https://google.github.io/styleguide/cppguide.html) formatted with `clang-format`
+  - **Note**: The Linux plugins generally follow idiomatic GObject-based C
+    style. See [the engine style
+    notes](https://github.com/flutter/engine/blob/main/CONTRIBUTING.md#style)
+    for more details, and exceptions.
+- [Java](https://google.github.io/styleguide/javaguide.html) formatted with
+  `google-java-format`
+- [Kotlin](https://developer.android.com/kotlin/style-guide) formatted with
+  `ktfmt`
+- [Objective-C](https://google.github.io/styleguide/objcguide.html) formatted with
+  `clang-format`
+- [Swift](https://google.github.io/swift/) formatted with `swift-format`
 
-### 3. Automated Tests
-Every feature or bug fix must include comprehensive unit/widget tests:
-```bash
-melos run test
-```
+### Releasing
 
-### 4. Pub.dev Pana Health Check
-Verify that the package maintains maximum Pub.dev points (160/160):
-```bash
-melos run pana
-```
-
-## Pull Request Guidelines
-
-1. **Clear Title & Description:** Use semantic commit messages (e.g. `feat(white_label_kit): add new config option` or `fix(apple_sign_in_plugin): resolve web token issue`).
-2. **Package Labeling:** Pull requests are automatically categorized by package paths (`p: white_label_kit`, `p: dig_cli`, `p: apple_sign_in_plugin`).
-3. **Automated Merging:** Add the `autosubmit` label once your PR is ready, approved, and CI checks are green.
-4. **AI Review:** Google Gemini AI automatically performs initial review on your PR diff to assist the maintainers.
+If you are a team member landing a PR, or just want to know what the release
+process is for package changes, see [the release
+documentation](https://github.com/flutter/flutter/blob/master/docs/ecosystem/release/README.md).

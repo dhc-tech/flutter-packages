@@ -66,7 +66,7 @@ white_label:
 ''';
 
 Future<String> _generate({Map<String, String>? environment}) async {
-  final result = await testBuilder(
+  final TestBuilderResult result = await testBuilder(
     WhiteLabelBuilder(environmentOverride: environment),
     {'pkg|white_label.yaml': _yaml},
     rootPackage: 'pkg',
@@ -80,7 +80,7 @@ Future<String> _generate({Map<String, String>? environment}) async {
 
 void main() {
   group('resolveBuilderTenantId', () {
-    final config = WhiteLabelConfig.parse(_yaml);
+    final WhiteLabelConfig config = WhiteLabelConfig.parse(_yaml);
 
     test('uses TENANT_ID when it names a declared tenant', () {
       expect(
@@ -107,7 +107,7 @@ void main() {
   test(
     'emits whiteLabelDefaultTenant and whiteLabelTenantIds (names only)',
     () async {
-      final generated = await _generate(environment: {});
+      final String generated = await _generate(environment: {});
 
       expect(
         generated,
@@ -121,8 +121,8 @@ void main() {
   );
 
   test('emits exactly ONE const WhiteLabelRuntime (the default tenant, no TENANT_ID set)', () async {
-    final generated = await _generate(environment: {});
-    final config = WhiteLabelConfig.parse(_yaml);
+    final String generated = await _generate(environment: {});
+    final WhiteLabelConfig config = WhiteLabelConfig.parse(_yaml);
     final expected = WhiteLabelRuntime.fromConfig(config['acme']);
 
     expect(
@@ -152,10 +152,12 @@ void main() {
   });
 
   test(
-    'TENANT_ID=beta selects beta — and, critically, leaks NONE of acme\'s data',
+    "TENANT_ID=beta selects beta — and, critically, leaks NONE of acme's data",
     () async {
-      final generated = await _generate(environment: {'TENANT_ID': 'beta'});
-      final config = WhiteLabelConfig.parse(_yaml);
+      final String generated = await _generate(
+        environment: {'TENANT_ID': 'beta'},
+      );
+      final WhiteLabelConfig config = WhiteLabelConfig.parse(_yaml);
       final expectedBeta = WhiteLabelRuntime.fromConfig(config['beta']);
 
       // Positive: beta's own data is present.
@@ -187,7 +189,7 @@ void main() {
   );
 
   test('invalid white_label.yaml still fails the build (regression)', () async {
-    final result = await testBuilder(
+    final TestBuilderResult result = await testBuilder(
       WhiteLabelBuilder(),
       {'pkg|white_label.yaml': 'white_label:\n  tenants: {}\n'},
       rootPackage: 'pkg',

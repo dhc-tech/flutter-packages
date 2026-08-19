@@ -3,10 +3,11 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:path/path.dart' as p;
 
-import '../utils/logger.dart';
 import '../ui/box_painter.dart';
+import '../utils/logger.dart';
 
-class SetupAliasesCommand extends Command {
+/// Command that injects DIG CLI shell aliases into the user's shell profile.
+class SetupAliasesCommand extends Command<void> {
   @override
   final String name = 'setup-aliases';
   @override
@@ -15,7 +16,7 @@ class SetupAliasesCommand extends Command {
 
   @override
   Future<void> run() async {
-    final home =
+    final String? home =
         Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
     if (home == null) {
       kLog(
@@ -26,17 +27,17 @@ class SetupAliasesCommand extends Command {
     }
 
     File? targetProfile;
-    String profileName = '';
+    var profileName = '';
 
     if (Platform.isWindows) {
       // Windows PowerShell Profile
-      final psProfileDir = p.join(home, 'Documents', 'PowerShell');
+      final String psProfileDir = p.join(home, 'Documents', 'PowerShell');
       final psProfile = File(
         p.join(psProfileDir, 'Microsoft.PowerShell_profile.ps1'),
       );
 
-      if (!await Directory(psProfileDir).exists()) {
-        await Directory(psProfileDir).create(recursive: true);
+      if (!Directory(psProfileDir).existsSync()) {
+        Directory(psProfileDir).createSync(recursive: true);
       }
 
       targetProfile = psProfile;
@@ -47,18 +48,17 @@ class SetupAliasesCommand extends Command {
       final bashrc = File(p.join(home, '.bashrc'));
       final bashProfile = File(p.join(home, '.bash_profile'));
 
-      if (await zshrc.exists()) {
+      if (zshrc.existsSync()) {
         targetProfile = zshrc;
-      } else if (await bashrc.exists()) {
+      } else if (bashrc.existsSync()) {
         targetProfile = bashrc;
-      } else if (await bashProfile.exists()) {
+      } else if (bashProfile.existsSync()) {
         targetProfile = bashProfile;
       } else {
         // Fallback to .zshrc on Mac or .bashrc on Linux
         targetProfile = Platform.isMacOS ? zshrc : bashrc;
         kLog(
           '  Creating new profile file: ${p.basename(targetProfile.path)}',
-          type: LogType.info,
         );
       }
       profileName = p.basename(targetProfile.path);
@@ -66,10 +66,10 @@ class SetupAliasesCommand extends Command {
 
     // Prompt for custom prefix
     stdout.write('  Enter your preferred shortcut prefix (default: dg): ');
-    final input = stdin.readLineSync()?.trim();
+    final String? input = stdin.readLineSync()?.trim();
     final String prefix = (input == null || input.isEmpty) ? 'dg' : input;
 
-    String aliasesBlock = '';
+    var aliasesBlock = '';
 
     if (Platform.isWindows) {
       aliasesBlock = '''
@@ -99,9 +99,9 @@ alias ${prefix}apk="dg create apk"
 ''';
     }
 
-    String content = '';
-    if (await targetProfile.exists()) {
-      content = await targetProfile.readAsString();
+    var content = '';
+    if (targetProfile.existsSync()) {
+      content = targetProfile.readAsStringSync();
     }
 
     if (content.contains('# --- DIG CLI Custom Aliases ---')) {
@@ -115,23 +115,21 @@ alias ${prefix}apk="dg create apk"
     await targetProfile.writeAsString(aliasesBlock, mode: FileMode.append);
 
     final painter = BoxPainter();
-    print('');
-    painter.drawHeader('ALIASES INSTALLED SUCCESSFULLY', width: 50);
-    painter.drawRow('Profile', profileName, width: 50);
-    painter.drawRow('Prefix', prefix, width: 50);
-    painter.drawRow('Example', '${prefix}m (create-module)', width: 50);
-    painter.drawRow('Example', '${prefix}p (create-project)', width: 50);
-    painter.drawFooter(width: 50);
+    kLog('');
+    painter.drawHeader('ALIASES INSTALLED SUCCESSFULLY');
+    painter.drawRow('Profile', profileName);
+    painter.drawRow('Prefix', prefix);
+    painter.drawRow('Example', '${prefix}m (create-module)');
+    painter.drawRow('Example', '${prefix}p (create-project)');
+    painter.drawFooter();
 
     if (Platform.isWindows) {
       kLog(
         '\n🚀 Restart PowerShell or run ". \$PROFILE" to activate them.',
-        type: LogType.info,
       );
     } else {
       kLog(
         '\n🚀 Run "source ~/$profileName" to activate them immediately.',
-        type: LogType.info,
       );
     }
   }

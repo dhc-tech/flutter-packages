@@ -20,19 +20,26 @@ white_label:
         enable_push_notifications: true
 ''';
 
-  final config = WhiteLabelConfig.parse(sampleYaml);
-  final defaultTenant = config.tenants[config.defaultTenant]!;
+  final WhiteLabelConfig config = WhiteLabelConfig.parse(sampleYaml);
+  final TenantConfig defaultTenant = config.tenants[config.defaultTenant]!;
 
+  // ignore: avoid_print - example CLI output
   print('Loaded Tenant: ${defaultTenant.name}');
+  // ignore: avoid_print - example CLI output
   print('Application ID: ${defaultTenant.android.applicationId}');
+  // ignore: avoid_print - example CLI output
   print('Primary Color: ${defaultTenant.theme.primaryColor}');
+  // ignore: avoid_print - example CLI output
   print('API Base URL: ${defaultTenant.environment.apiBaseUrl}');
 
   // Example 2: Creating runtime metadata from configuration
   final runtime = WhiteLabelRuntime.fromConfig(defaultTenant);
 
+  // ignore: avoid_print - example CLI output
   print('\nRuntime Tenant ID: ${runtime.tenantId}');
+  // ignore: avoid_print - example CLI output
   print('Runtime Name: ${runtime.tenantName}');
+  // ignore: avoid_print - example CLI output
   print(
     'Push Notifications: ${runtime.features["enable_push_notifications"] ?? false}',
   );

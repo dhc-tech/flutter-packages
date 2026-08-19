@@ -24,7 +24,7 @@ void main() {
 
   setUpAll(() {
     try {
-      final result = Process.runSync('ruby', [
+      final ProcessResult result = Process.runSync('ruby', [
         '-rxcodeproj',
         '-e',
         'puts "ok"',
@@ -67,7 +67,7 @@ void main() {
   test(
     'throws IosGenerationException when ios/Runner.xcodeproj is missing',
     () {
-      final bareRoot = Directory.systemTemp.createTempSync(
+      final Directory bareRoot = Directory.systemTemp.createTempSync(
         'ios_generator_bare_',
       );
       addTearDown(() => bareRoot.deleteSync(recursive: true));
@@ -100,7 +100,7 @@ void main() {
         ),
       );
       expect(schemeFile.existsSync(), isTrue);
-      final content = schemeFile.readAsStringSync();
+      final String content = schemeFile.readAsStringSync();
 
       expect(content, contains('buildConfiguration = "Debug-acme"'));
       expect(content, contains('buildConfiguration = "Release-acme"'));
@@ -123,16 +123,26 @@ void main() {
       return;
     }
 
-    final xcodeprojPath = p.join(projectRoot.path, 'ios', 'Runner.xcodeproj');
+    final String xcodeprojPath = p.join(
+      projectRoot.path,
+      'ios',
+      'Runner.xcodeproj',
+    );
 
     generateIosConfig(tenant, projectRoot: projectRoot.path);
-    final firstRunInfo = _inspectProject(xcodeprojPath, 'acme');
+    final Map<String, dynamic> firstRunInfo = _inspectProject(
+      xcodeprojPath,
+      'acme',
+    );
 
     // Same tenant id, same bundle id: re-running must be a pure no-op on
     // the *count* of configurations (never append a second one with the
     // same name), and must not corrupt the project.
     generateIosConfig(tenant, projectRoot: projectRoot.path);
-    final secondRunInfo = _inspectProject(xcodeprojPath, 'acme');
+    final Map<String, dynamic> secondRunInfo = _inspectProject(
+      xcodeprojPath,
+      'acme',
+    );
 
     expect(firstRunInfo['targets'], contains('Runner'));
     expect(firstRunInfo['targets'], contains('RunnerTests'));
@@ -169,7 +179,11 @@ void main() {
       return;
     }
 
-    final xcodeprojPath = p.join(projectRoot.path, 'ios', 'Runner.xcodeproj');
+    final String xcodeprojPath = p.join(
+      projectRoot.path,
+      'ios',
+      'Runner.xcodeproj',
+    );
 
     generateIosConfig(tenant, projectRoot: projectRoot.path);
 
@@ -185,7 +199,7 @@ void main() {
     );
     generateIosConfig(updatedTenant, projectRoot: projectRoot.path);
 
-    final info = _inspectProject(xcodeprojPath, 'acme');
+    final Map<String, dynamic> info = _inspectProject(xcodeprojPath, 'acme');
     expect(info['runner_debug_count'], 1);
     expect(info['runner_debug_bundle_id'], 'com.example.acme.v2');
   });
@@ -210,17 +224,27 @@ void main() {
     generateIosConfig(tenant, projectRoot: projectRoot.path);
     generateIosConfig(beta, projectRoot: projectRoot.path);
 
-    final xcodeprojPath = p.join(projectRoot.path, 'ios', 'Runner.xcodeproj');
-    final acmeInfo = _inspectProject(xcodeprojPath, 'acme');
-    final betaInfo = _inspectProject(xcodeprojPath, 'beta');
+    final String xcodeprojPath = p.join(
+      projectRoot.path,
+      'ios',
+      'Runner.xcodeproj',
+    );
+    final Map<String, dynamic> acmeInfo = _inspectProject(
+      xcodeprojPath,
+      'acme',
+    );
+    final Map<String, dynamic> betaInfo = _inspectProject(
+      xcodeprojPath,
+      'beta',
+    );
 
     expect(acmeInfo['runner_debug_bundle_id'], 'com.example.acme');
     expect(betaInfo['runner_debug_bundle_id'], 'com.example.beta');
 
-    final acmeScheme = File(
+    final String acmeScheme = File(
       p.join(xcodeprojPath, 'xcshareddata', 'xcschemes', 'acme.xcscheme'),
     ).readAsStringSync();
-    final betaScheme = File(
+    final String betaScheme = File(
       p.join(xcodeprojPath, 'xcshareddata', 'xcschemes', 'beta.xcscheme'),
     ).readAsStringSync();
     expect(acmeScheme, contains('buildConfiguration = "Debug-acme"'));
@@ -233,7 +257,7 @@ void main() {
 /// and report on its structure. A non-zero exit here means the pbxproj is
 /// no longer parseable by the same tool that wrote it.
 Map<String, dynamic> _inspectProject(String xcodeprojPath, String tenantId) {
-  final result = Process.runSync('ruby', [
+  final ProcessResult result = Process.runSync('ruby', [
     '-rxcodeproj',
     '-rjson',
     '-e',
@@ -282,9 +306,9 @@ puts JSON.generate(result)
 
 void _copyDirectory(Directory source, Directory destination) {
   destination.createSync(recursive: true);
-  for (final entity in source.listSync()) {
-    final name = p.basename(entity.path);
-    final destPath = p.join(destination.path, name);
+  for (final FileSystemEntity entity in source.listSync()) {
+    final String name = p.basename(entity.path);
+    final String destPath = p.join(destination.path, name);
     if (entity is Directory) {
       _copyDirectory(entity, Directory(destPath));
     } else if (entity is File) {

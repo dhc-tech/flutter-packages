@@ -1,3 +1,6 @@
+# See Dependabot documentation for all configuration options:
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
 version: 2
 updates:
   - package-ecosystem: "github-actions"
@@ -5,58 +8,11 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      # github/codeql-action/init and .../analyze are pinned to the same
-      # SHA in codeql.yml and MUST move together — Dependabot otherwise
-      # opens two independent PRs, each bumping only one of the two,
-      # which fails CodeQL outright ("Loaded a configuration file for
-      # version X, but running version Y"). Confirmed by exactly that
-      # failure on two real PRs before this group existed.
-      codeql-action:
-        patterns:
-          - "github/codeql-action/*"
+      all-github-actions:
+        patterns: [ "*" ]
     labels:
-      - "infra: workflows"
-    # Not labeling "autosubmit" here — dependabot_auto_merge.yml decides
-    # whether to add it based on the update's actual severity
-    # (major vs. minor/patch, via dependabot/fetch-metadata's
-    # update-type output). Pre-applying it here would let a major
-    # version bump bypass that check entirely, since auto_submit.yml's
-    # merge trigger only looks at whether the label is present, not who
-    # added it or why.
-
-  # Dependabot's "pub" ecosystem requires one entry per directory
-  # containing a pubspec.yaml — it doesn't support a monorepo-wide glob.
-  # These three were previously entirely absent: Dependabot has never
-  # once checked this repo's actual Dart/Flutter package dependencies,
-  # only its GitHub Actions versions.
-  - package-ecosystem: "pub"
-    directory: "/packages/apple_sign_in_plugin"
-    schedule:
-      interval: "weekly"
-    # A newly published version sits for at least 7 days before Dependabot
-    # opens a PR for it, giving time for any yanks/hotfixes to surface.
-    cooldown:
-      default-days: 7
-    labels:
-      - "p: apple_sign_in_plugin"
-      - "infra: dependencies"
-
-  - package-ecosystem: "pub"
-    directory: "/packages/dig_cli"
-    schedule:
-      interval: "weekly"
-    cooldown:
-      default-days: 7
-    labels:
-      - "p: dig_cli"
-      - "infra: dependencies"
-
-  - package-ecosystem: "pub"
-    directory: "/packages/white_label_kit"
-    schedule:
-      interval: "weekly"
-    cooldown:
-      default-days: 7
-    labels:
-      - "p: white_label_kit"
-      - "infra: dependencies"
+      - "autosubmit"
+    # Updating patch versions for "github-actions" is too chatty.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]

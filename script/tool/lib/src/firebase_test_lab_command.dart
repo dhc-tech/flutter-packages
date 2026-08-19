@@ -49,8 +49,7 @@ class FirebaseTestLabCommand extends PackageLoopingCommand {
       'device',
       splitCommas: false,
       defaultsTo: <String>['model=walleye,version=26', 'model=redfin,version=30'],
-      help:
-          'Device model(s) to test. See https://cloud.google.com/sdk/gcloud/reference/firebase/test/android/run for more info',
+      help: 'Device model(s) to test. See https://cloud.google.com/sdk/gcloud/reference/firebase/test/android/run for more info',
     );
     argParser.addOption(_gCloudResultsBucketArg, mandatory: true);
     argParser.addOption(

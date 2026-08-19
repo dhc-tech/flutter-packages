@@ -76,7 +76,7 @@ white_label:
   });
 
   test('config parses optional firebase block per tenant', () {
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
 
     expect(
       config['acme'].firebase?.googleServicesJson,
@@ -109,7 +109,7 @@ white_label:
         logo: "tenants/acme/assets/logo.png"
 ''');
 
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
     expect(config['acme'].firebase, isNull);
 
     // And staging still works fine with no firebase/ group at all.
@@ -120,22 +120,22 @@ white_label:
   });
 
   test('staging tenant A stages only A Firebase files, never B', () {
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
     final stager = TenantStager(projectRoot.path);
 
     stager.stage(config['acme']);
 
-    final acmeFirebase = stager.stagedFirebaseFileNames('acme');
+    final List<String> acmeFirebase = stager.stagedFirebaseFileNames('acme');
     expect(
       acmeFirebase,
       unorderedEquals(['GoogleService-Info.plist', 'google-services.json']),
     );
 
-    final acmeGoogleServices = File(
+    final String acmeGoogleServices = File(
       p.join(stager.stagingDirFor('acme'), 'firebase', 'google-services.json'),
     ).readAsStringSync();
     expect(acmeGoogleServices, 'ACME_GOOGLE_SERVICES');
-    final acmeGoogleServiceInfo = File(
+    final String acmeGoogleServiceInfo = File(
       p.join(
         stager.stagingDirFor('acme'),
         'firebase',
@@ -154,12 +154,12 @@ white_label:
   });
 
   test('staging tenant B stages only B Firebase files, never A', () {
-    final config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
     final stager = TenantStager(projectRoot.path);
 
     stager.stage(config['beta']);
 
-    final betaGoogleServices = File(
+    final String betaGoogleServices = File(
       p.join(stager.stagingDirFor('beta'), 'firebase', 'google-services.json'),
     ).readAsStringSync();
     expect(betaGoogleServices, 'BETA_GOOGLE_SERVICES');
@@ -169,7 +169,7 @@ white_label:
   test(
     'A -> B -> A: no stale Firebase file survives across repeated staging',
     () {
-      final config = WhiteLabelConfig.load(projectRoot.path);
+      final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
       final stager = TenantStager(projectRoot.path);
 
       stager.stage(config['acme']);
@@ -178,7 +178,7 @@ white_label:
 
       // Prove A's re-stage is genuinely A again, byte-for-byte — not a
       // stale leftover from the B stage that happened in between.
-      final acmeGoogleServices = File(
+      final String acmeGoogleServices = File(
         p.join(
           stager.stagingDirFor('acme'),
           'firebase',
@@ -193,7 +193,7 @@ white_label:
 
       // B's staging output from the middle step is untouched by the final
       // A stage — each tenant's staging output is independent.
-      final betaGoogleServices = File(
+      final String betaGoogleServices = File(
         p.join(
           stager.stagingDirFor('beta'),
           'firebase',

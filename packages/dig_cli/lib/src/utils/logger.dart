@@ -4,7 +4,20 @@ import 'dart:io';
 
 import 'package:ansicolor/ansicolor.dart';
 
-enum LogType { info, success, warning, error }
+/// The category of a log message, used to select color and output stream.
+enum LogType {
+  /// Informational message (default).
+  info,
+
+  /// A successful outcome.
+  success,
+
+  /// A warning that doesn't stop execution.
+  warning,
+
+  /// An error, written to stderr.
+  error,
+}
 
 final AnsiPen _infoPen = AnsiPen()..cyan();
 final AnsiPen _successPen = AnsiPen()..green();
@@ -13,8 +26,12 @@ final AnsiPen _errorPen = AnsiPen()..red();
 
 /// True when stdout is a TTY and the user has not disabled ANSI (NO_COLOR, dumb TERM).
 bool get kAnsiStdoutEnabled {
-  if (Platform.environment.containsKey('NO_COLOR')) return false;
-  if (Platform.environment['TERM'] == 'dumb') return false;
+  if (Platform.environment.containsKey('NO_COLOR')) {
+    return false;
+  }
+  if (Platform.environment['TERM'] == 'dumb') {
+    return false;
+  }
   try {
     return stdout.hasTerminal;
   } catch (_) {
@@ -22,13 +39,17 @@ bool get kAnsiStdoutEnabled {
   }
 }
 
+/// Logs [message] to stdout (or stderr for errors), colorized by [type]
+/// when ANSI output is enabled.
 void kLog(String message, {LogType type = LogType.info}) {
   void plain() {
     switch (type) {
       case LogType.error:
         stderr.writeln(message);
-        break;
-      default:
+      case LogType.success:
+      case LogType.warning:
+      case LogType.info:
+        // ignore: avoid_print
         print(message);
     }
   }
@@ -40,15 +61,15 @@ void kLog(String message, {LogType type = LogType.info}) {
 
   switch (type) {
     case LogType.success:
+      // ignore: avoid_print
       print(_successPen(message));
-      break;
     case LogType.warning:
+      // ignore: avoid_print
       print(_warningPen(message));
-      break;
     case LogType.error:
       stderr.writeln(_errorPen(message));
-      break;
-    default:
+    case LogType.info:
+      // ignore: avoid_print
       print(_infoPen(message));
   }
 }

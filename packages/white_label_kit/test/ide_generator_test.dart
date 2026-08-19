@@ -38,8 +38,9 @@ void main() {
 
     final launchJson =
         jsonDecode(launchFile.readAsStringSync()) as Map<String, dynamic>;
-    final configs = (launchJson['configurations'] as List<dynamic>)
-        .cast<Map<String, dynamic>>();
+    final List<Map<String, dynamic>> configs =
+        (launchJson['configurations'] as List<dynamic>)
+            .cast<Map<String, dynamic>>();
     expect(configs.length, 3);
     expect(configs[0]['name'], 'Acme Student (debug)');
     expect(configs[0]['args'], contains('--flavor'));
@@ -54,7 +55,7 @@ void main() {
     expect(debugRun.existsSync(), isTrue);
     expect(releaseRun.existsSync(), isTrue);
 
-    final debugContent = debugRun.readAsStringSync();
+    final String debugContent = debugRun.readAsStringSync();
     expect(debugContent, contains('name="Acme Student (debug)"'));
     expect(debugContent, contains('value="acme"'));
     expect(debugContent, contains('--dart-define=TENANT_ID=acme'));
@@ -83,8 +84,9 @@ void main() {
     final launchFile = File(p.join(tempDir.path, '.vscode', 'launch.json'));
     final launchJson =
         jsonDecode(launchFile.readAsStringSync()) as Map<String, dynamic>;
-    final configs = (launchJson['configurations'] as List<dynamic>)
-        .cast<Map<String, dynamic>>();
+    final List<Map<String, dynamic>> configs =
+        (launchJson['configurations'] as List<dynamic>)
+            .cast<Map<String, dynamic>>();
     expect(configs.isEmpty, isTrue);
   });
 }

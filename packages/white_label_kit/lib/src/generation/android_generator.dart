@@ -43,7 +43,7 @@ void generateAndroidFlavor(TenantConfig tenant, {required String projectRoot}) {
     );
   }
 
-  var content = gradleFile.readAsStringSync();
+  String content = gradleFile.readAsStringSync();
 
   // Idempotency guard, checked first and against the *unmodified* file: if
   // this tenant's flavor already exists, do nothing at all — not even the
@@ -56,7 +56,7 @@ void generateAndroidFlavor(TenantConfig tenant, {required String projectRoot}) {
     return;
   }
 
-  final androidBlock = _findTopLevelBlock(content, 'android');
+  final _Block? androidBlock = _findTopLevelBlock(content, 'android');
   if (androidBlock == null) {
     throw StateError(
       '${gradleFile.path} has no top-level `android { ... }` block — '
@@ -68,7 +68,7 @@ void generateAndroidFlavor(TenantConfig tenant, {required String projectRoot}) {
   if (!RegExp(r'flavorDimensions').hasMatch(
     content.substring(androidBlock.openBrace, androidBlock.closeBrace),
   )) {
-    final insertAt = androidBlock.openBrace + 1;
+    final int insertAt = androidBlock.openBrace + 1;
     content = content.replaceRange(
       insertAt,
       insertAt,
@@ -84,10 +84,10 @@ void generateAndroidFlavor(TenantConfig tenant, {required String projectRoot}) {
   // Added once, shared by all tenants — re-locate the android block fresh
   // since the insertion above may have shifted indices.
   {
-    final block = _findTopLevelBlock(content, 'android')!;
+    final _Block block = _findTopLevelBlock(content, 'android')!;
     if (!RegExp(r'buildFeatures\s*\{[^}]*resValues')
         .hasMatch(content.substring(block.openBrace, block.closeBrace))) {
-      final insertAt = block.openBrace + 1;
+      final int insertAt = block.openBrace + 1;
       content = content.replaceRange(
         insertAt,
         insertAt,
@@ -100,15 +100,15 @@ void generateAndroidFlavor(TenantConfig tenant, {required String projectRoot}) {
   // tenant's `create("id") { ... }` entry just before its closing brace.
   // Re-locate the android block first — the flavorDimensions insertion
   // above may have shifted every index after it.
-  final refreshedAndroidBlock = _findTopLevelBlock(content, 'android')!;
-  final androidBody = content.substring(
+  final _Block refreshedAndroidBlock = _findTopLevelBlock(content, 'android')!;
+  final String androidBody = content.substring(
     refreshedAndroidBlock.openBrace,
     refreshedAndroidBlock.closeBrace,
   );
 
-  final flavorEntry = _flavorEntryBlock(tenant);
+  final String flavorEntry = _flavorEntryBlock(tenant);
 
-  final productFlavorsMatch = RegExp(r'productFlavors\s*\{')
+  final RegExpMatch? productFlavorsMatch = RegExp(r'productFlavors\s*\{')
       .firstMatch(androidBody);
 
   if (productFlavorsMatch == null) {
@@ -126,19 +126,22 @@ void generateAndroidFlavor(TenantConfig tenant, {required String projectRoot}) {
     // productFlavors already exists (possibly with other tenants' flavors
     // already in it): insert this tenant's entry right before its closing
     // brace, leaving every existing entry untouched.
-    final openBraceAbsolute =
+    final int openBraceAbsolute =
         refreshedAndroidBlock.openBrace +
         productFlavorsMatch.end -
         1; // index of the '{' the match ended on
-    final productFlavorsBlock = _matchBraceFrom(content, openBraceAbsolute);
+    final _Block? productFlavorsBlock = _matchBraceFrom(
+      content,
+      openBraceAbsolute,
+    );
     if (productFlavorsBlock == null) {
       throw StateError(
         '${gradleFile.path} has an unterminated `productFlavors {` block — '
         'refusing to guess where it ends.',
       );
     }
-    var insertPos = productFlavorsBlock.closeBrace;
-    final lastLineBreak = content.lastIndexOf('\n', insertPos - 1);
+    int insertPos = productFlavorsBlock.closeBrace;
+    final int lastLineBreak = content.lastIndexOf('\n', insertPos - 1);
     if (lastLineBreak != -1 &&
         content.substring(lastLineBreak + 1, insertPos).trim().isEmpty) {
       insertPos = lastLineBreak + 1;
@@ -158,26 +161,32 @@ void removeAndroidFlavor(String tenantId, {required String projectRoot}) {
   final gradleFile = File(
     p.join(projectRoot, 'android', 'app', 'build.gradle.kts'),
   );
-  if (!gradleFile.existsSync()) return;
+  if (!gradleFile.existsSync()) {
+    return;
+  }
 
-  var content = gradleFile.readAsStringSync();
+  String content = gradleFile.readAsStringSync();
 
   final pattern = RegExp(
     r'(?:[ \t]*(?://[^\r\n]*)?\r?\n)?[ \t]*create\("' +
         RegExp.escape(tenantId) +
         r'"\)\s*\{',
   );
-  final match = pattern.firstMatch(content);
-  if (match == null) return;
+  final RegExpMatch? match = pattern.firstMatch(content);
+  if (match == null) {
+    return;
+  }
 
-  final lineStart = content.lastIndexOf('\n', match.start);
-  final start = (lineStart != -1) ? lineStart + 1 : match.start;
+  final int lineStart = content.lastIndexOf('\n', match.start);
+  final int start = (lineStart != -1) ? lineStart + 1 : match.start;
 
-  final openBrace = content.indexOf('{', match.start);
-  final block = _matchBraceFrom(content, openBrace);
-  if (block == null) return;
+  final int openBrace = content.indexOf('{', match.start);
+  final _Block? block = _matchBraceFrom(content, openBrace);
+  if (block == null) {
+    return;
+  }
 
-  var end = block.closeBrace + 1;
+  int end = block.closeBrace + 1;
   if (end < content.length && content[end] == '\n') {
     end++;
   } else if (end + 1 < content.length &&
@@ -192,15 +201,19 @@ void removeAndroidFlavor(String tenantId, {required String projectRoot}) {
 /// The `create("<id>") { ... }` entry text for [tenant], indented as if it
 /// sits directly inside a `productFlavors { }` block.
 String _flavorEntryBlock(TenantConfig tenant) {
-  final id = tenant.id;
-  final applicationId = _escapeKotlinString(tenant.android.applicationId);
-  final appName = _escapeKotlinString(tenant.android.appName);
-  return '''        create("$id") {
+  final String id = tenant.id;
+  final String applicationId = _escapeKotlinString(
+    tenant.android.applicationId,
+  );
+  final String appName = _escapeKotlinString(tenant.android.appName);
+  return '''
+        create("$id") {
             dimension = "tenant"
             applicationId = "$applicationId"
             resValue("string", "app_name", "$appName")
         }
-''';
+'''
+      .substring(1);
 }
 
 String _escapeKotlinString(String value) =>
@@ -221,9 +234,12 @@ class _Block {
 /// whole file, so nested braces inside the block never confuse where it
 /// actually ends.
 _Block? _findTopLevelBlock(String content, String name) {
-  final headerMatch = RegExp('(?:^|\\n)\\s*$name\\s*\\{').firstMatch(content);
-  if (headerMatch == null) return null;
-  final openBrace = content.lastIndexOf('{', headerMatch.end - 1);
+  final RegExpMatch? headerMatch = RegExp('(?:^|\\n)\\s*$name\\s*\\{')
+      .firstMatch(content);
+  if (headerMatch == null) {
+    return null;
+  }
+  final int openBrace = content.lastIndexOf('{', headerMatch.end - 1);
   return _matchBraceFrom(content, openBrace);
 }
 
@@ -233,10 +249,14 @@ _Block? _findTopLevelBlock(String content, String name) {
 _Block? _matchBraceFrom(String content, int openBrace) {
   var depth = 0;
   for (var i = openBrace; i < content.length; i++) {
-    if (content[i] == '{') depth++;
+    if (content[i] == '{') {
+      depth++;
+    }
     if (content[i] == '}') {
       depth--;
-      if (depth == 0) return _Block(openBrace, i);
+      if (depth == 0) {
+        return _Block(openBrace, i);
+      }
     }
   }
   return null;
