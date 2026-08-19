@@ -28,7 +28,7 @@ String? _decodeEmailFromIdentityToken(String? identityToken) {
     return null;
   }
   final Map<String, dynamic>? claims = JwtDecoder.tryDecode(identityToken);
-  final email = claims?['email'];
+  final Object? email = claims?['email'];
   return (email is String && email.isNotEmpty) ? email : null;
 }
 
@@ -53,7 +53,9 @@ class AppleAuthIdentity {
 
   /// Returns the formatted full name if available.
   String? get formattedName {
-    if (name == null || name!.isEmpty) return null;
+    if (name == null || name!.isEmpty) {
+      return null;
+    }
     final Iterable<String> parts =
         [name!.givenName, name!.familyName].whereType<String>().where((s) => s.isNotEmpty);
     return parts.isEmpty ? null : parts.join(' ');
