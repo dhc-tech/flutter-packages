@@ -4,7 +4,8 @@
 
 import 'apple_sign_in_desktop_impl.dart';
 
-export 'apple_sign_in_desktop_impl.dart' show AppleSignInDesktopConfig, AppleSignInDesktopImpl;
+export 'apple_sign_in_desktop_impl.dart'
+    show AppleSignInDesktopConfig, AppleSignInDesktopImpl;
 
 /// The Windows implementation of [AppleSignInDesktopImpl].
 class AppleSignInWindowsImpl extends AppleSignInDesktopImpl {

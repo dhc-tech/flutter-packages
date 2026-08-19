@@ -45,7 +45,14 @@ typedef Logger = void Function(String message, [String level]);
 /// Default [Logger] implementation: writes an emoji-prefixed line to stdout.
 void defaultLogger(String message, [String level = 'INFO']) {
   final String prefix =
-      {'INFO': '💡', 'WARN': '⚠️', 'ERROR': '❌', 'SUCCESS': '✅', 'STEP': '➜'}[level] ?? '•';
+      {
+        'INFO': '💡',
+        'WARN': '⚠️',
+        'ERROR': '❌',
+        'SUCCESS': '✅',
+        'STEP': '➜',
+      }[level] ??
+      '•';
   stdout.writeln('$prefix $message');
 }
 
@@ -70,11 +77,16 @@ bool autoOnboardTenant(
   final manifest = File('${tenantDir.path}/tenant.yaml');
 
   if (configJson.existsSync()) {
-    log("Tenant '$tenantId' already onboarded (config.json exists) — nothing to do.");
+    log(
+      "Tenant '$tenantId' already onboarded (config.json exists) — nothing to do.",
+    );
     return true;
   }
   if (!manifest.existsSync()) {
-    log('No tenants/$tenantId/tenant.yaml found — nothing to auto-onboard.', 'ERROR');
+    log(
+      'No tenants/$tenantId/tenant.yaml found — nothing to auto-onboard.',
+      'ERROR',
+    );
     return false;
   }
 
@@ -101,14 +113,19 @@ bool autoOnboardTenant(
   }
 
   if (dryRun) {
-    log('(Dry run: would configure Android flavors, Xcode configs, clone scheme for $tenantId)');
+    log(
+      '(Dry run: would configure Android flavors, Xcode configs, clone scheme for $tenantId)',
+    );
     return true;
   }
 
   final tenantConfig = TenantConfig(
     id: tenantId,
     name: displayName,
-    android: AndroidTenantConfig(applicationId: applicationId, appName: displayName),
+    android: AndroidTenantConfig(
+      applicationId: applicationId,
+      appName: displayName,
+    ),
     ios: IosTenantConfig(bundleId: applicationId, appName: displayName),
     assets: TenantAssets(logo: 'tenants/$tenantId/logo.png'),
     environment: TenantEnvironment(apiBaseUrl: apiBaseUrl),
@@ -198,8 +215,15 @@ bool _run(_Step step, Directory root, Logger log) {
 /// Clones an existing tenant's `.xcscheme` rather than hand-authoring XML.
 /// The only tenant-specific bits are the five `buildConfiguration` attributes,
 /// so a straight string substitution is correct and safe.
-void _cloneXcodeScheme(String tenantId, Directory root, Logger log, String templateFlavor) {
-  final schemesDir = Directory('${root.path}/ios/Runner.xcodeproj/xcshareddata/xcschemes');
+void _cloneXcodeScheme(
+  String tenantId,
+  Directory root,
+  Logger log,
+  String templateFlavor,
+) {
+  final schemesDir = Directory(
+    '${root.path}/ios/Runner.xcodeproj/xcshareddata/xcschemes',
+  );
   final dest = File('${schemesDir.path}/$tenantId.xcscheme');
   if (dest.existsSync()) {
     return;
@@ -214,6 +238,8 @@ void _cloneXcodeScheme(String tenantId, Directory root, Logger log, String templ
     return;
   }
 
-  dest.writeAsStringSync(template.readAsStringSync().replaceAll('-$templateFlavor', '-$tenantId'));
+  dest.writeAsStringSync(
+    template.readAsStringSync().replaceAll('-$templateFlavor', '-$tenantId'),
+  );
   log("Cloned Xcode scheme for '$tenantId' from $templateFlavor.xcscheme.");
 }

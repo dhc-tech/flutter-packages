@@ -116,7 +116,8 @@ class ZipCommand extends Command<void> {
       await runWithSpinner(
         '🧹 Running flutter clean before zipping...',
         () async {
-          final ProcessResult cleanResult = await Process.run('flutter', ['clean']);
+          final ProcessResult cleanResult =
+              await Process.run('flutter', ['clean']);
           if (cleanResult.exitCode != 0) {
             throw Exception('flutter clean failed: ${cleanResult.stderr}');
           }
@@ -156,7 +157,8 @@ class ZipCommand extends Command<void> {
         );
 
         for (final entity in entities) {
-          final String relativePath = p.relative(entity.path, from: projectDir.path);
+          final String relativePath =
+              p.relative(entity.path, from: projectDir.path);
 
           if (!rules.shouldIgnore(relativePath, entity) && entity is File) {
             encoder.addFileSync(entity, p.join(projectName, relativePath));

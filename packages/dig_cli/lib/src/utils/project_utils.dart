@@ -58,8 +58,9 @@ Future<String?> getProjectName() async {
 
 /// Gets the user's desktop path.
 Future<String> getDesktopPath() async {
-  final String? home =
-      Platform.isWindows ? Platform.environment['USERPROFILE'] : Platform.environment['HOME'];
+  final String? home = Platform.isWindows
+      ? Platform.environment['USERPROFILE']
+      : Platform.environment['HOME'];
   if (home == null) {
     throw Exception('Could not find home directory.');
   }
@@ -87,7 +88,8 @@ Future<String?> getBundleId() async {
   }
 
   final String content = await gradleFile.readAsString();
-  final RegExpMatch? match = RegExp(r'applicationId\s*[=]?\s*"([^"]+)"').firstMatch(content);
+  final RegExpMatch? match =
+      RegExp(r'applicationId\s*[=]?\s*"([^"]+)"').firstMatch(content);
   return match?.group(1);
 }
 
@@ -106,6 +108,7 @@ Future<String?> getAppLabel() async {
   }
 
   final String content = await manifest.readAsString();
-  final RegExpMatch? match = RegExp(r'android:label="([^"]*)"').firstMatch(content);
+  final RegExpMatch? match =
+      RegExp(r'android:label="([^"]*)"').firstMatch(content);
   return match?.group(1);
 }

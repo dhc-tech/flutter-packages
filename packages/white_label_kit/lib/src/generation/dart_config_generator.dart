@@ -78,7 +78,9 @@ String generateWhiteLabelSource(WhiteLabelConfig config, String tenantId) {
     ..writeln("import 'package:white_label_kit/white_label_kit.dart';")
     ..writeln()
     ..writeln('/// The `default_tenant` declared in white_label.yaml.')
-    ..writeln('const String whiteLabelDefaultTenant = ${_dartString(config.defaultTenant)};')
+    ..writeln(
+      'const String whiteLabelDefaultTenant = ${_dartString(config.defaultTenant)};',
+    )
     ..writeln()
     ..writeln(
       '/// Every tenant id declared in white_label.yaml, sorted — NAMES\n'
@@ -86,19 +88,27 @@ String generateWhiteLabelSource(WhiteLabelConfig config, String tenantId) {
       '/// for things like a tenant picker in an internal/dev build, not\n'
       "/// for reading another tenant's actual data (which isn't here).",
     )
-    ..writeln('const List<String> whiteLabelTenantIds = ${_dartStringList(tenantIds)};')
+    ..writeln(
+      'const List<String> whiteLabelTenantIds = ${_dartStringList(tenantIds)};',
+    )
     ..writeln()
     ..writeln(
       "/// This build's tenant, resolved when `generate` last ran (see\n"
       "/// resolveGeneratorTenantId) — the ONLY tenant's data in this file.",
     )
-    ..writeln('const WhiteLabelRuntime whiteLabelRuntime = ${_runtimeLiteral(selected)};');
+    ..writeln(
+      'const WhiteLabelRuntime whiteLabelRuntime = ${_runtimeLiteral(selected)};',
+    );
 
   return buffer.toString();
 }
 
 /// Writes [generateWhiteLabelSource]'s output to `<projectRoot>/lib/white_label.g.dart`.
-void writeGeneratedFile(String projectRoot, WhiteLabelConfig config, String tenantId) {
+void writeGeneratedFile(
+  String projectRoot,
+  WhiteLabelConfig config,
+  String tenantId,
+) {
   final file = File('$projectRoot/lib/white_label.g.dart');
   file.parent.createSync(recursive: true);
   file.writeAsStringSync(generateWhiteLabelSource(config, tenantId));
@@ -147,9 +157,11 @@ String _runtimeLiteral(TenantConfig config) {
 
 String _dartString(String value) => "'${value.replaceAll("'", r"\'")}'";
 
-String _dartStringOrNull(String? value) => value == null ? 'null' : _dartString(value);
+String _dartStringOrNull(String? value) =>
+    value == null ? 'null' : _dartString(value);
 
-String _dartStringList(Iterable<String> values) => '[${values.map(_dartString).join(', ')}]';
+String _dartStringList(Iterable<String> values) =>
+    '[${values.map(_dartString).join(', ')}]';
 
 String _dartBoolMap(Map<String, bool> values) =>
     '{'

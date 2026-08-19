@@ -29,7 +29,10 @@ class IdeGenerator {
   }
 
   /// Generates VS Code configurations in `<projectRoot>/.vscode/launch.json`.
-  static void generateVsCodeConfig(TenantConfig tenant, {required String projectRoot}) {
+  static void generateVsCodeConfig(
+    TenantConfig tenant, {
+    required String projectRoot,
+  }) {
     final vscodeDir = Directory(p.join(projectRoot, '.vscode'));
     if (!vscodeDir.existsSync()) {
       vscodeDir.createSync(recursive: true);
@@ -43,18 +46,27 @@ class IdeGenerator {
         final String content = launchFile.readAsStringSync();
         data = jsonDecode(content) as Map<String, dynamic>;
       } catch (_) {
-        data = <String, dynamic>{'version': '0.2.0', 'configurations': <dynamic>[]};
+        data = <String, dynamic>{
+          'version': '0.2.0',
+          'configurations': <dynamic>[],
+        };
       }
     } else {
-      data = <String, dynamic>{'version': '0.2.0', 'configurations': <dynamic>[]};
+      data = <String, dynamic>{
+        'version': '0.2.0',
+        'configurations': <dynamic>[],
+      };
     }
 
-    final List<dynamic> rawConfigs = (data['configurations'] as List<dynamic>?) ?? <dynamic>[];
-    final List<Map<String, dynamic>> configs = rawConfigs.cast<Map<String, dynamic>>();
+    final List<dynamic> rawConfigs =
+        (data['configurations'] as List<dynamic>?) ?? <dynamic>[];
+    final List<Map<String, dynamic>> configs = rawConfigs
+        .cast<Map<String, dynamic>>();
 
     // Remove existing configs for this tenant
     configs.removeWhere((c) {
-      final List<String> args = (c['args'] as List<dynamic>?)?.cast<String>() ?? <String>[];
+      final List<String> args =
+          (c['args'] as List<dynamic>?)?.cast<String>() ?? <String>[];
       final int flavorIdx = args.indexOf('--flavor');
       if (flavorIdx != -1 && flavorIdx + 1 < args.length) {
         return args[flavorIdx + 1] == tenant.id;
@@ -75,7 +87,11 @@ class IdeGenerator {
         'type': 'dart',
         'program': 'lib/main.dart',
         if (mode['mode'] != 'debug') 'flutterMode': mode['mode'],
-        'args': <String>['--flavor', tenant.id, '--dart-define=TENANT_ID=${tenant.id}'],
+        'args': <String>[
+          '--flavor',
+          tenant.id,
+          '--dart-define=TENANT_ID=${tenant.id}',
+        ],
       };
       configs.add(config);
     }
@@ -86,7 +102,10 @@ class IdeGenerator {
   }
 
   /// Generates VS Code 1-click build tasks in `<projectRoot>/.vscode/tasks.json`.
-  static void generateVsCodeTasks(TenantConfig tenant, {required String projectRoot}) {
+  static void generateVsCodeTasks(
+    TenantConfig tenant, {
+    required String projectRoot,
+  }) {
     final vscodeDir = Directory(p.join(projectRoot, '.vscode'));
     if (!vscodeDir.existsSync()) {
       vscodeDir.createSync(recursive: true);
@@ -106,13 +125,16 @@ class IdeGenerator {
       data = <String, dynamic>{'version': '2.0.0', 'tasks': <dynamic>[]};
     }
 
-    final List<dynamic> rawTasks = (data['tasks'] as List<dynamic>?) ?? <dynamic>[];
-    final List<Map<String, dynamic>> tasks = rawTasks.cast<Map<String, dynamic>>();
+    final List<dynamic> rawTasks =
+        (data['tasks'] as List<dynamic>?) ?? <dynamic>[];
+    final List<Map<String, dynamic>> tasks = rawTasks
+        .cast<Map<String, dynamic>>();
 
     // Remove existing tasks for this tenant
     tasks.removeWhere((t) {
       final String label = t['label']?.toString() ?? '';
-      return label.contains('(${tenant.name})') || label.contains('(${tenant.id})');
+      return label.contains('(${tenant.name})') ||
+          label.contains('(${tenant.id})');
     });
 
     tasks.add({
@@ -158,7 +180,10 @@ class IdeGenerator {
   }
 
   /// Removes VS Code launch configurations for [tenantId].
-  static void removeVsCodeConfig(String tenantId, {required String projectRoot}) {
+  static void removeVsCodeConfig(
+    String tenantId, {
+    required String projectRoot,
+  }) {
     final launchFile = File(p.join(projectRoot, '.vscode', 'launch.json'));
     if (!launchFile.existsSync()) {
       return;
@@ -167,12 +192,15 @@ class IdeGenerator {
     try {
       final String content = launchFile.readAsStringSync();
       final data = jsonDecode(content) as Map<String, dynamic>;
-      final List<dynamic> rawConfigs = (data['configurations'] as List<dynamic>?) ?? <dynamic>[];
-      final List<Map<String, dynamic>> configs = rawConfigs.cast<Map<String, dynamic>>();
+      final List<dynamic> rawConfigs =
+          (data['configurations'] as List<dynamic>?) ?? <dynamic>[];
+      final List<Map<String, dynamic>> configs = rawConfigs
+          .cast<Map<String, dynamic>>();
 
       final int before = configs.length;
       configs.removeWhere((c) {
-        final List<String> args = (c['args'] as List<dynamic>?)?.cast<String>() ?? <String>[];
+        final List<String> args =
+            (c['args'] as List<dynamic>?)?.cast<String>() ?? <String>[];
         final int flavorIdx = args.indexOf('--flavor');
         if (flavorIdx != -1 && flavorIdx + 1 < args.length) {
           return args[flavorIdx + 1] == tenantId;
@@ -189,7 +217,10 @@ class IdeGenerator {
   }
 
   /// Removes VS Code tasks for [tenantId].
-  static void removeVsCodeTasks(String tenantId, {required String projectRoot}) {
+  static void removeVsCodeTasks(
+    String tenantId, {
+    required String projectRoot,
+  }) {
     final tasksFile = File(p.join(projectRoot, '.vscode', 'tasks.json'));
     if (!tasksFile.existsSync()) {
       return;
@@ -198,8 +229,10 @@ class IdeGenerator {
     try {
       final String content = tasksFile.readAsStringSync();
       final data = jsonDecode(content) as Map<String, dynamic>;
-      final List<dynamic> rawTasks = (data['tasks'] as List<dynamic>?) ?? <dynamic>[];
-      final List<Map<String, dynamic>> tasks = rawTasks.cast<Map<String, dynamic>>();
+      final List<dynamic> rawTasks =
+          (data['tasks'] as List<dynamic>?) ?? <dynamic>[];
+      final List<Map<String, dynamic>> tasks = rawTasks
+          .cast<Map<String, dynamic>>();
 
       final int before = tasks.length;
       tasks.removeWhere((t) {
@@ -216,7 +249,10 @@ class IdeGenerator {
   }
 
   /// Generates Android Studio / IntelliJ IDEA run configs in `<projectRoot>/.run/`.
-  static void generateIntelliJConfigs(TenantConfig tenant, {required String projectRoot}) {
+  static void generateIntelliJConfigs(
+    TenantConfig tenant, {
+    required String projectRoot,
+  }) {
     final runDir = Directory(p.join(projectRoot, '.run'));
     if (!runDir.existsSync()) {
       runDir.createSync(recursive: true);
@@ -227,7 +263,8 @@ class IdeGenerator {
       name: '${tenant.name} (debug)',
       flavor: tenant.id,
     );
-    File(p.join(runDir.path, '${tenant.id}_debug.run.xml')).writeAsStringSync(debugXml);
+    File(p.join(runDir.path, '${tenant.id}_debug.run.xml'))
+        .writeAsStringSync(debugXml);
 
     // 2. Flutter Release Run
     final String releaseXml = _intellijFlutterRunConfigXml(
@@ -235,7 +272,8 @@ class IdeGenerator {
       flavor: tenant.id,
       extraArgs: '--release',
     );
-    File(p.join(runDir.path, '${tenant.id}_release.run.xml')).writeAsStringSync(releaseXml);
+    File(p.join(runDir.path, '${tenant.id}_release.run.xml'))
+        .writeAsStringSync(releaseXml);
 
     // 3. Build Release APK
     final String buildApkXml = _intellijShellRunConfigXml(
@@ -243,7 +281,8 @@ class IdeGenerator {
       script:
           'dart run white_label_kit:generate --tenant ${tenant.id} && flutter build apk --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
     );
-    File(p.join(runDir.path, '${tenant.id}_build_apk.run.xml')).writeAsStringSync(buildApkXml);
+    File(p.join(runDir.path, '${tenant.id}_build_apk.run.xml'))
+        .writeAsStringSync(buildApkXml);
 
     // 4. Build Release AppBundle
     final String buildAabXml = _intellijShellRunConfigXml(
@@ -260,18 +299,23 @@ class IdeGenerator {
       script:
           'dart run white_label_kit:generate --tenant ${tenant.id} && flutter build ios --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
     );
-    File(p.join(runDir.path, '${tenant.id}_build_ios.run.xml')).writeAsStringSync(buildIosXml);
+    File(p.join(runDir.path, '${tenant.id}_build_ios.run.xml'))
+        .writeAsStringSync(buildIosXml);
 
     // 6. Configure White-Label
     final String configureXml = _intellijShellRunConfigXml(
       name: '🔧 Configure White-Label',
       script: 'dart run white_label_kit:configure',
     );
-    File(p.join(runDir.path, 'configure_white_label.run.xml')).writeAsStringSync(configureXml);
+    File(p.join(runDir.path, 'configure_white_label.run.xml'))
+        .writeAsStringSync(configureXml);
   }
 
   /// Removes Android Studio / IntelliJ IDEA run configs for [tenantId].
-  static void removeIntelliJConfigs(String tenantId, {required String projectRoot}) {
+  static void removeIntelliJConfigs(
+    String tenantId, {
+    required String projectRoot,
+  }) {
     final runDir = Directory(p.join(projectRoot, '.run'));
     if (!runDir.existsSync()) {
       return;
@@ -292,7 +336,10 @@ class IdeGenerator {
     required String flavor,
     String? extraArgs,
   }) {
-    final String args = ['--dart-define=TENANT_ID=$flavor', ?extraArgs].join(' ');
+    final String args = [
+      '--dart-define=TENANT_ID=$flavor',
+      ?extraArgs,
+    ].join(' ');
 
     return '''
 <component name="ProjectRunConfigurationManager">
@@ -308,7 +355,10 @@ class IdeGenerator {
         .substring(1);
   }
 
-  static String _intellijShellRunConfigXml({required String name, required String script}) {
+  static String _intellijShellRunConfigXml({
+    required String name,
+    required String script,
+  }) {
     return '''
 <component name="ProjectRunConfigurationManager">
   <!-- Generated by white_label_kit — DO NOT EDIT BY HAND -->

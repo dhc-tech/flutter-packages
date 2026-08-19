@@ -16,7 +16,8 @@ class SetupAliasesCommand extends Command<void> {
 
   @override
   Future<void> run() async {
-    final String? home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
+    final String? home =
+        Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
     if (home == null) {
       kLog(
         '❗ Could not determine home directory to set up aliases.',

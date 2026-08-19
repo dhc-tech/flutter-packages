@@ -50,7 +50,8 @@ class ApplePersonName {
       nickname == null;
 
   @override
-  String toString() => 'ApplePersonName(namePrefix: $namePrefix, givenName: $givenName, '
+  String toString() =>
+      'ApplePersonName(namePrefix: $namePrefix, givenName: $givenName, '
       'middleName: $middleName, familyName: $familyName, '
       'nameSuffix: $nameSuffix, nickname: $nickname)';
 

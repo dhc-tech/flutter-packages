@@ -23,9 +23,11 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
 
   /// The method channel used to communicate with the native Android plugin.
   @visibleForTesting
-  final MethodChannel channel = const MethodChannel('apple_sign_in_plugin_android');
+  final MethodChannel channel =
+      const MethodChannel('apple_sign_in_plugin_android');
 
-  static const String _kAuthorizeUrl = 'https://appleid.apple.com/auth/authorize';
+  static const String _kAuthorizeUrl =
+      'https://appleid.apple.com/auth/authorize';
 
   static const Duration _kCallbackTimeout = Duration(minutes: 5);
 
@@ -33,7 +35,8 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
   String? _pendingState;
   Timer? _timeoutTimer;
 
-  bool get _isInProgress => _pendingCompleter != null && !_pendingCompleter!.isCompleted;
+  bool get _isInProgress =>
+      _pendingCompleter != null && !_pendingCompleter!.isCompleted;
 
   /// The Android OAuth flow configuration.
   // ignore: use_setters_to_change_properties
@@ -118,7 +121,8 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
       _cleanUp();
       throw AppleSignInException(
         AppleSignInErrorCode.authorizationFailed,
-        e.message ?? 'Native Android channel failed to launch authorization URL.',
+        e.message ??
+            'Native Android channel failed to launch authorization URL.',
         e.details,
       );
     }
@@ -163,7 +167,8 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
       return;
     }
 
-    if (currentConfig.callbackHost != null && callbackUri.host != currentConfig.callbackHost) {
+    if (currentConfig.callbackHost != null &&
+        callbackUri.host != currentConfig.callbackHost) {
       _cleanUp();
       completer.completeError(
         const AppleSignInException(
@@ -207,9 +212,11 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
     }
 
     // 4. Authorization code / Opaque Callback Parameter Validation
-    final String? code = params['code'] ?? params['auth_code'] ?? params['authorization_code'];
+    final String? code =
+        params['code'] ?? params['auth_code'] ?? params['authorization_code'];
     final String? idToken = params['id_token'];
-    final String? userIdentifier = params['user_identifier'] ?? _extractSubFromIdToken(idToken);
+    final String? userIdentifier =
+        params['user_identifier'] ?? _extractSubFromIdToken(idToken);
 
     if (code == null && idToken == null && userIdentifier == null) {
       _cleanUp();
@@ -304,7 +311,8 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
     required String state,
     String? nonce,
   }) {
-    final String scopeString = scopes.map((AppleAuthorizationScope s) => s.restApiValue).join(' ');
+    final String scopeString =
+        scopes.map((AppleAuthorizationScope s) => s.restApiValue).join(' ');
     final params = <String, String>{
       'client_id': config.serviceId,
       'redirect_uri': config.redirectUri,

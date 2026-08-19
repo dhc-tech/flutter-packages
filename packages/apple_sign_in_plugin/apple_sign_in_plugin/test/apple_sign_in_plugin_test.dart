@@ -11,7 +11,8 @@ class _FakePlatform extends AppleSignInPlatform {
   bool isAvailableResult = true;
   AppleCredential? credentialResult;
   AppleCredentialState credentialStateResult = AppleCredentialState.authorized;
-  final StreamController<void> revocationController = StreamController<void>.broadcast();
+  final StreamController<void> revocationController =
+      StreamController<void>.broadcast();
 
   @override
   Future<bool> isAvailable() async => isAvailableResult;
@@ -54,7 +55,8 @@ class _MockBackendAdapter implements AppleBackendAdapter {
   }
 
   @override
-  Future<AppleDisconnectResult> revokeAuthorization(String userIdentifier) async {
+  Future<AppleDisconnectResult> revokeAuthorization(
+      String userIdentifier) async {
     revokeCalled = true;
     return const AppleDisconnectResult(
       status: AppleDisconnectStatus.revoked,
@@ -81,7 +83,9 @@ void main() {
       expect(await AppleSignIn.instance.isAvailable(), isFalse);
     });
 
-    test('signIn returns strongly-typed AppleAuthSession and emits signedIn event', () async {
+    test(
+        'signIn returns strongly-typed AppleAuthSession and emits signedIn event',
+        () async {
       final adapter = _MockBackendAdapter();
       AppleSignIn.instance.backendAdapter = adapter;
 
@@ -90,7 +94,10 @@ void main() {
           AppleSignIn.instance.events.listen(events.add);
 
       final AppleAuthSession session = await AppleSignIn.instance.signIn(
-        scopes: {AppleAuthorizationScope.email, AppleAuthorizationScope.fullName},
+        scopes: {
+          AppleAuthorizationScope.email,
+          AppleAuthorizationScope.fullName
+        },
         nonce: 'test_nonce_abc',
       );
 
@@ -127,14 +134,16 @@ void main() {
       final StreamSubscription<AppleAuthEvent> subscription =
           AppleSignIn.instance.events.listen(events.add);
 
-      await AppleSignIn.instance.signIn(scopes: {AppleAuthorizationScope.email});
+      await AppleSignIn.instance
+          .signIn(scopes: {AppleAuthorizationScope.email});
       expect(AppleSignIn.instance.currentSession, isNotNull);
 
       await AppleSignIn.instance.signOut();
       expect(AppleSignIn.instance.currentSession, isNull);
 
       await pumpEventQueue();
-      expect(events.where((e) => e.type == AppleAuthEventType.signedOut).length, 1);
+      expect(events.where((e) => e.type == AppleAuthEventType.signedOut).length,
+          1);
 
       await subscription.cancel();
     });
@@ -153,7 +162,9 @@ void main() {
       await subscription.cancel();
     });
 
-    test('getCredentialState emits credentialTransferred event on transferred state', () async {
+    test(
+        'getCredentialState emits credentialTransferred event on transferred state',
+        () async {
       fakePlatform.credentialStateResult = AppleCredentialState.transferred;
 
       final events = <AppleAuthEvent>[];
@@ -183,19 +194,23 @@ void main() {
     });
 
     test('capabilities reflects platform matrix accurately', () async {
-      final AppleSignInCapabilities caps = await AppleSignIn.instance.capabilities();
+      final AppleSignInCapabilities caps =
+          await AppleSignIn.instance.capabilities();
       expect(caps.isSupported, isTrue);
       expect(caps.supportedScopes, contains(AppleAuthorizationScope.email));
     });
 
     test('diagnostics returns safe metadata without secrets', () async {
-      final AppleSignInDiagnostics diag = await AppleSignIn.instance.diagnostics();
+      final AppleSignInDiagnostics diag =
+          await AppleSignIn.instance.diagnostics();
       expect(diag.isAvailable, isTrue);
-      expect(diag.toSafeString(), contains('=== Apple Sign-In Diagnostics ==='));
+      expect(
+          diag.toSafeString(), contains('=== Apple Sign-In Diagnostics ==='));
       expect(diag.toSafeString(), isNot(contains('fake.jwt.token')));
     });
 
-    test('AppleSignInPlugin compatibility wrapper returns AppleCredential', () async {
+    test('AppleSignInPlugin compatibility wrapper returns AppleCredential',
+        () async {
       final AppleCredential cred = await AppleSignInPlugin.signIn(
         scopes: {AppleAuthorizationScope.email},
       );

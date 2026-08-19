@@ -41,7 +41,8 @@ class InteractiveMenu {
   }
 
   String? _promptUser(String label, {String? defaultValue}) {
-    final displayDefault = defaultValue != null ? ' (${_painter.textPen(defaultValue)})' : '';
+    final displayDefault =
+        defaultValue != null ? ' (${_painter.textPen(defaultValue)})' : '';
     stdout.write('  $label$displayDefault: ');
     final String? input = stdin.readLineSync()?.trim();
     return (input == null || input.isEmpty) ? defaultValue : input;
@@ -57,7 +58,8 @@ class InteractiveMenu {
     while (true) {
       _clearScreen();
       final bool isFlutter = await isFlutterProject();
-      final status = isFlutter ? 'Flutter Project Detected' : 'No Flutter Project Found';
+      final status =
+          isFlutter ? 'Flutter Project Detected' : 'No Flutter Project Found';
       final statusPen = isFlutter ? (AnsiPen()..green()) : (AnsiPen()..red());
 
       _painter.drawHeader('DIG CLI DASHBOARD', width: _width);
@@ -142,7 +144,8 @@ class InteractiveMenu {
         case '1':
         case '2':
           final type = r == '1' ? 'apk' : 'bundle';
-          final String? out = _promptUser('Output directory', defaultValue: 'Desktop');
+          final String? out =
+              _promptUser('Output directory', defaultValue: 'Desktop');
           final String? name = _promptUser('Custom name prefix (optional)');
           final args = ['create', type];
           if (out != 'Desktop') {
@@ -155,7 +158,8 @@ class InteractiveMenu {
           await runner.run(args);
           await _pause();
         case '3':
-          final String? out = _promptUser('Output directory', defaultValue: 'Desktop');
+          final String? out =
+              _promptUser('Output directory', defaultValue: 'Desktop');
           final String? name = _promptUser('Custom name prefix (optional)');
           final args = ['ios'];
           if (out != 'Desktop') {
@@ -384,7 +388,8 @@ class InteractiveMenu {
     stdout.write('  Wipe global build caches (Xcode/Gradle)? (y/N): ');
     final String? response = stdin.readLineSync()?.trim().toLowerCase();
     final args = response == 'y' ? ['clean', '--global'] : ['clean'];
-    final CommandRunner<dynamic> runner = CommandRunner('dg', 'temp')..addCommand(CleanCommand());
+    final CommandRunner<dynamic> runner = CommandRunner('dg', 'temp')
+      ..addCommand(CleanCommand());
     await runner.run(args);
   }
 

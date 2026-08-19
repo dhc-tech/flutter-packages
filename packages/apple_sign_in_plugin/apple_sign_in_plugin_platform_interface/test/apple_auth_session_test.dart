@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 String _createTestJwt(Map<String, dynamic> payload) {
   String toBase64Url(Map<String, dynamic> jsonMap) {
-    return base64Url.encode(utf8.encode(jsonEncode(jsonMap))).replaceAll('=', '');
+    return base64Url
+        .encode(utf8.encode(jsonEncode(jsonMap)))
+        .replaceAll('=', '');
   }
 
   final String h = toBase64Url({'alg': 'HS256', 'typ': 'JWT'});
@@ -31,7 +33,9 @@ const _capabilities = AppleSignInCapabilities(
 
 void main() {
   group('AppleAuthSession.fromCredential email fallback', () {
-    test('uses credential.email directly when present, without decoding the token', () {
+    test(
+        'uses credential.email directly when present, without decoding the token',
+        () {
       final credential = AppleCredential(
         userIdentifier: 'user-1',
         email: 'direct@example.com',
@@ -51,7 +55,8 @@ void main() {
       expect(session.metadata.receivedEmail, isTrue);
     });
 
-    test('falls back to decoding the email claim from identityToken when credential.email is null',
+    test(
+        'falls back to decoding the email claim from identityToken when credential.email is null',
         () {
       final credential = AppleCredential(
         userIdentifier: 'user-2',
@@ -70,7 +75,8 @@ void main() {
       expect(session.metadata.receivedEmail, isTrue);
     });
 
-    test('leaves email null when neither the credential nor the token has one', () {
+    test('leaves email null when neither the credential nor the token has one',
+        () {
       final credential = AppleCredential(
         userIdentifier: 'user-3',
         state: '',

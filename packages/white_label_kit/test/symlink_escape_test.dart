@@ -31,8 +31,9 @@ void main() {
     final secret = File(p.join(secretDir.path, 'leak.png'))
       ..writeAsStringSync('TOP_SECRET_BYTES_OUTSIDE_TENANT_TREE');
 
-    final assetsDir = Directory(p.join(projectRoot.path, 'tenants', 'acme', 'assets'))
-      ..createSync(recursive: true);
+    final assetsDir = Directory(
+      p.join(projectRoot.path, 'tenants', 'acme', 'assets'),
+    )..createSync(recursive: true);
     final String linkPath = p.join(assetsDir.path, 'logo.png');
     Link(linkPath).createSync(secret.path);
 
@@ -47,8 +48,9 @@ void main() {
   });
 
   test('assetPath still accepts a real, non-symlinked file', () {
-    final assetsDir = Directory(p.join(projectRoot.path, 'tenants', 'acme', 'assets'))
-      ..createSync(recursive: true);
+    final assetsDir = Directory(
+      p.join(projectRoot.path, 'tenants', 'acme', 'assets'),
+    )..createSync(recursive: true);
     File(p.join(assetsDir.path, 'logo.png')).writeAsStringSync('REAL_LOGO');
 
     final ValidationResult result = ConfigValidator.assetPath(
@@ -66,19 +68,26 @@ void main() {
     final secret = File(p.join(secretDir.path, 'leak.png'))
       ..writeAsStringSync('TOP_SECRET_BYTES_OUTSIDE_TENANT_TREE');
 
-    final assetsDir = Directory(p.join(projectRoot.path, 'tenants', 'acme', 'assets'))
-      ..createSync(recursive: true);
+    final assetsDir = Directory(
+      p.join(projectRoot.path, 'tenants', 'acme', 'assets'),
+    )..createSync(recursive: true);
     Link(p.join(assetsDir.path, 'logo.png')).createSync(secret.path);
 
     const tenant = TenantConfig(
       id: 'acme',
       name: 'Acme',
-      android: AndroidTenantConfig(applicationId: 'com.example.acme', appName: 'Acme'),
+      android: AndroidTenantConfig(
+        applicationId: 'com.example.acme',
+        appName: 'Acme',
+      ),
       ios: IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme'),
       assets: TenantAssets(logo: 'tenants/acme/assets/logo.png'),
     );
 
-    expect(() => TenantStager(projectRoot.path).stage(tenant), throwsA(isA<StateError>()));
+    expect(
+      () => TenantStager(projectRoot.path).stage(tenant),
+      throwsA(isA<StateError>()),
+    );
     expect(TenantStager(projectRoot.path).stagedAssetNames('acme'), isEmpty);
   });
 }

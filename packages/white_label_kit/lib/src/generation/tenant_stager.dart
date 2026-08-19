@@ -57,7 +57,8 @@ class TenantStager {
   final String projectRoot;
 
   /// Absolute path to the tenant's staging output directory.
-  String stagingDirFor(String tenantId) => p.join(projectRoot, '.generated', tenantId);
+  String stagingDirFor(String tenantId) =>
+      p.join(projectRoot, '.generated', tenantId);
 
   /// Stages [tenant]. See the class doc for the atomicity/path-safety/
   /// collision guarantees — they apply identically to
@@ -69,7 +70,8 @@ class TenantStager {
   String stage(TenantConfig tenant) {
     final groups = <_StageGroup>[
       _StageGroup('assets', tenant.assets.all.toList()),
-      if (tenant.firebase != null) _StageGroup('firebase', tenant.firebase!.all.toList()),
+      if (tenant.firebase != null)
+        _StageGroup('firebase', tenant.firebase!.all.toList()),
     ];
 
     // Guarantee 1: re-validate here, don't trust the caller went through
@@ -84,7 +86,9 @@ class TenantStager {
           projectRoot: projectRoot,
         );
         if (result is Invalid) {
-          throw StateError('Refusing to stage tenant "${tenant.id}": ${result.message}');
+          throw StateError(
+            'Refusing to stage tenant "${tenant.id}": ${result.message}',
+          );
         }
       }
       // Guarantee 3: reject basename collisions within this group before
@@ -105,7 +109,8 @@ class TenantStager {
 
     try {
       for (final group in groups) {
-        final destDir = Directory(p.join(tempDir.path, group.name))..createSync(recursive: true);
+        final destDir = Directory(p.join(tempDir.path, group.name))
+          ..createSync(recursive: true);
         for (final String relativePath in group.paths) {
           final source = File(p.join(projectRoot, relativePath));
           if (!source.existsSync()) {
@@ -167,7 +172,8 @@ class TenantStager {
   /// Lists the basenames present in a tenant's staged `assets/` dir — the
   /// primitive the mandatory isolation test is built on
   /// (`stagedAssetNames('acme')` must never contain a beta-only filename).
-  List<String> stagedAssetNames(String tenantId) => _listStagedBasenames(tenantId, 'assets');
+  List<String> stagedAssetNames(String tenantId) =>
+      _listStagedBasenames(tenantId, 'assets');
 
   /// Lists the basenames present in a tenant's staged `firebase/` dir —
   /// empty if the tenant declared no `firebase:` config (or nothing has
@@ -181,7 +187,12 @@ class TenantStager {
     if (!dir.existsSync()) {
       return const [];
     }
-    return dir.listSync().whereType<File>().map((f) => p.basename(f.path)).toList()..sort();
+    return dir
+        .listSync()
+        .whereType<File>()
+        .map((f) => p.basename(f.path))
+        .toList()
+      ..sort();
   }
 }
 

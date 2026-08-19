@@ -17,13 +17,15 @@ import 'package:flutter/services.dart';
 /// and native callback validation.
 abstract class AppleSignInDesktopImpl extends AppleSignInPlatform {
   /// Constructs [AppleSignInDesktopImpl] with specific channel name.
-  AppleSignInDesktopImpl({required String channelName}) : channel = MethodChannel(channelName);
+  AppleSignInDesktopImpl({required String channelName})
+      : channel = MethodChannel(channelName);
 
   /// The platform method channel.
   @visibleForTesting
   final MethodChannel channel;
 
-  static const String _kAuthorizeUrl = 'https://appleid.apple.com/auth/authorize';
+  static const String _kAuthorizeUrl =
+      'https://appleid.apple.com/auth/authorize';
 
   /// Configuration for desktop OAuth flow.
   // ignore: use_setters_to_change_properties
@@ -150,7 +152,8 @@ abstract class AppleSignInDesktopImpl extends AppleSignInPlatform {
     required String state,
     String? nonce,
   }) {
-    final String scopeString = scopes.map((AppleAuthorizationScope s) => s.restApiValue).join(' ');
+    final String scopeString =
+        scopes.map((AppleAuthorizationScope s) => s.restApiValue).join(' ');
     final params = <String, String>{
       'client_id': config.serviceId,
       'redirect_uri': config.redirectUri,
@@ -188,9 +191,11 @@ abstract class AppleSignInDesktopImpl extends AppleSignInPlatform {
       );
     }
 
-    final String? code = params['code'] ?? params['auth_code'] ?? params['authorization_code'];
+    final String? code =
+        params['code'] ?? params['auth_code'] ?? params['authorization_code'];
     final String? idToken = params['id_token'];
-    final String? userIdentifier = params['user_identifier'] ?? _extractSubFromIdToken(idToken);
+    final String? userIdentifier =
+        params['user_identifier'] ?? _extractSubFromIdToken(idToken);
 
     if (code == null && idToken == null && userIdentifier == null) {
       throw const AppleSignInException(
@@ -294,7 +299,8 @@ abstract class AppleSignInDesktopImpl extends AppleSignInPlatform {
       default:
         code = AppleSignInErrorCode.authorizationFailed;
     }
-    return AppleSignInException(code, e.message ?? 'Native authorization failed.', e.details);
+    return AppleSignInException(
+        code, e.message ?? 'Native authorization failed.', e.details);
   }
 }
 

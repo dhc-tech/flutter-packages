@@ -66,9 +66,13 @@ class HashKeyCommand extends Command<void> {
     var storepass = argResults?['storepass'] as String?;
     var keypass = argResults?['keypass'] as String?;
 
-    if (keystore == null || alias == null || storepass == null || keypass == null) {
+    if (keystore == null ||
+        alias == null ||
+        storepass == null ||
+        keypass == null) {
       // Auto-detect project key.properties
-      final Map<String, String>? projectConfig = await _tryReadProjectKeyProperties();
+      final Map<String, String>? projectConfig =
+          await _tryReadProjectKeyProperties();
       if (projectConfig != null && projectConfig.containsKey('storeFile')) {
         final String? stFile = projectConfig['storeFile'];
         kLog(
@@ -89,7 +93,10 @@ class HashKeyCommand extends Command<void> {
       }
 
       // If user declined or not fully resolved via key.properties, ask manually
-      if (keystore == null || alias == null || storepass == null || keypass == null) {
+      if (keystore == null ||
+          alias == null ||
+          storepass == null ||
+          keypass == null) {
         kLog('\n🔑 Release Key Details Required', type: LogType.warning);
 
         if (keystore == null) {
@@ -151,8 +158,10 @@ class HashKeyCommand extends Command<void> {
 
     try {
       // 1. Check for required tools
-      final ProcessResult keytoolCheck = await Process.run('which', ['keytool']);
-      final ProcessResult opensslCheck = await Process.run('which', ['openssl']);
+      final ProcessResult keytoolCheck =
+          await Process.run('which', ['keytool']);
+      final ProcessResult opensslCheck =
+          await Process.run('which', ['openssl']);
 
       if (keytoolCheck.exitCode != 0) {
         kLog(
@@ -169,7 +178,8 @@ class HashKeyCommand extends Command<void> {
         return;
       }
 
-      final ProcessResult result = await runWithSpinner('🔍 Processing...', () async {
+      final ProcessResult result =
+          await runWithSpinner('🔍 Processing...', () async {
         // We use piping manually in Dart for better security (avoids sh -c issues)
         final Process keytoolProc = await Process.start('keytool', [
           '-exportcert',
@@ -183,22 +193,26 @@ class HashKeyCommand extends Command<void> {
           keypass,
         ]);
 
-        final Process sha1Proc = await Process.start('openssl', ['sha1', '-binary']);
+        final Process sha1Proc =
+            await Process.start('openssl', ['sha1', '-binary']);
         final Process base64Proc = await Process.start('openssl', ['base64']);
 
         // Pipe: keytool -> sha1 -> base64
         await keytoolProc.stdout.pipe(sha1Proc.stdin);
         await sha1Proc.stdout.pipe(base64Proc.stdin);
 
-        final String hashResult = await base64Proc.stdout.transform(const Utf8Decoder()).join();
+        final String hashResult =
+            await base64Proc.stdout.transform(const Utf8Decoder()).join();
         final int keytoolExit = await keytoolProc.exitCode;
         final int sha1Exit = await sha1Proc.exitCode;
         final int base64Exit = await base64Proc.exitCode;
 
-        final String stderrOutput = await keytoolProc.stderr.transform(const Utf8Decoder()).join();
+        final String stderrOutput =
+            await keytoolProc.stderr.transform(const Utf8Decoder()).join();
 
-        final finalExitCode =
-            (keytoolExit != 0) ? keytoolExit : (sha1Exit != 0 ? sha1Exit : base64Exit);
+        final finalExitCode = (keytoolExit != 0)
+            ? keytoolExit
+            : (sha1Exit != 0 ? sha1Exit : base64Exit);
 
         return ProcessResult(0, finalExitCode, hashResult, stderrOutput);
       });
@@ -272,6 +286,7 @@ class HashKeyCommand extends Command<void> {
 /// Handles the hash-key command from the interactive menu.
 Future<void> handleHashKeyCommand(List<String> args) async {
   final command = HashKeyCommand();
-  final CommandRunner<dynamic> runner = CommandRunner('dg', 'Hash Key')..addCommand(command);
+  final CommandRunner<dynamic> runner = CommandRunner('dg', 'Hash Key')
+    ..addCommand(command);
   await runner.run(['hash-key', ...args]);
 }

@@ -86,7 +86,8 @@ class ProjectRebrander {
     bool recursive = true,
   }) async {
     try {
-      final List<FileSystemEntity> entities = dir.listSync(recursive: recursive);
+      final List<FileSystemEntity> entities =
+          dir.listSync(recursive: recursive);
       for (final entity in entities) {
         if (entity is! File) {
           continue;
@@ -301,7 +302,9 @@ class ProjectRebrander {
       content = content.replaceAllMapped(
         RegExp(r'namespace\s*(=)?\s*"[^"]+"'),
         (match) {
-          return match.group(1) != null ? 'namespace = "$newBundleId"' : 'namespace "$newBundleId"';
+          return match.group(1) != null
+              ? 'namespace = "$newBundleId"'
+              : 'namespace "$newBundleId"';
         },
       );
 
@@ -428,7 +431,8 @@ class ProjectRebrander {
 
           // Cleanup empty parent directories
           var current = sourceDir;
-          while (current.path != p.join(appSrc, type, lang) && (await current.list().isEmpty)) {
+          while (current.path != p.join(appSrc, type, lang) &&
+              (await current.list().isEmpty)) {
             final Directory parent = current.parent;
             await current.delete();
             current = parent;
@@ -443,8 +447,11 @@ class ProjectRebrander {
       for (final lang in ['kotlin', 'java']) {
         final sourceDir = Directory(p.join(appSrc, type, lang, newPathSegment));
         if (sourceDir.existsSync()) {
-          await for (final FileSystemEntity entity in sourceDir.list(recursive: true)) {
-            if (entity is File && (entity.path.endsWith('.kt') || entity.path.endsWith('.java'))) {
+          await for (final FileSystemEntity entity
+              in sourceDir.list(recursive: true)) {
+            if (entity is File &&
+                (entity.path.endsWith('.kt') ||
+                    entity.path.endsWith('.java'))) {
               String content = await entity.readAsString();
               content = content.replaceFirst(
                 RegExp(r'^package\s+[\w\.]+', multiLine: true),

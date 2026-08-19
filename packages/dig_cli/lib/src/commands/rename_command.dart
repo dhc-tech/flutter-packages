@@ -25,7 +25,8 @@ class RenameCommand extends Command<void> {
   @override
   final name = 'rename';
   @override
-  final description = 'Renames the Flutter app and changes the bundle ID / package name.';
+  final description =
+      'Renames the Flutter app and changes the bundle ID / package name.';
 
   @override
   Future<void> run() async {

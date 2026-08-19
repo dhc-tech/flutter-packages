@@ -116,7 +116,8 @@ class AppleSignInWebImpl extends AppleSignInPlatform {
     await _ensureSdkLoaded();
 
     final String effectiveState = state ?? _generateSecureRandom(32);
-    final String scopeString = scopes.map((AppleAuthorizationScope s) => s.restApiValue).join(' ');
+    final String scopeString =
+        scopes.map((AppleAuthorizationScope s) => s.restApiValue).join(' ');
 
     final initConfig = <String, Object?>{
       'clientId': currentConfig.serviceId,

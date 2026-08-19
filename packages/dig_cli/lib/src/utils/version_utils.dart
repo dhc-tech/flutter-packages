@@ -11,10 +11,12 @@ class VersionUtils {
   static Future<String?> getLatestStableVersion() async {
     try {
       final Uri url = Uri.parse('https://pub.dev/api/packages/dig_cli');
-      final http.Response response = await http.get(url).timeout(const Duration(seconds: 2));
+      final http.Response response =
+          await http.get(url).timeout(const Duration(seconds: 2));
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
-        final latestVersion = (json['latest'] as Map<String, dynamic>)['version'] as String;
+        final latestVersion =
+            (json['latest'] as Map<String, dynamic>)['version'] as String;
         return latestVersion;
       }
     } catch (_) {}
@@ -34,7 +36,8 @@ class VersionUtils {
   static Future<String?> getLatestPreReleaseVersion() async {
     try {
       final Uri url = Uri.parse('https://pub.dev/api/packages/dig_cli');
-      final http.Response response = await http.get(url).timeout(const Duration(seconds: 2));
+      final http.Response response =
+          await http.get(url).timeout(const Duration(seconds: 2));
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
         final versions = json['versions'] as List<dynamic>;

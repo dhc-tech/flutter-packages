@@ -64,7 +64,8 @@ void main() {
   });
 
   group('AppleCredentialState.fromWireValue', () {
-    test('maps native ASAuthorizationAppleIDProvider.CredentialState values', () {
+    test('maps native ASAuthorizationAppleIDProvider.CredentialState values',
+        () {
       expect(
         AppleCredentialState.fromWireValue(0),
         AppleCredentialState.authorized,
@@ -181,7 +182,8 @@ void main() {
       expect(log.single.method, 'signIn');
     });
 
-    test('signIn rejects an empty scope set without calling the channel', () async {
+    test('signIn rejects an empty scope set without calling the channel',
+        () async {
       expect(
         () => platform.signIn(scopes: <AppleAuthorizationScope>{}),
         throwsA(

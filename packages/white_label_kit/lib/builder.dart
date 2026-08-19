@@ -60,9 +60,18 @@ class WhiteLabelBuilder implements Builder {
       rethrow;
     }
 
-    final String selectedId = resolveGeneratorTenantId(config, environment: environmentOverride);
+    final String selectedId = resolveGeneratorTenantId(
+      config,
+      environment: environmentOverride,
+    );
 
-    final outputId = AssetId(buildStep.inputId.package, 'lib/white_label.g.dart');
-    await buildStep.writeAsString(outputId, generateWhiteLabelSource(config, selectedId));
+    final outputId = AssetId(
+      buildStep.inputId.package,
+      'lib/white_label.g.dart',
+    );
+    await buildStep.writeAsString(
+      outputId,
+      generateWhiteLabelSource(config, selectedId),
+    );
   }
 }

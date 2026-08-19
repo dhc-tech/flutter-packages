@@ -27,7 +27,8 @@ class CreateJksCommand extends Command<void> {
   @override
   final name = 'create-jks';
   @override
-  final description = 'Generates a new Android JKS keystore and automates signing setup.';
+  final description =
+      'Generates a new Android JKS keystore and automates signing setup.';
   @override
   Future<void> run() async {
     final noInteractive = argResults?['no-interactive'] == true;
@@ -251,7 +252,8 @@ class CreateJksCommand extends Command<void> {
 
     // 1. Add Imports
     if (!content.contains('java.util.Properties')) {
-      content = 'import java.util.Properties\nimport java.io.FileInputStream\n$content';
+      content =
+          'import java.util.Properties\nimport java.io.FileInputStream\n$content';
     }
 
     // 2. Add properties loading logic
@@ -273,7 +275,8 @@ if (keystorePropertiesFile.exists()) {
 
     if (!content.contains('keystorePropertiesFile')) {
       if (content.contains('plugins {')) {
-        final int pluginsEnd = content.indexOf('}', content.indexOf('plugins {')) + 1;
+        final int pluginsEnd =
+            content.indexOf('}', content.indexOf('plugins {')) + 1;
         content =
             '${content.substring(0, pluginsEnd)}\n$loadingSnippet${content.substring(pluginsEnd)}';
       } else {
@@ -300,7 +303,8 @@ if (keystorePropertiesFile.exists()) {
 
     // Update or Insert signingConfigs
     if (content.contains('signingConfigs {')) {
-      if (!content.contains('release {') && !content.contains('create("release")')) {
+      if (!content.contains('release {') &&
+          !content.contains('create("release")')) {
         content = content.replaceFirst(
           'signingConfigs {',
           'signingConfigs {\n$releaseConfig',

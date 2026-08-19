@@ -19,7 +19,9 @@ void main() {
   late Directory projectRoot;
 
   setUp(() {
-    projectRoot = Directory.systemTemp.createTempSync('firebase_isolation_test_');
+    projectRoot = Directory.systemTemp.createTempSync(
+      'firebase_isolation_test_',
+    );
 
     _writeTenantFirebaseFiles(
       projectRoot,
@@ -76,12 +78,18 @@ white_label:
   test('config parses optional firebase block per tenant', () {
     final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
 
-    expect(config['acme'].firebase?.googleServicesJson, 'tenants/acme/config/google-services.json');
+    expect(
+      config['acme'].firebase?.googleServicesJson,
+      'tenants/acme/config/google-services.json',
+    );
     expect(
       config['acme'].firebase?.googleServiceInfoPlist,
       'tenants/acme/config/GoogleService-Info.plist',
     );
-    expect(config['beta'].firebase?.googleServicesJson, 'tenants/beta/config/google-services.json');
+    expect(
+      config['beta'].firebase?.googleServicesJson,
+      'tenants/beta/config/google-services.json',
+    );
   });
 
   test('firebase block is optional: a tenant without it parses with a null firebase', () {
@@ -118,20 +126,30 @@ white_label:
     stager.stage(config['acme']);
 
     final List<String> acmeFirebase = stager.stagedFirebaseFileNames('acme');
-    expect(acmeFirebase, unorderedEquals(['GoogleService-Info.plist', 'google-services.json']));
+    expect(
+      acmeFirebase,
+      unorderedEquals(['GoogleService-Info.plist', 'google-services.json']),
+    );
 
     final String acmeGoogleServices = File(
       p.join(stager.stagingDirFor('acme'), 'firebase', 'google-services.json'),
     ).readAsStringSync();
     expect(acmeGoogleServices, 'ACME_GOOGLE_SERVICES');
     final String acmeGoogleServiceInfo = File(
-      p.join(stager.stagingDirFor('acme'), 'firebase', 'GoogleService-Info.plist'),
+      p.join(
+        stager.stagingDirFor('acme'),
+        'firebase',
+        'GoogleService-Info.plist',
+      ),
     ).readAsStringSync();
     expect(acmeGoogleServiceInfo, 'ACME_GOOGLE_SERVICE_INFO');
 
     // Hard requirement: nothing beta-flavored anywhere in A's staged
     // firebase output, and B's staging directory doesn't even exist yet.
-    expect(acmeFirebase.any((name) => name.toLowerCase().contains('beta')), isFalse);
+    expect(
+      acmeFirebase.any((name) => name.toLowerCase().contains('beta')),
+      isFalse,
+    );
     expect(Directory(stager.stagingDirFor('beta')).existsSync(), isFalse);
   });
 
@@ -148,35 +166,48 @@ white_label:
     expect(Directory(stager.stagingDirFor('acme')).existsSync(), isFalse);
   });
 
-  test('A -> B -> A: no stale Firebase file survives across repeated staging', () {
-    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
-    final stager = TenantStager(projectRoot.path);
+  test(
+    'A -> B -> A: no stale Firebase file survives across repeated staging',
+    () {
+      final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
+      final stager = TenantStager(projectRoot.path);
 
-    stager.stage(config['acme']);
-    stager.stage(config['beta']);
-    stager.stage(config['acme']);
+      stager.stage(config['acme']);
+      stager.stage(config['beta']);
+      stager.stage(config['acme']);
 
-    // Prove A's re-stage is genuinely A again, byte-for-byte — not a
-    // stale leftover from the B stage that happened in between.
-    final String acmeGoogleServices = File(
-      p.join(stager.stagingDirFor('acme'), 'firebase', 'google-services.json'),
-    ).readAsStringSync();
-    expect(acmeGoogleServices, 'ACME_GOOGLE_SERVICES');
-    expect(
-      stager.stagedFirebaseFileNames('acme'),
-      unorderedEquals(['GoogleService-Info.plist', 'google-services.json']),
-    );
+      // Prove A's re-stage is genuinely A again, byte-for-byte — not a
+      // stale leftover from the B stage that happened in between.
+      final String acmeGoogleServices = File(
+        p.join(
+          stager.stagingDirFor('acme'),
+          'firebase',
+          'google-services.json',
+        ),
+      ).readAsStringSync();
+      expect(acmeGoogleServices, 'ACME_GOOGLE_SERVICES');
+      expect(
+        stager.stagedFirebaseFileNames('acme'),
+        unorderedEquals(['GoogleService-Info.plist', 'google-services.json']),
+      );
 
-    // B's staging output from the middle step is untouched by the final
-    // A stage — each tenant's staging output is independent.
-    final String betaGoogleServices = File(
-      p.join(stager.stagingDirFor('beta'), 'firebase', 'google-services.json'),
-    ).readAsStringSync();
-    expect(betaGoogleServices, 'BETA_GOOGLE_SERVICES');
-  });
+      // B's staging output from the middle step is untouched by the final
+      // A stage — each tenant's staging output is independent.
+      final String betaGoogleServices = File(
+        p.join(
+          stager.stagingDirFor('beta'),
+          'firebase',
+          'google-services.json',
+        ),
+      ).readAsStringSync();
+      expect(betaGoogleServices, 'BETA_GOOGLE_SERVICES');
+    },
+  );
 
-  test('validation rejects a firebase path that escapes its own tenant directory', () {
-    File(p.join(projectRoot.path, 'white_label.yaml')).writeAsStringSync('''
+  test(
+    'validation rejects a firebase path that escapes its own tenant directory',
+    () {
+      File(p.join(projectRoot.path, 'white_label.yaml')).writeAsStringSync('''
 white_label:
   default_tenant: acme
   tenants:
@@ -204,17 +235,18 @@ white_label:
         logo: "tenants/beta/assets/logo.png"
 ''');
 
-    expect(
-      () => WhiteLabelConfig.load(projectRoot.path),
-      throwsA(
-        isA<WhiteLabelConfigException>().having(
-          (e) => e.errors.join('\n'),
-          'errors',
-          contains('must live under tenants/acme/'),
+      expect(
+        () => WhiteLabelConfig.load(projectRoot.path),
+        throwsA(
+          isA<WhiteLabelConfigException>().having(
+            (e) => e.errors.join('\n'),
+            'errors',
+            contains('must live under tenants/acme/'),
+          ),
         ),
-      ),
-    );
-  });
+      );
+    },
+  );
 
   test('stage() re-validates a hand-built TenantConfig with a cross-tenant firebase path', () {
     // Simulates a consumer bypassing WhiteLabelConfig/ConfigValidator
@@ -223,7 +255,10 @@ white_label:
     const evil = TenantConfig(
       id: 'acme',
       name: 'Acme',
-      android: AndroidTenantConfig(applicationId: 'com.example.acme', appName: 'Acme'),
+      android: AndroidTenantConfig(
+        applicationId: 'com.example.acme',
+        appName: 'Acme',
+      ),
       ios: IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme'),
       assets: TenantAssets(logo: 'tenants/acme/assets/logo.png'),
       firebase: TenantFirebaseConfig(
@@ -231,10 +266,16 @@ white_label:
       ),
     );
 
-    expect(() => TenantStager(projectRoot.path).stage(evil), throwsA(isA<StateError>()));
+    expect(
+      () => TenantStager(projectRoot.path).stage(evil),
+      throwsA(isA<StateError>()),
+    );
     // Nothing should have been staged at all — reject before writing.
     expect(TenantStager(projectRoot.path).stagedAssetNames('acme'), isEmpty);
-    expect(TenantStager(projectRoot.path).stagedFirebaseFileNames('acme'), isEmpty);
+    expect(
+      TenantStager(projectRoot.path).stagedFirebaseFileNames('acme'),
+      isEmpty,
+    );
   });
 }
 
@@ -246,11 +287,18 @@ void _writeTenantFirebaseFiles(
 }) {
   final dir = Directory(p.join(projectRoot.path, 'tenants', id, 'config'))
     ..createSync(recursive: true);
-  File(p.join(dir.path, 'google-services.json')).writeAsStringSync(googleServicesContent);
-  File(p.join(dir.path, 'GoogleService-Info.plist')).writeAsStringSync(googleServiceInfoContent);
+  File(p.join(dir.path, 'google-services.json'))
+      .writeAsStringSync(googleServicesContent);
+  File(p.join(dir.path, 'GoogleService-Info.plist'))
+      .writeAsStringSync(googleServiceInfoContent);
 }
 
-void _writeTenantAsset(Directory projectRoot, String tenantId, String filename, String content) {
+void _writeTenantAsset(
+  Directory projectRoot,
+  String tenantId,
+  String filename,
+  String content,
+) {
   final dir = Directory(p.join(projectRoot.path, 'tenants', tenantId, 'assets'))
     ..createSync(recursive: true);
   File(p.join(dir.path, filename)).writeAsStringSync(content);

@@ -10,7 +10,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 String _fakeIdToken(String sub, [String? email]) {
-  String b64(Map<String, dynamic> m) => base64Url.encode(utf8.encode(jsonEncode(m)));
+  String b64(Map<String, dynamic> m) =>
+      base64Url.encode(utf8.encode(jsonEncode(m)));
   final header = b64({'alg': 'RS256', 'kid': 'testkey'});
   final payloadMap = <String, dynamic>{
     'sub': sub,
@@ -129,7 +130,10 @@ void main() {
           'com.example.app://apple-callback?code=authNative1&state=test-state&id_token=${_fakeIdToken("uNative1")}&user=${Uri.encodeComponent(userJson)}';
 
       final credential = await impl.signIn(
-        scopes: {AppleAuthorizationScope.email, AppleAuthorizationScope.fullName},
+        scopes: {
+          AppleAuthorizationScope.email,
+          AppleAuthorizationScope.fullName
+        },
         state: 'test-state',
       );
 

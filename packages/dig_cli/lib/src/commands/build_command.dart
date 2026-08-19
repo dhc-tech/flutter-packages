@@ -24,13 +24,15 @@ class BuildCommand extends Command<void> {
     );
   }
   @override
-  final name = 'create'; // Kept as 'create' for compatibility with previous version
+  final name =
+      'create'; // Kept as 'create' for compatibility with previous version
   @override
   final description = 'Builds the Flutter project into an APK or App Bundle.';
 
   @override
   Future<void> run() async {
-    final String buildType = argResults?.rest.isNotEmpty ?? false ? argResults!.rest.first : 'apk';
+    final String buildType =
+        argResults?.rest.isNotEmpty ?? false ? argResults!.rest.first : 'apk';
     var outputDir = argResults?['output'] as String?;
     var customName = argResults?['name'] as String?;
     bool includeTimestamp = argResults?['timestamp'] as bool? ?? true;

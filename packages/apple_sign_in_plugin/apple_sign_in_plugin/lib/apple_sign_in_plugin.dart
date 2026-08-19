@@ -33,11 +33,13 @@ class AppleSignIn {
   /// High-level stream of authentication lifecycle events.
   Stream<AppleAuthEvent> get events {
     _platformRevocationSub?.cancel();
-    _platformRevocationSub = AppleSignInPlatform.instance.onCredentialRevoked.listen((_) {
+    _platformRevocationSub =
+        AppleSignInPlatform.instance.onCredentialRevoked.listen((_) {
       _eventController.add(
         const AppleAuthEvent(
           type: AppleAuthEventType.credentialRevoked,
-          message: 'Received native credentialRevokedNotification from Apple OS.',
+          message:
+              'Received native credentialRevokedNotification from Apple OS.',
         ),
       );
     });
@@ -54,7 +56,8 @@ class AppleSignIn {
     String? state,
   }) async {
     try {
-      final AppleCredential credential = await AppleSignInPlatform.instance.signIn(
+      final AppleCredential credential =
+          await AppleSignInPlatform.instance.signIn(
         scopes: scopes,
         nonce: nonce,
         state: state,
@@ -99,7 +102,8 @@ class AppleSignIn {
   ///
   /// **Note:** This clears local application state and does NOT revoke Apple authorization.
   Future<void> signOut({String? userIdentifier}) async {
-    final String? effectiveId = userIdentifier ?? _currentSession?.identity.userIdentifier;
+    final String? effectiveId =
+        userIdentifier ?? _currentSession?.identity.userIdentifier;
     _currentSession = null;
 
     _eventController.add(
@@ -134,7 +138,8 @@ class AppleSignIn {
   }
 
   /// Listens for native credential revocation events on iOS and macOS.
-  Stream<void> get onCredentialRevoked => AppleSignInPlatform.instance.onCredentialRevoked;
+  Stream<void> get onCredentialRevoked =>
+      AppleSignInPlatform.instance.onCredentialRevoked;
 
   /// High-level user disconnect operation.
   ///
@@ -145,7 +150,8 @@ class AppleSignIn {
     String? userIdentifier,
     bool forceLocalSignOut = true,
   }) async {
-    final String? effectiveId = userIdentifier ?? _currentSession?.identity.userIdentifier;
+    final String? effectiveId =
+        userIdentifier ?? _currentSession?.identity.userIdentifier;
 
     if (forceLocalSignOut) {
       await signOut(userIdentifier: effectiveId);
@@ -161,7 +167,8 @@ class AppleSignIn {
     // If native credential state query is available (iOS/macOS), inspect current authorization.
     if (caps.nativeCredentialState && effectiveId != null) {
       try {
-        final AppleCredentialState state = await getCredentialState(effectiveId);
+        final AppleCredentialState state =
+            await getCredentialState(effectiveId);
         if (state == AppleCredentialState.revoked) {
           return const AppleDisconnectResult(
             status: AppleDisconnectStatus.alreadyRevoked,
@@ -192,7 +199,8 @@ class AppleSignIn {
 
     return const AppleDisconnectResult(
       status: AppleDisconnectStatus.unsupported,
-      message: 'Programmatic revocation is unsupported on this platform without a backend adapter.',
+      message:
+          'Programmatic revocation is unsupported on this platform without a backend adapter.',
     );
   }
 
@@ -312,5 +320,6 @@ class AppleSignInPlugin {
       AppleSignIn.instance.getCredentialState(userIdentifier);
 
   /// Calls [AppleSignIn.instance.onCredentialRevoked].
-  static Stream<void> get onCredentialRevoked => AppleSignIn.instance.onCredentialRevoked;
+  static Stream<void> get onCredentialRevoked =>
+      AppleSignIn.instance.onCredentialRevoked;
 }

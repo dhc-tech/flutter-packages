@@ -78,7 +78,11 @@ class TenantConfig {
 /// optional Android-only version override).
 class AndroidTenantConfig {
   /// Creates an Android tenant config.
-  const AndroidTenantConfig({required this.applicationId, required this.appName, this.version});
+  const AndroidTenantConfig({
+    required this.applicationId,
+    required this.appName,
+    this.version,
+  });
 
   /// Must be a valid Java package name — see [ConfigValidator.androidApplicationId].
   final String applicationId;
@@ -97,7 +101,11 @@ class AndroidTenantConfig {
 /// iOS-only version override).
 class IosTenantConfig {
   /// Creates an iOS tenant config.
-  const IosTenantConfig({required this.bundleId, required this.appName, this.version});
+  const IosTenantConfig({
+    required this.bundleId,
+    required this.appName,
+    this.version,
+  });
 
   /// Must be a valid reverse-DNS bundle identifier — see [ConfigValidator.iosBundleId].
   final String bundleId;
@@ -164,7 +172,10 @@ class TenantAssets {
 /// the same [ConfigValidator.assetPath], not a separate/weaker rule.
 class TenantFirebaseConfig {
   /// Creates a tenant's optional Firebase config file paths.
-  const TenantFirebaseConfig({this.googleServicesJson, this.googleServiceInfoPlist});
+  const TenantFirebaseConfig({
+    this.googleServicesJson,
+    this.googleServiceInfoPlist,
+  });
 
   /// Path to Android's `google-services.json`, if this tenant uses Firebase
   /// on Android.

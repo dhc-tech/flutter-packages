@@ -76,7 +76,9 @@ abstract final class ConfigValidator {
   /// (it's reserved for separating name from build number).
   static ValidationResult semanticVersion(String value) {
     if (!RegExp(r'^\d+\.\d+\.\d+$').hasMatch(value)) {
-      return Invalid('Invalid version "$value". Expected MAJOR.MINOR.PATCH, e.g. "1.2.0".');
+      return Invalid(
+        'Invalid version "$value". Expected MAJOR.MINOR.PATCH, e.g. "1.2.0".',
+      );
     }
     return const Valid();
   }
@@ -87,7 +89,9 @@ abstract final class ConfigValidator {
   /// rule itself — it has no way to know a tenant's prior release history).
   static ValidationResult buildNumber(int value) {
     if (value <= 0) {
-      return Invalid('Invalid build number $value. Expected a positive integer.');
+      return Invalid(
+        'Invalid build number $value. Expected a positive integer.',
+      );
     }
     return const Valid();
   }
@@ -103,7 +107,9 @@ abstract final class ConfigValidator {
   /// Validates that [value] is an absolute `http`/`https` URL.
   static ValidationResult url(String value) {
     final Uri? uri = Uri.tryParse(value);
-    if (uri == null || !uri.isAbsolute || !(uri.scheme == 'http' || uri.scheme == 'https')) {
+    if (uri == null ||
+        !uri.isAbsolute ||
+        !(uri.scheme == 'http' || uri.scheme == 'https')) {
       return Invalid('Invalid URL "$value". Expected an absolute http(s) URL.');
     }
     return const Valid();
@@ -118,7 +124,11 @@ abstract final class ConfigValidator {
   /// When [projectRoot] is given, also checks the file actually exists at
   /// `tenants/<tenantId>/<path>`; omit it to validate shape only (e.g. when
   /// validating a config template before tenant directories exist).
-  static ValidationResult assetPath(String value, {required String tenantId, String? projectRoot}) {
+  static ValidationResult assetPath(
+    String value, {
+    required String tenantId,
+    String? projectRoot,
+  }) {
     if (p.isAbsolute(value)) {
       return Invalid('Asset path "$value" must be relative, not absolute.');
     }
@@ -151,8 +161,9 @@ abstract final class ConfigValidator {
       // the tenant's own directory (not reachable via white_label.yaml
       // content alone).
       final String realPath = file.resolveSymbolicLinksSync();
-      final String tenantRoot = Directory(p.join(projectRoot, 'tenants', tenantId))
-          .resolveSymbolicLinksSync();
+      final String tenantRoot = Directory(
+        p.join(projectRoot, 'tenants', tenantId),
+      ).resolveSymbolicLinksSync();
       if (!p.isWithin(tenantRoot, realPath) && realPath != tenantRoot) {
         return Invalid(
           'Asset path "$value" is a symlink (or contains one) that resolves '
@@ -169,7 +180,11 @@ abstract final class ConfigValidator {
   /// it's missing entirely. Centralizes the "is this actually a map"
   /// dynamic-type check so parsers elsewhere don't each repeat their own
   /// `is! Map` handling with slightly different wording.
-  static Map<dynamic, dynamic>? expectMap(dynamic node, String path, List<String> errors) {
+  static Map<dynamic, dynamic>? expectMap(
+    dynamic node,
+    String path,
+    List<String> errors,
+  ) {
     if (node == null) {
       return null;
     }

@@ -37,7 +37,8 @@ class MethodChannelAppleSignIn extends AppleSignInPlatform {
     TargetPlatform.macOS,
   };
 
-  bool get _isSupportedPlatform => _supportedPlatforms.contains(defaultTargetPlatform);
+  bool get _isSupportedPlatform =>
+      _supportedPlatforms.contains(defaultTargetPlatform);
 
   Never _throwUnsupported() {
     throw const AppleSignInException(
@@ -74,8 +75,8 @@ class MethodChannelAppleSignIn extends AppleSignInPlatform {
     }
 
     try {
-      final Map<Object?, Object?>? raw =
-          await channel.invokeMapMethod<Object?, Object?>('signIn', <String, Object?>{
+      final Map<Object?, Object?>? raw = await channel
+          .invokeMapMethod<Object?, Object?>('signIn', <String, Object?>{
         'scopes': scopes.map((AppleAuthorizationScope s) => s.name).toList(),
         'nonce': nonce,
         'state': state,
@@ -147,7 +148,8 @@ class MethodChannelAppleSignIn extends AppleSignInPlatform {
       nickname: raw['nickname'] as String?,
     );
 
-    final List<Object?> rawScopes = raw['authorizedScopes'] as List<Object?>? ?? const <Object?>[];
+    final List<Object?> rawScopes =
+        raw['authorizedScopes'] as List<Object?>? ?? const <Object?>[];
     final Set<AppleAuthorizationScope> authorizedScopes = rawScopes
         .map((Object? value) => value! as String)
         .map(

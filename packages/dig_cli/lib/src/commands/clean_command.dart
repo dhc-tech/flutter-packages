@@ -21,7 +21,8 @@ class CleanCommand extends Command<void> {
   @override
   final name = 'clean';
   @override
-  final description = 'Thoroughly cleans the Flutter project and build artifacts.';
+  final description =
+      'Thoroughly cleans the Flutter project and build artifacts.';
 
   @override
   Future<void> run() async {
@@ -41,7 +42,8 @@ class CleanCommand extends Command<void> {
     try {
       kLog('🚀 Starting thorough project cleanup...');
 
-      await runWithSpinner('🧹 Cleaning Flutter project (flutter clean)', () async {
+      await runWithSpinner('🧹 Cleaning Flutter project (flutter clean)',
+          () async {
         final ProcessResult result = await Process.run('flutter', ['clean']);
         if (result.exitCode != 0) {
           throw Exception(
@@ -53,8 +55,10 @@ class CleanCommand extends Command<void> {
       await _deleteIfExists('build');
       kLog('🗑️  Removed build directory');
 
-      await runWithSpinner('📦 Getting Dart packages (flutter pub get)', () async {
-        final ProcessResult result = await Process.run('flutter', ['pub', 'get']);
+      await runWithSpinner('📦 Getting Dart packages (flutter pub get)',
+          () async {
+        final ProcessResult result =
+            await Process.run('flutter', ['pub', 'get']);
         if (result.exitCode != 0) {
           throw Exception(
             'flutter pub get failed with exit code ${result.exitCode}\n${result.stderr}',
@@ -62,8 +66,9 @@ class CleanCommand extends Command<void> {
         }
       });
 
-      final String? homeDir =
-          Platform.isWindows ? Platform.environment['USERPROFILE'] : Platform.environment['HOME'];
+      final String? homeDir = Platform.isWindows
+          ? Platform.environment['USERPROFILE']
+          : Platform.environment['HOME'];
 
       if (Platform.isMacOS) {
         kLog(' macOS: Running iOS specific cleanup...');
