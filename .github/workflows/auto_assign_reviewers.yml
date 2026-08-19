@@ -1,0 +1,31 @@
+name: 👥 Auto-Assign Reviewers
+
+# pull_request_target is required (not plain pull_request) so this can
+# write a reviewer-assignment even on a PR opened from a fork, which runs
+# with no write token under the normal pull_request trigger. Mitigation:
+# this workflow never checks out or executes any PR content — it only
+# calls the auto-assign-action, which reads static repo config
+# (.github/auto_assign.yml), not anything from the PR's source.
+on: # zizmor: ignore[dangerous-triggers] mitigated as documented above
+  pull_request_target:
+    types: [opened, ready_for_review]
+
+concurrency:
+  group: auto-assign-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  assign_reviewers:
+    name: Assign Package Reviewers
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false && github.actor != 'dependabot[bot]'
+    permissions:
+      pull-requests: write  # assigning reviewers/assignees to the PR
+    steps:
+      - name: 👥 Assign Reviewer
+        uses: kentaro-m/auto-assign-action@0a2c53d3721e4c5cfcce6afd4014aecc337979f6 # v2.0.2
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          configuration-path: ".github/auto_assign.yml"

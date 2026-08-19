@@ -1,0 +1,25 @@
+# .github/auto_assign.yml
+#
+# Auto-assign reviewers to pull requests based on modified package paths.
+# Assigns a reviewer/assignee based on which package paths changed.
+#
+# ─────────────────────────────────────────────────────────────
+# Usage: auto-assign-action (kentaro-m/auto-assign-action@v2)
+# ─────────────────────────────────────────────────────────────
+
+# Number of reviewers to assign (0 = all listed reviewers)
+numberOfReviewers: 1
+
+# Always assign the PR author themselves as an assignee
+addAssignees: author
+
+# ── Reviewer pool ──────────────────────────────────────────────
+# List the GitHub usernames of human maintainers / contributors.
+# These reviewers will be picked round-robin for every PR.
+reviewers:
+  - dhc-tech
+
+# ── Teams (optional) ───────────────────────────────────────────
+# If you create a GitHub team for maintainers, add it here.
+# teamReviewers:
+#   - flutter-packages-maintainers

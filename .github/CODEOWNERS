@@ -1,0 +1,7 @@
+# Codeowners for DHC Tech Flutter Packages
+
+* @dhc-tech
+/packages/white_label_kit/ @dhc-tech
+/packages/dig_cli/ @dhc-tech
+/packages/apple_sign_in_plugin/ @dhc-tech
+/.github/ @dhc-tech

@@ -1,0 +1,58 @@
+name: Dependabot Auto-Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions: {}
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  dependabot:
+    name: 🤖 Approve & auto-merge Dependabot PRs
+    runs-on: ubuntu-latest
+    # zizmor: ignore[bot-conditions] this is the pattern zizmor's own docs
+    # recommend: github.actor reflects the *last* actor to touch the PR
+    # (spoofable), so checking it instead would be the less-safe choice.
+    # github.event.pull_request.user.login identifies who *created* the
+    # PR and 'dependabot[bot]' is a reserved identity nothing else can
+    # register as. This trigger is also plain pull_request, not
+    # pull_request_target, so there's no elevated-token risk to begin with.
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      contents: write       # gh pr merge
+      pull-requests: write  # gh pr edit / gh pr review
+      issues: write         # gh pr comment on major-version-bump PRs
+    steps:
+      - name: 🔍 Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: 🏷️ Label always; approve & auto-merge only patch/minor
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+        run: |
+          gh pr edit "$PR_URL" --add-label "infra: dependencies"
+
+          # Major version bumps can carry breaking changes — labeled and
+          # left for a human to actually review, not silently
+          # auto-merged. Only patch/minor updates get the autosubmit +
+          # auto-approve treatment. (This fetch-metadata output used to
+          # be requested but never actually checked, so every dependency
+          # bump — major included — was auto-approved and auto-merged.)
+          if [ "$UPDATE_TYPE" = "version-update:semver-major" ]; then
+            echo "Major update ($UPDATE_TYPE) — leaving for manual review, not auto-merging or auto-approving."
+            gh pr comment "$PR_URL" --body "🤖 This is a **major** version bump ($UPDATE_TYPE) — not auto-approved or auto-merged. Please review manually."
+            exit 0
+          fi
+
+          gh pr edit "$PR_URL" --add-label "autosubmit"
+          gh pr review "$PR_URL" --approve --body "🤖 Automated Dependabot approval ($UPDATE_TYPE) - auto-merging upon green CI."
+          gh pr merge "$PR_URL" --auto --squash

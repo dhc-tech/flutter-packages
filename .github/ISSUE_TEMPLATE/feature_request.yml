@@ -1,0 +1,39 @@
+name: 💡 Feature Request
+description: Propose a new feature or enhancement for a package.
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to improve a package or add a new capability? Tell us about it!
+
+  - type: dropdown
+    id: package
+    attributes:
+      label: Target Package
+      description: Which package would benefit from this feature?
+      options:
+        - white_label_kit
+        - dig_cli
+        - apple_sign_in_plugin
+        - new package proposal
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Use Case
+      description: Is your feature request related to a problem or limitation?
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like or how you envision the API working.
+    validations:
+      required: true

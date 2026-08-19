@@ -1,0 +1,12 @@
+# The example app's own native Android/iOS/web scaffolding is real
+# (flutter create-generated) and needed for anyone cloning/running the
+# example locally, but it's not needed inside the published package tarball
+# — pub.dev consumers get the example's white_label.yaml/lib/tenants/README
+# without paying for Gradle wrapper jars, Xcode project files, etc.
+# See README's "Remaining work before v1.0.0" — flagged by an audit as
+# real, verified tarball bloat.
+example/example_app/android/
+example/example_app/ios/
+example/example_app/web/
+example/example_app/*.iml
+example/example_app/pubspec.lock
