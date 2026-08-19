@@ -4,7 +4,6 @@ repository: https://github.com/dhc-tech/flutter-packages/tree/main/packages/dig_
 issue_tracker: https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+dig_cli%22
 version: 1.8.1
 
-resolution: workspace
 environment:
   sdk: ">=3.5.0 <4.0.0"
 
