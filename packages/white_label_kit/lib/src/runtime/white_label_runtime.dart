@@ -72,9 +72,7 @@ class WhiteLabelRuntime {
         sectionColors: config.theme.sectionColors,
         gradientColors: config.theme.gradientColors,
       ),
-      environment: WhiteLabelEnvironment(
-        apiBaseUrl: config.environment.apiBaseUrl,
-      ),
+      environment: WhiteLabelEnvironment(apiBaseUrl: config.environment.apiBaseUrl),
       features: Map.unmodifiable(config.features),
       android: WhiteLabelAndroidInfo(
         applicationId: config.android.applicationId,
@@ -87,10 +85,7 @@ class WhiteLabelRuntime {
       ios: WhiteLabelIosInfo(
         bundleId: config.ios.bundleId,
         appName: config.ios.appName,
-        version: WhiteLabelVersion(
-          name: iosVersion.name,
-          buildNumber: iosVersion.buildNumber,
-        ),
+        version: WhiteLabelVersion(name: iosVersion.name, buildNumber: iosVersion.buildNumber),
       ),
     );
   }
@@ -133,8 +128,7 @@ class WhiteLabelRuntime {
   bool isFeatureEnabled(String key) => features[key] ?? false;
 
   @override
-  String toString() =>
-      'WhiteLabelRuntime(tenantId: $tenantId, tenantName: $tenantName)';
+  String toString() => 'WhiteLabelRuntime(tenantId: $tenantId, tenantName: $tenantName)';
 }
 
 /// Brand colors for a tenant, as `#RRGGBB`/`#AARRGGBB` hex strings — see
@@ -240,11 +234,7 @@ class WhiteLabelAndroidInfo {
 /// override already applied — see `TenantConfig.iosVersion`).
 class WhiteLabelIosInfo {
   /// Builds a [WhiteLabelIosInfo] from its resolved fields.
-  const WhiteLabelIosInfo({
-    required this.bundleId,
-    required this.appName,
-    required this.version,
-  });
+  const WhiteLabelIosInfo({required this.bundleId, required this.appName, required this.version});
 
   /// The iOS bundle id, e.g. `com.acme.app`.
   final String bundleId;

@@ -21,10 +21,7 @@ void main() {
   const tenant = TenantConfig(
     id: 'acme',
     name: 'Acme Student',
-    android: AndroidTenantConfig(
-      applicationId: 'com.acme.student',
-      appName: 'Acme',
-    ),
+    android: AndroidTenantConfig(applicationId: 'com.acme.student', appName: 'Acme'),
     ios: IosTenantConfig(bundleId: 'com.acme.student', appName: 'Acme'),
     assets: TenantAssets(logo: 'tenants/acme/logo.png'),
   );
@@ -36,8 +33,7 @@ void main() {
     final launchFile = File(p.join(tempDir.path, '.vscode', 'launch.json'));
     expect(launchFile.existsSync(), isTrue);
 
-    final launchJson =
-        jsonDecode(launchFile.readAsStringSync()) as Map<String, dynamic>;
+    final launchJson = jsonDecode(launchFile.readAsStringSync()) as Map<String, dynamic>;
     final List<Map<String, dynamic>> configs = (launchJson['configurations'] as List<dynamic>)
         .cast<Map<String, dynamic>>();
     expect(configs.length, 3);
@@ -48,9 +44,7 @@ void main() {
 
     // Android Studio / IntelliJ check
     final debugRun = File(p.join(tempDir.path, '.run', 'acme_debug.run.xml'));
-    final releaseRun = File(
-      p.join(tempDir.path, '.run', 'acme_release.run.xml'),
-    );
+    final releaseRun = File(p.join(tempDir.path, '.run', 'acme_release.run.xml'));
     expect(debugRun.existsSync(), isTrue);
     expect(releaseRun.existsSync(), isTrue);
 
@@ -62,27 +56,17 @@ void main() {
 
   test('removes VS Code launch.json and Android Studio .run configs', () {
     IdeGenerator.generate(tenant, projectRoot: tempDir.path);
-    expect(
-      File(p.join(tempDir.path, '.run', 'acme_debug.run.xml')).existsSync(),
-      isTrue,
-    );
+    expect(File(p.join(tempDir.path, '.run', 'acme_debug.run.xml')).existsSync(), isTrue);
 
     IdeGenerator.remove('acme', projectRoot: tempDir.path);
 
     // Run XMLs deleted
-    expect(
-      File(p.join(tempDir.path, '.run', 'acme_debug.run.xml')).existsSync(),
-      isFalse,
-    );
-    expect(
-      File(p.join(tempDir.path, '.run', 'acme_release.run.xml')).existsSync(),
-      isFalse,
-    );
+    expect(File(p.join(tempDir.path, '.run', 'acme_debug.run.xml')).existsSync(), isFalse);
+    expect(File(p.join(tempDir.path, '.run', 'acme_release.run.xml')).existsSync(), isFalse);
 
     // VS Code entries removed
     final launchFile = File(p.join(tempDir.path, '.vscode', 'launch.json'));
-    final launchJson =
-        jsonDecode(launchFile.readAsStringSync()) as Map<String, dynamic>;
+    final launchJson = jsonDecode(launchFile.readAsStringSync()) as Map<String, dynamic>;
     final List<Map<String, dynamic>> configs = (launchJson['configurations'] as List<dynamic>)
         .cast<Map<String, dynamic>>();
     expect(configs.isEmpty, isTrue);

@@ -17,15 +17,13 @@ import 'package:flutter/services.dart';
 /// and native callback validation.
 abstract class AppleSignInDesktopImpl extends AppleSignInPlatform {
   /// Constructs [AppleSignInDesktopImpl] with specific channel name.
-  AppleSignInDesktopImpl({required String channelName})
-      : channel = MethodChannel(channelName);
+  AppleSignInDesktopImpl({required String channelName}) : channel = MethodChannel(channelName);
 
   /// The platform method channel.
   @visibleForTesting
   final MethodChannel channel;
 
-  static const String _kAuthorizeUrl =
-      'https://appleid.apple.com/auth/authorize';
+  static const String _kAuthorizeUrl = 'https://appleid.apple.com/auth/authorize';
 
   /// Configuration for desktop OAuth flow.
   // ignore: use_setters_to_change_properties
@@ -152,8 +150,7 @@ abstract class AppleSignInDesktopImpl extends AppleSignInPlatform {
     required String state,
     String? nonce,
   }) {
-    final String scopeString =
-        scopes.map((AppleAuthorizationScope s) => s.restApiValue).join(' ');
+    final String scopeString = scopes.map((AppleAuthorizationScope s) => s.restApiValue).join(' ');
     final params = <String, String>{
       'client_id': config.serviceId,
       'redirect_uri': config.redirectUri,
@@ -207,11 +204,9 @@ abstract class AppleSignInDesktopImpl extends AppleSignInPlatform {
     try {
       final String? userJson = params['user'];
       if (userJson != null) {
-        final user =
-            jsonDecode(userJson) as Map<String, dynamic>;
+        final user = jsonDecode(userJson) as Map<String, dynamic>;
         email ??= user['email'] as String?;
-        final nameMap =
-            user['name'] as Map<String, dynamic>?;
+        final nameMap = user['name'] as Map<String, dynamic>?;
         if (nameMap != null) {
           final n = ApplePersonName(
             givenName: nameMap['firstName'] as String?,
@@ -278,8 +273,7 @@ abstract class AppleSignInDesktopImpl extends AppleSignInPlatform {
 
   String _generateSecureRandom(int byteCount) {
     final rng = Random.secure();
-    final bytes =
-        List<int>.generate(byteCount, (_) => rng.nextInt(256));
+    final bytes = List<int>.generate(byteCount, (_) => rng.nextInt(256));
     return base64Url.encode(bytes);
   }
 

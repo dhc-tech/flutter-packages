@@ -5,8 +5,7 @@
 import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
 import 'src/apple_sign_in_android_impl.dart';
 
-export 'src/apple_sign_in_android_impl.dart'
-    show AppleSignInAndroidConfig, AppleSignInAndroidImpl;
+export 'src/apple_sign_in_android_impl.dart' show AppleSignInAndroidConfig, AppleSignInAndroidImpl;
 
 /// The Android implementation of `apple_sign_in_plugin`.
 ///

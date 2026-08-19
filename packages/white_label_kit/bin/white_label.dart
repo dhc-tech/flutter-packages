@@ -290,9 +290,7 @@ int _doctor() {
       );
       healthy = false;
     } else {
-      stdout.writeln(
-        '✅ lib/white_label.g.dart is generated for "$generatedFor".',
-      );
+      stdout.writeln('✅ lib/white_label.g.dart is generated for "$generatedFor".');
     }
   }
 
@@ -345,8 +343,7 @@ int _init(List<String> args) {
     stderr.writeln('❌ ${pubspecFile.path} is not valid YAML: ${e.message}');
     return 1;
   }
-  final bool looksLikeFlutterProject =
-      pubspecDoc is Map && pubspecDoc.containsKey('flutter');
+  final bool looksLikeFlutterProject = pubspecDoc is Map && pubspecDoc.containsKey('flutter');
   if (!looksLikeFlutterProject) {
     stderr.writeln(
       "❌ ${pubspecFile.path} has no `flutter:` key — this doesn't look "
@@ -477,10 +474,7 @@ int _generate(List<String> args) {
 
   final String resolvedTenantId;
   try {
-    resolvedTenantId = resolveGeneratorTenantId(
-      config,
-      explicitTenantId: tenantId,
-    );
+    resolvedTenantId = resolveGeneratorTenantId(config, explicitTenantId: tenantId);
   } on ArgumentError catch (e) {
     stderr.writeln('❌ ${e.message}');
     return 1;
@@ -590,9 +584,7 @@ int _updateTenant(List<String> args) {
   final String originalYaml = whiteLabelFile.readAsStringSync();
   final (int, int)? range = _findTenantBlock(originalYaml, id);
   if (range == null) {
-    stderr.writeln(
-      '❌ Could not locate tenant "$id"\'s block in white_label.yaml.',
-    );
+    stderr.writeln('❌ Could not locate tenant "$id"\'s block in white_label.yaml.');
     return 1;
   }
 
@@ -637,11 +629,7 @@ int _updateTenant(List<String> args) {
   }
   buffer.writeln();
 
-  String updatedYaml = originalYaml.replaceRange(
-    range.$1,
-    range.$2,
-    buffer.toString(),
-  );
+  String updatedYaml = originalYaml.replaceRange(range.$1, range.$2, buffer.toString());
   if (makeDefault) {
     updatedYaml = updatedYaml.replaceFirstMapped(
       RegExp(r'^  default_tenant:.*$', multiLine: true),
@@ -654,9 +642,7 @@ int _updateTenant(List<String> args) {
     WhiteLabelConfig.load(Directory.current.path);
   } on WhiteLabelConfigException catch (e) {
     whiteLabelFile.writeAsStringSync(originalYaml);
-    stderr.writeln(
-      '❌ Updating tenant "$id" produced an invalid config — rolled back.',
-    );
+    stderr.writeln('❌ Updating tenant "$id" produced an invalid config — rolled back.');
     stderr.writeln(e);
     return 1;
   }
@@ -709,9 +695,7 @@ int _removeTenant(List<String> args) {
   final String originalYaml = whiteLabelFile.readAsStringSync();
   final (int, int)? range = _findTenantBlock(originalYaml, id);
   if (range == null) {
-    stderr.writeln(
-      '❌ Could not locate tenant "$id"\'s block in white_label.yaml.',
-    );
+    stderr.writeln('❌ Could not locate tenant "$id"\'s block in white_label.yaml.');
     return 1;
   }
 
@@ -719,9 +703,7 @@ int _removeTenant(List<String> args) {
 
   String? newDefault;
   if (config.isDefault(id)) {
-    newDefault = (config.tenants.keys.toList()..sort()).firstWhere(
-      (t) => t != id,
-    );
+    newDefault = (config.tenants.keys.toList()..sort()).firstWhere((t) => t != id);
     updatedYaml = updatedYaml.replaceFirstMapped(
       RegExp(r'^  default_tenant:.*$', multiLine: true),
       (_) => '  default_tenant: $newDefault',
@@ -733,9 +715,7 @@ int _removeTenant(List<String> args) {
     WhiteLabelConfig.load(Directory.current.path);
   } on WhiteLabelConfigException catch (e) {
     whiteLabelFile.writeAsStringSync(originalYaml);
-    stderr.writeln(
-      '❌ Removing tenant "$id" produced an invalid config — rolled back.',
-    );
+    stderr.writeln('❌ Removing tenant "$id" produced an invalid config — rolled back.');
     stderr.writeln(e);
     return 1;
   }
@@ -763,16 +743,12 @@ int _removeTenant(List<String> args) {
 
   stdout.writeln('✅ Removed tenant "$id" from white_label.yaml');
   if (newDefault != null) {
-    stdout.writeln(
-      '⚠️  "$id" was default_tenant — auto-promoted "$newDefault" instead.',
-    );
+    stdout.writeln('⚠️  "$id" was default_tenant — auto-promoted "$newDefault" instead.');
   }
   if (!keepAssets) {
     stdout.writeln('✅ Deleted tenants/$id/');
   }
-  stdout.writeln(
-    '✅ Cleaned native Android flavors and iOS Xcode configs for "$id"',
-  );
+  stdout.writeln('✅ Cleaned native Android flavors and iOS Xcode configs for "$id"');
   return 0;
 }
 
@@ -797,9 +773,7 @@ int _addTenant(List<String> args) {
   }
 
   if (positional.length < 3) {
-    stderr.writeln(
-      '❌ Usage: add-tenant <id> "<Name>" <bundleId> [--logo <path>] [--default]',
-    );
+    stderr.writeln('❌ Usage: add-tenant <id> "<Name>" <bundleId> [--logo <path>] [--default]');
     return 1;
   }
   final String id = positional[0];
@@ -838,8 +812,7 @@ int _addTenant(List<String> args) {
 
   // Auto-generate tenants/<id>/assets/ — the manual `mkdir` step this
   // command exists to remove.
-  final assetsDir = Directory(p.join('tenants', id, 'assets'))
-    ..createSync(recursive: true);
+  final assetsDir = Directory(p.join('tenants', id, 'assets'))..createSync(recursive: true);
   final logoFile = File(p.join(assetsDir.path, 'logo.png'));
   var logoIsPlaceholder = false;
   if (logoPath != null) {
@@ -882,11 +855,7 @@ int _addTenant(List<String> args) {
     );
     return 1;
   }
-  String updatedYaml = originalYaml.replaceRange(
-    match.end,
-    match.end,
-    tenantBlock,
-  );
+  String updatedYaml = originalYaml.replaceRange(match.end, match.end, tenantBlock);
 
   if (makeDefault) {
     updatedYaml = updatedYaml.replaceFirstMapped(
@@ -905,9 +874,7 @@ int _addTenant(List<String> args) {
   } on WhiteLabelConfigException catch (e) {
     whiteLabelFile.writeAsStringSync(originalYaml);
     Directory(p.join('tenants', id)).deleteSync(recursive: true);
-    stderr.writeln(
-      '❌ Adding tenant "$id" produced an invalid config — rolled back.',
-    );
+    stderr.writeln('❌ Adding tenant "$id" produced an invalid config — rolled back.');
     stderr.writeln(e);
     return 1;
   }
@@ -1015,16 +982,12 @@ Future<int> _genericBuild(List<String> args) async {
 
   const validPlatforms = {'android', 'android-aab', 'ios', 'all'};
   if (!validPlatforms.contains(platform)) {
-    stderr.writeln(
-      '❌ --platform must be one of ${validPlatforms.join('|')}, got "$platform".',
-    );
+    stderr.writeln('❌ --platform must be one of ${validPlatforms.join('|')}, got "$platform".');
     return 1;
   }
   const validModes = {'debug', 'release'};
   if (!validModes.contains(mode)) {
-    stderr.writeln(
-      '❌ --mode must be one of ${validModes.join('|')}, got "$mode".',
-    );
+    stderr.writeln('❌ --mode must be one of ${validModes.join('|')}, got "$mode".');
     return 1;
   }
 
@@ -1069,9 +1032,7 @@ Future<int> _genericBuild(List<String> args) async {
   }
 
   if (dryRun) {
-    stdout.writeln(
-      '(dry run — config resolved and printed above, no staging performed)',
-    );
+    stdout.writeln('(dry run — config resolved and printed above, no staging performed)');
     return 0;
   }
 
@@ -1081,9 +1042,7 @@ Future<int> _genericBuild(List<String> args) async {
   } catch (e) {
     stderr.writeln('❌ Build failed while staging tenant "${tenant.id}": $e');
     stager.clean(tenant.id);
-    stdout.writeln(
-      '🧹 Cleaned partial staging output for tenant "${tenant.id}".',
-    );
+    stdout.writeln('🧹 Cleaned partial staging output for tenant "${tenant.id}".');
     return 1;
   }
 
@@ -1180,9 +1139,7 @@ Future<int> _genericBuild(List<String> args) async {
   if (platform == 'ios' || platform == 'all') {
     // ── iOS ──────────────────────────────────────────────────────────────────
     // Xcode project configuration first — idempotent, safe to re-run.
-    final xcodeprojDir = Directory(
-      p.join(projectRoot, 'ios', 'Runner.xcodeproj'),
-    );
+    final xcodeprojDir = Directory(p.join(projectRoot, 'ios', 'Runner.xcodeproj'));
     if (!xcodeprojDir.existsSync()) {
       stderr.writeln(
         '❌ iOS: No ios/Runner.xcodeproj found — iOS platform is not '
@@ -1195,14 +1152,10 @@ Future<int> _genericBuild(List<String> args) async {
     } else {
       try {
         generateIosConfig(tenant, projectRoot: projectRoot);
-        stdout.writeln(
-          '✅ iOS: Xcode build configs + scheme ensured for "${tenant.id}".',
-        );
+        stdout.writeln('✅ iOS: Xcode build configs + scheme ensured for "${tenant.id}".');
       } on IosGenerationException catch (e) {
         stderr.writeln('❌ iOS config failed for "${tenant.id}": ${e.message}');
-        stderr.writeln(
-          '   Install Ruby + xcodeproj gem: gem install xcodeproj',
-        );
+        stderr.writeln('   Install Ruby + xcodeproj gem: gem install xcodeproj');
         if (platform != 'all') {
           return 1;
         }
@@ -1264,9 +1217,7 @@ String? _findBuiltArtifact({
 }) {
   final ext = buildCommand == 'appbundle' ? 'aab' : 'apk';
   final expectedName = 'app-$tenantId-$mode.$ext';
-  final outputsDir = Directory(
-    p.join(Directory.current.path, 'build', 'app', 'outputs'),
-  );
+  final outputsDir = Directory(p.join(Directory.current.path, 'build', 'app', 'outputs'));
   if (!outputsDir.existsSync()) {
     return null;
   }
@@ -1316,9 +1267,7 @@ Future<int> _run(List<String> args) async {
     return 1;
   }
 
-  stdout.writeln(
-    'Would launch `flutter run` for tenant: ${tenant.id} (${tenant.name})',
-  );
+  stdout.writeln('Would launch `flutter run` for tenant: ${tenant.id} (${tenant.name})');
 
   try {
     final String stagedPath = stager.stage(tenant);
@@ -1336,9 +1285,7 @@ Future<int> _run(List<String> args) async {
     'to launch on your behalf). Run this yourself:',
   );
   stdout.writeln();
-  stdout.writeln(
-    '  flutter run --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
-  );
+  stdout.writeln('  flutter run --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}');
   stdout.writeln();
   return 0;
 }
@@ -1417,9 +1364,7 @@ Future<int> _configureTenants(List<String> args) async {
     }
     tenants = [config[tenantId]];
   } else {
-    tenants = [
-      for (final id in config.tenants.keys.toList()..sort()) config[id],
-    ];
+    tenants = [for (final id in config.tenants.keys.toList()..sort()) config[id]];
   }
 
   final String projectRoot = Directory.current.path;
@@ -1461,9 +1406,7 @@ Future<int> _configureTenants(List<String> args) async {
 
     // ── iOS ──────────────────────────────────────────────────────────────────
     if (platform == 'ios' || platform == 'all') {
-      final xcodeprojDir = Directory(
-        p.join(projectRoot, 'ios', 'Runner.xcodeproj'),
-      );
+      final xcodeprojDir = Directory(p.join(projectRoot, 'ios', 'Runner.xcodeproj'));
       if (!xcodeprojDir.existsSync()) {
         if (platform == 'ios') {
           stderr.writeln(
@@ -1490,9 +1433,7 @@ Future<int> _configureTenants(List<String> args) async {
             'for "${tenant.id}"',
           );
         } on IosGenerationException catch (e) {
-          stderr.writeln(
-            '   ❌ iOS config failed for "${tenant.id}": ${e.message}',
-          );
+          stderr.writeln('   ❌ iOS config failed for "${tenant.id}": ${e.message}');
           stderr.writeln('      Fix: gem install xcodeproj  (requires Ruby)');
           overallSuccess = false;
         }
@@ -1551,9 +1492,7 @@ Future<int> _configureTenants(List<String> args) async {
       );
     }
   } else {
-    stdout.writeln(
-      '⚠️  Configuration completed with errors — see above for details.',
-    );
+    stdout.writeln('⚠️  Configuration completed with errors — see above for details.');
   }
   return overallSuccess ? 0 : 1;
 }
@@ -1575,21 +1514,14 @@ Map<String, String> _loadConfig() {
     return const {};
   }
 
-  return {
-    for (final entry in doc.entries)
-      entry.key.toString(): entry.value.toString(),
-  };
+  return {for (final entry in doc.entries) entry.key.toString(): entry.value.toString()};
 }
 
 /// Fills in whatever positional args the user didn't type from the YAML
 /// config, for the subcommands that need a tenant id/display name/bundle id.
 /// Anything the user *did* type on the command line is left untouched —
 /// explicit CLI args always win.
-List<String> _resolveArgs(
-  String command,
-  List<String> rest,
-  Map<String, String> config,
-) {
+List<String> _resolveArgs(String command, List<String> rest, Map<String, String> config) {
   if (config.isEmpty) {
     return rest;
   }

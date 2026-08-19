@@ -116,8 +116,7 @@ class AppleSignInWebImpl extends AppleSignInPlatform {
     await _ensureSdkLoaded();
 
     final String effectiveState = state ?? _generateSecureRandom(32);
-    final String scopeString =
-        scopes.map((AppleAuthorizationScope s) => s.restApiValue).join(' ');
+    final String scopeString = scopes.map((AppleAuthorizationScope s) => s.restApiValue).join(' ');
 
     final initConfig = <String, Object?>{
       'clientId': currentConfig.serviceId,
@@ -282,8 +281,7 @@ class AppleSignInWebImpl extends AppleSignInPlatform {
 
   String _generateSecureRandom(int byteCount) {
     final rng = Random.secure();
-    final bytes =
-        List<int>.generate(byteCount, (_) => rng.nextInt(256));
+    final bytes = List<int>.generate(byteCount, (_) => rng.nextInt(256));
     return base64Url.encode(bytes);
   }
 }

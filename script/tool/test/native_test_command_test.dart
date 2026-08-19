@@ -33,8 +33,7 @@ final Map<String, dynamic> _kDeviceListMap = <String, dynamic>{
     <String, dynamic>{
       'bundlePath': '/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 13.4.simruntime',
       'buildversion': '17L255',
-      'runtimeRoot':
-          '/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 13.4.simruntime/Contents/Resources/RuntimeRoot',
+      'runtimeRoot': '/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 13.4.simruntime/Contents/Resources/RuntimeRoot',
       'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-13-4',
       'version': '13.4',
       'isAvailable': true,
@@ -44,8 +43,7 @@ final Map<String, dynamic> _kDeviceListMap = <String, dynamic>{
   'devices': <String, dynamic>{
     'com.apple.CoreSimulator.SimRuntime.iOS-13-4': <Map<String, dynamic>>[
       <String, dynamic>{
-        'dataPath':
-            '/Users/xxx/Library/Developer/CoreSimulator/Devices/1E76A0FD-38AC-4537-A989-EA639D7D012A/data',
+        'dataPath': '/Users/xxx/Library/Developer/CoreSimulator/Devices/1E76A0FD-38AC-4537-A989-EA639D7D012A/data',
         'logPath': '/Users/xxx/Library/Logs/CoreSimulator/1E76A0FD-38AC-4537-A989-EA639D7D012A',
         'udid': '1E76A0FD-38AC-4537-A989-EA639D7D012A',
         'isAvailable': true,
@@ -1977,9 +1975,10 @@ public class FlutterActivityTest {
     // Returns the ProcessCall to expect for build the Windows unit tests for
     // the given plugin.
     ProcessCall getWindowsBuildCall(RepositoryPackage plugin, String arch) {
-      final Directory projectDir = getExampleDir(
-        plugin,
-      ).childDirectory('build').childDirectory('windows').childDirectory(arch);
+      final Directory projectDir = getExampleDir(plugin)
+          .childDirectory('build')
+          .childDirectory('windows')
+          .childDirectory(arch);
 
       return ProcessCall(_fakeCmakeCommand, <String>[
         '--build',

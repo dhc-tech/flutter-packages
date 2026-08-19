@@ -4,12 +4,10 @@
 
 import 'apple_sign_in_desktop_impl.dart';
 
-export 'apple_sign_in_desktop_impl.dart'
-    show AppleSignInDesktopConfig, AppleSignInDesktopImpl;
+export 'apple_sign_in_desktop_impl.dart' show AppleSignInDesktopConfig, AppleSignInDesktopImpl;
 
 /// The Linux implementation of [AppleSignInDesktopImpl].
 class AppleSignInLinuxImpl extends AppleSignInDesktopImpl {
   /// Constructs [AppleSignInLinuxImpl] using the Linux MethodChannel.
-  AppleSignInLinuxImpl()
-      : super(channelName: 'apple_sign_in_plugin_linux');
+  AppleSignInLinuxImpl() : super(channelName: 'apple_sign_in_plugin_linux');
 }

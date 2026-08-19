@@ -54,12 +54,14 @@ class AppleAuthIdentity {
   /// Returns the formatted full name if available.
   String? get formattedName {
     if (name == null || name!.isEmpty) return null;
-    final Iterable<String> parts = [name!.givenName, name!.familyName].whereType<String>().where((s) => s.isNotEmpty);
+    final Iterable<String> parts =
+        [name!.givenName, name!.familyName].whereType<String>().where((s) => s.isNotEmpty);
     return parts.isEmpty ? null : parts.join(' ');
   }
 
   @override
-  String toString() => 'AppleAuthIdentity(userIdentifier: $userIdentifier, email: $email, name: $formattedName)';
+  String toString() =>
+      'AppleAuthIdentity(userIdentifier: $userIdentifier, email: $email, name: $formattedName)';
 }
 
 /// Authentication tokens and request correlation parameters.
@@ -87,7 +89,8 @@ class AppleAuthTokens {
 
   /// Custom toString that prevents leaking sensitive authorization tokens or codes.
   @override
-  String toString() => 'AppleAuthTokens(hasIdentityToken: ${identityToken != null}, hasAuthCode: ${authorizationCode != null}, state: $state)';
+  String toString() =>
+      'AppleAuthTokens(hasIdentityToken: ${identityToken != null}, hasAuthCode: ${authorizationCode != null}, state: $state)';
 }
 
 /// Granted scopes and user authenticity assessment.
@@ -129,7 +132,8 @@ class AppleAuthLifecycle {
   final AppleCredentialState? credentialState;
 
   @override
-  String toString() => 'AppleAuthLifecycle(isAuthorized: $isAuthorized, isFirstAuth: $isFirstAuthorization, credentialState: $credentialState)';
+  String toString() =>
+      'AppleAuthLifecycle(isAuthorized: $isAuthorized, isFirstAuth: $isFirstAuthorization, credentialState: $credentialState)';
 }
 
 /// Metadata indicating what data was provided in the Apple authorization response.
@@ -156,7 +160,8 @@ class AppleAuthMetadata {
   final DateTime createdAt;
 
   @override
-  String toString() => 'AppleAuthMetadata(receivedName: $receivedName, receivedEmail: $receivedEmail, platform: ${capabilities.platformName})';
+  String toString() =>
+      'AppleAuthMetadata(receivedName: $receivedName, receivedEmail: $receivedEmail, platform: ${capabilities.platformName})';
 }
 
 /// A complete, strongly-typed Apple Authentication Session.
@@ -238,5 +243,6 @@ class AppleAuthSession {
   final AppleCredential rawCredential;
 
   @override
-  String toString() => 'AppleAuthSession(identity: $identity, lifecycle: $lifecycle, metadata: $metadata)';
+  String toString() =>
+      'AppleAuthSession(identity: $identity, lifecycle: $lifecycle, metadata: $metadata)';
 }

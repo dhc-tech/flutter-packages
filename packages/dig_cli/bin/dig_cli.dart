@@ -20,22 +20,23 @@ import 'package:dig_cli/src/commands/zip_command.dart';
 import 'package:dig_cli/src/interactive_menu.dart';
 
 void main(List<String> arguments) async {
-  final CommandRunner<dynamic> runner = CommandRunner('dg', 'DIG CLI - A powerful Flutter companion')
-    ..addCommand(BuildCommand())
-    ..addCommand(CleanCommand())
-    ..addCommand(ZipCommand())
-    ..addCommand(RenameCommand())
-    ..addCommand(ShaKeysCommand())
-    ..addCommand(HashKeyCommand())
-    ..addCommand(CreateJksCommand())
-    ..addCommand(CreateProjectCommand())
-    ..addCommand(CreateModuleCommand())
-    ..addCommand(RemoveModuleCommand())
-    ..addCommand(SetupAliasesCommand())
-    ..addCommand(IosBuildCommand())
-    ..addCommand(AssetCommand())
-    ..addCommand(PubCacheCommand())
-    ..addCommand(VersionCommand());
+  final CommandRunner<dynamic> runner =
+      CommandRunner('dg', 'DIG CLI - A powerful Flutter companion')
+        ..addCommand(BuildCommand())
+        ..addCommand(CleanCommand())
+        ..addCommand(ZipCommand())
+        ..addCommand(RenameCommand())
+        ..addCommand(ShaKeysCommand())
+        ..addCommand(HashKeyCommand())
+        ..addCommand(CreateJksCommand())
+        ..addCommand(CreateProjectCommand())
+        ..addCommand(CreateModuleCommand())
+        ..addCommand(RemoveModuleCommand())
+        ..addCommand(SetupAliasesCommand())
+        ..addCommand(IosBuildCommand())
+        ..addCommand(AssetCommand())
+        ..addCommand(PubCacheCommand())
+        ..addCommand(VersionCommand());
 
   // Add global version flag
   runner.argParser.addFlag(

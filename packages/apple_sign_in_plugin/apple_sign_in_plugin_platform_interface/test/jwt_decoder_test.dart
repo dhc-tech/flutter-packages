@@ -8,9 +8,7 @@ String _createTestJwt({
   Map<String, dynamic> header = const {'alg': 'HS256', 'typ': 'JWT'},
 }) {
   String toBase64Url(Map<String, dynamic> jsonMap) {
-    return base64Url
-        .encode(utf8.encode(jsonEncode(jsonMap)))
-        .replaceAll('=', '');
+    return base64Url.encode(utf8.encode(jsonEncode(jsonMap))).replaceAll('=', '');
   }
 
   final String h = toBase64Url(header);

@@ -260,51 +260,48 @@ void main() {
       );
     });
 
-    test(
-      'does not format staged files that are hand-formatted or in excluded directories when --run-on-staged-packages is used',
-      () async {
-        const files = <String>[
-          'lib/a.dart',
-          'lib/src/b.dart',
-          'example/build/a.dart',
-          '.dart_tool/a.dart',
-        ];
-        final RepositoryPackage plugin = createFakePlugin(
-          'a_plugin',
-          packagesDir,
-          extraFiles: files,
-          dartConstraint: _dartConstraint,
-        );
-        fakePubGet(plugin);
+    test('does not format staged files that are hand-formatted or in excluded directories when --run-on-staged-packages is used', () async {
+      const files = <String>[
+        'lib/a.dart',
+        'lib/src/b.dart',
+        'example/build/a.dart',
+        '.dart_tool/a.dart',
+      ];
+      final RepositoryPackage plugin = createFakePlugin(
+        'a_plugin',
+        packagesDir,
+        extraFiles: files,
+        dartConstraint: _dartConstraint,
+      );
+      fakePubGet(plugin);
 
-        // Write pragma to lib/src/b.dart
-        final p.Context posixContext = p.posix;
-        childFileWithSubcomponents(
-          plugin.directory,
-          posixContext.split('lib/src/b.dart'),
-        ).writeAsStringSync('// This file is hand-formatted.\ncode...');
+      // Write pragma to lib/src/b.dart
+      final p.Context posixContext = p.posix;
+      childFileWithSubcomponents(
+        plugin.directory,
+        posixContext.split('lib/src/b.dart'),
+      ).writeAsStringSync('// This file is hand-formatted.\ncode...');
 
-        // Mock git diff to return all of them
-        final String stagedFiles = files.map((String f) => 'packages/a_plugin/$f').join('\n');
-        gitProcessRunner.mockProcessesForExecutable['git-diff'] = List<FakeProcessInfo>.generate(
-          3,
-          (_) => FakeProcessInfo(MockProcess(stdout: stagedFiles)),
-        );
+      // Mock git diff to return all of them
+      final String stagedFiles = files.map((String f) => 'packages/a_plugin/$f').join('\n');
+      gitProcessRunner.mockProcessesForExecutable['git-diff'] = List<FakeProcessInfo>.generate(
+        3,
+        (_) => FakeProcessInfo(MockProcess(stdout: stagedFiles)),
+      );
 
-        await runCapturingPrint(runner, <String>['format', '--run-on-staged-packages']);
+      await runCapturingPrint(runner, <String>['format', '--run-on-staged-packages']);
 
-        // Only lib/a.dart should be formatted.
-        // lib/src/b.dart is hand-formatted.
-        // example/build/a.dart is in excluded dir.
-        // .dart_tool/a.dart is in excluded dir.
-        expect(
-          processRunner.recordedCalls,
-          orderedEquals(<ProcessCall>[
-            ProcessCall('dart', const <String>['format', 'lib/a.dart'], plugin.path),
-          ]),
-        );
-      },
-    );
+      // Only lib/a.dart should be formatted.
+      // lib/src/b.dart is hand-formatted.
+      // example/build/a.dart is in excluded dir.
+      // .dart_tool/a.dart is in excluded dir.
+      expect(
+        processRunner.recordedCalls,
+        orderedEquals(<ProcessCall>[
+          ProcessCall('dart', const <String>['format', 'lib/a.dart'], plugin.path),
+        ]),
+      );
+    });
 
     test('skips Java and Kotlin formatting when no Java or Kotlin files are staged', () async {
       final RepositoryPackage plugin = createFakePlugin(

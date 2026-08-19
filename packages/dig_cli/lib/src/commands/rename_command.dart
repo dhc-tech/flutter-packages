@@ -25,8 +25,7 @@ class RenameCommand extends Command<void> {
   @override
   final name = 'rename';
   @override
-  final description =
-      'Renames the Flutter app and changes the bundle ID / package name.';
+  final description = 'Renames the Flutter app and changes the bundle ID / package name.';
 
   @override
   Future<void> run() async {
@@ -101,6 +100,7 @@ class RenameCommand extends Command<void> {
 
 /// Handles the rename command from the interactive menu.
 Future<void> handleRenameCommand(List<String> args) async {
-  final CommandRunner<dynamic> runner = CommandRunner('dg', 'Rename app')..addCommand(RenameCommand());
+  final CommandRunner<dynamic> runner = CommandRunner('dg', 'Rename app')
+    ..addCommand(RenameCommand());
   await runner.run(args);
 }

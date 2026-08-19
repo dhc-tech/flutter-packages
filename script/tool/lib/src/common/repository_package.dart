@@ -13,6 +13,7 @@ import 'output_utils.dart';
 import 'pending_changelog_entry.dart';
 
 export 'package:pubspec_parse/pubspec_parse.dart' show Pubspec;
+
 export 'ci_config.dart';
 export 'core.dart' show FlutterPlatform;
 export 'pending_changelog_entry.dart';

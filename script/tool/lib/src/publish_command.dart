@@ -66,8 +66,7 @@ class PublishCommand extends PackageLoopingCommand {
     );
     argParser.addMultiOption(
       _pubFlagsOption,
-      help:
-          'A list of options that will be forwarded on to pub. Separate multiple flags with commas.',
+      help: 'A list of options that will be forwarded on to pub. Separate multiple flags with commas.',
     );
     argParser.addOption(
       _remoteOption,

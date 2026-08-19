@@ -127,40 +127,36 @@ void main() {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       platform = MethodChannelAppleSignIn();
       log.clear();
-      TestDefaultBinaryMessengerBinding
-          .instance
-          .defaultBinaryMessenger
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(platform.channel, (
-            MethodCall call,
-          ) async {
-            log.add(call);
-            switch (call.method) {
-              case 'isAvailable':
-                return true;
-              case 'signIn':
-                return <String, Object?>{
-                  'userIdentifier': '001234.abcdef.5678',
-                  'email': 'john.doe@example.com',
-                  'givenName': 'John',
-                  'familyName': 'Doe',
-                  'identityToken': 'mock_identity_token',
-                  'authorizationCode': 'mock_auth_code',
-                  'state': 'my-state',
-                  'authorizedScopes': <String>['email', 'fullName'],
-                  'realUserStatus': 2,
-                };
-              case 'getCredentialState':
-                return 0;
-              default:
-                throw MissingPluginException();
-            }
-          });
+        MethodCall call,
+      ) async {
+        log.add(call);
+        switch (call.method) {
+          case 'isAvailable':
+            return true;
+          case 'signIn':
+            return <String, Object?>{
+              'userIdentifier': '001234.abcdef.5678',
+              'email': 'john.doe@example.com',
+              'givenName': 'John',
+              'familyName': 'Doe',
+              'identityToken': 'mock_identity_token',
+              'authorizationCode': 'mock_auth_code',
+              'state': 'my-state',
+              'authorizedScopes': <String>['email', 'fullName'],
+              'realUserStatus': 2,
+            };
+          case 'getCredentialState':
+            return 0;
+          default:
+            throw MissingPluginException();
+        }
+      });
     });
 
     tearDown(() {
-      TestDefaultBinaryMessengerBinding
-          .instance
-          .defaultBinaryMessenger
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(platform.channel, null);
       debugDefaultTargetPlatformOverride = null;
     });

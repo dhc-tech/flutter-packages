@@ -21,9 +21,7 @@ void main() {
   late Directory projectRoot;
 
   setUp(() {
-    projectRoot = Directory.systemTemp.createTempSync(
-      'isolation_contract_test_',
-    );
+    projectRoot = Directory.systemTemp.createTempSync('isolation_contract_test_');
 
     _writeTenantAsset(projectRoot, 'a', 'logo.png', 'A_LOGO');
     _writeTenantAsset(projectRoot, 'b', 'logo.png', 'B_LOGO');
@@ -65,8 +63,7 @@ white_label:
     stager.stage(config['a']);
     expect(stager.stagedAssetNames('a'), ['logo.png']);
     expect(
-      File(p.join(stager.stagingDirFor('a'), 'assets', 'logo.png'))
-          .readAsStringSync(),
+      File(p.join(stager.stagingDirFor('a'), 'assets', 'logo.png')).readAsStringSync(),
       'A_LOGO',
     );
     // B's staging output doesn't exist yet at all.
@@ -76,14 +73,12 @@ white_label:
     stager.stage(config['b']);
     expect(stager.stagedAssetNames('b'), ['logo.png']);
     expect(
-      File(p.join(stager.stagingDirFor('b'), 'assets', 'logo.png'))
-          .readAsStringSync(),
+      File(p.join(stager.stagingDirFor('b'), 'assets', 'logo.png')).readAsStringSync(),
       'B_LOGO',
     );
     // A's previously-staged output is untouched by building B.
     expect(
-      File(p.join(stager.stagingDirFor('a'), 'assets', 'logo.png'))
-          .readAsStringSync(),
+      File(p.join(stager.stagingDirFor('a'), 'assets', 'logo.png')).readAsStringSync(),
       'A_LOGO',
       reason: "invariant 2/3: tenants/ tree and other tenants' staging are never touched",
     );
@@ -91,33 +86,30 @@ white_label:
     // --- Build A again: no staleness from the intervening B build ---
     stager.stage(config['a']);
     expect(
-      File(p.join(stager.stagingDirFor('a'), 'assets', 'logo.png'))
-          .readAsStringSync(),
+      File(p.join(stager.stagingDirFor('a'), 'assets', 'logo.png')).readAsStringSync(),
       'A_LOGO',
-      reason: 'invariant 3: existing staging removed before each build, not merged with stale output',
+      reason:
+          'invariant 3: existing staging removed before each build, not merged with stale output',
     );
     expect(stager.stagedAssetNames('a'), ['logo.png']);
 
     // --- Intentional failure: delete A's source asset, re-stage must fail
     // safely (invariant 4/5: temp-then-swap, failure never corrupts the
     // last-known-good staged output) ---
-    File(p.join(projectRoot.path, 'tenants', 'a', 'assets', 'logo.png'))
-        .deleteSync();
+    File(p.join(projectRoot.path, 'tenants', 'a', 'assets', 'logo.png')).deleteSync();
     expect(() => stager.stage(config['a']), throwsA(isA<StateError>()));
 
     // Staging must still contain the LAST GOOD state, not be empty, not be
     // half-written, and absolutely not contain B's content under A's id.
     expect(stager.stagedAssetNames('a'), ['logo.png']);
     expect(
-      File(p.join(stager.stagingDirFor('a'), 'assets', 'logo.png'))
-          .readAsStringSync(),
+      File(p.join(stager.stagingDirFor('a'), 'assets', 'logo.png')).readAsStringSync(),
       'A_LOGO',
       reason: 'invariant 5: a failed generation must not corrupt the previous valid staging state',
     );
     // And B's staging is completely unaffected by A's failed re-stage.
     expect(
-      File(p.join(stager.stagingDirFor('b'), 'assets', 'logo.png'))
-          .readAsStringSync(),
+      File(p.join(stager.stagingDirFor('b'), 'assets', 'logo.png')).readAsStringSync(),
       'B_LOGO',
     );
   });
@@ -155,25 +147,15 @@ white_label:
     );
   });
 
-  test(
-    'invariant 7: a declared-but-missing asset is rejected at stage time',
-    () {
-      final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
-      File(p.join(projectRoot.path, 'tenants', 'a', 'assets', 'logo.png'))
-          .deleteSync();
+  test('invariant 7: a declared-but-missing asset is rejected at stage time', () {
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
+    File(p.join(projectRoot.path, 'tenants', 'a', 'assets', 'logo.png')).deleteSync();
 
-      expect(
-        () => TenantStager(projectRoot.path).stage(config['a']),
-        throwsA(isA<StateError>()),
-      );
-    },
-  );
+    expect(() => TenantStager(projectRoot.path).stage(config['a']), throwsA(isA<StateError>()));
+  });
 
   test('invariant 8: invalid bundle ids are rejected non-silently', () {
-    expect(
-      ConfigValidator.androidApplicationId('Not A Package'),
-      isA<Invalid>(),
-    );
+    expect(ConfigValidator.androidApplicationId('Not A Package'), isA<Invalid>());
     expect(ConfigValidator.iosBundleId('not_valid_for_ios'), isA<Invalid>());
   });
 
@@ -182,8 +164,10 @@ white_label:
     expect(ConfigValidator.colorHex('#GGGGGG'), isA<Invalid>());
   });
 
-  test('invariant 10: validation errors are explicit, actionable, and collected (not just the first)', () {
-    File(p.join(projectRoot.path, 'white_label.yaml')).writeAsStringSync('''
+  test(
+    'invariant 10: validation errors are explicit, actionable, and collected (not just the first)',
+    () {
+      File(p.join(projectRoot.path, 'white_label.yaml')).writeAsStringSync('''
 white_label:
   default_tenant: a
   tenants:
@@ -201,26 +185,22 @@ white_label:
         primary_color: "blue"
 ''');
 
-    try {
-      WhiteLabelConfig.load(projectRoot.path);
-      fail('expected WhiteLabelConfigException');
-    } on WhiteLabelConfigException catch (e) {
-      // All three independent problems are reported together, not just
-      // whichever was found first.
-      expect(e.errors.length, greaterThanOrEqualTo(3));
-      expect(e.errors.join('\n'), contains('applicationId'));
-      expect(e.errors.join('\n'), contains('bundle id'));
-      expect(e.errors.join('\n'), contains('color'));
-    }
-  });
+      try {
+        WhiteLabelConfig.load(projectRoot.path);
+        fail('expected WhiteLabelConfigException');
+      } on WhiteLabelConfigException catch (e) {
+        // All three independent problems are reported together, not just
+        // whichever was found first.
+        expect(e.errors.length, greaterThanOrEqualTo(3));
+        expect(e.errors.join('\n'), contains('applicationId'));
+        expect(e.errors.join('\n'), contains('bundle id'));
+        expect(e.errors.join('\n'), contains('color'));
+      }
+    },
+  );
 }
 
-void _writeTenantAsset(
-  Directory projectRoot,
-  String tenantId,
-  String filename,
-  String content,
-) {
+void _writeTenantAsset(Directory projectRoot, String tenantId, String filename, String content) {
   final dir = Directory(p.join(projectRoot.path, 'tenants', tenantId, 'assets'))
     ..createSync(recursive: true);
   File(p.join(dir.path, filename)).writeAsStringSync(content);

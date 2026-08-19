@@ -44,27 +44,18 @@ flutter:
     expect(result.stdout, contains('Added tenant "beta"'));
 
     // The folder was created for us — no mkdir required.
-    final logo = File(
-      p.join(projectRoot.path, 'tenants', 'beta', 'assets', 'logo.png'),
-    );
+    final logo = File(p.join(projectRoot.path, 'tenants', 'beta', 'assets', 'logo.png'));
     expect(logo.existsSync(), isTrue);
 
     // The yaml entry was appended for us — no hand-editing required. Prove
     // it via `validate` and `list`, not by re-parsing the raw string.
     final ProcessResult validate = await runCli(['validate'], cwd: projectRoot.path);
-    expect(
-      validate.exitCode,
-      0,
-      reason: validate.stdout.toString() + validate.stderr.toString(),
-    );
+    expect(validate.exitCode, 0, reason: validate.stdout.toString() + validate.stderr.toString());
     expect(validate.stdout, contains('beta'));
 
     final ProcessResult list = await runCli(['list'], cwd: projectRoot.path);
     expect(list.stdout, contains('beta'));
-    expect(
-      list.stdout,
-      contains('Default tenant: acme'),
-    ); // unchanged, no --default passed
+    expect(list.stdout, contains('Default tenant: acme')); // unchanged, no --default passed
   });
 
   test('add-tenant --default updates default_tenant', () async {
@@ -102,32 +93,24 @@ flutter:
     ], cwd: projectRoot.path);
 
     expect(result.exitCode, 1);
-    expect(
-      Directory(p.join(projectRoot.path, 'tenants', 'beta')).existsSync(),
-      isFalse,
-    );
+    expect(Directory(p.join(projectRoot.path, 'tenants', 'beta')).existsSync(), isFalse);
   });
 
-  test(
-    'add-tenant with --logo copies the real file instead of a placeholder',
-    () async {
-      final realLogo = File(p.join(projectRoot.path, 'real_logo.png'))
-        ..writeAsStringSync('REAL_LOGO_BYTES');
+  test('add-tenant with --logo copies the real file instead of a placeholder', () async {
+    final realLogo = File(p.join(projectRoot.path, 'real_logo.png'))
+      ..writeAsStringSync('REAL_LOGO_BYTES');
 
-      final ProcessResult result = await runCli([
-        'add-tenant',
-        'beta',
-        'Beta Corp',
-        'com.example.beta',
-        '--logo',
-        realLogo.path,
-      ], cwd: projectRoot.path);
+    final ProcessResult result = await runCli([
+      'add-tenant',
+      'beta',
+      'Beta Corp',
+      'com.example.beta',
+      '--logo',
+      realLogo.path,
+    ], cwd: projectRoot.path);
 
-      expect(result.exitCode, 0, reason: result.stderr.toString());
-      final staged = File(
-        p.join(projectRoot.path, 'tenants', 'beta', 'assets', 'logo.png'),
-      );
-      expect(staged.readAsStringSync(), 'REAL_LOGO_BYTES');
-    },
-  );
+    expect(result.exitCode, 0, reason: result.stderr.toString());
+    final staged = File(p.join(projectRoot.path, 'tenants', 'beta', 'assets', 'logo.png'));
+    expect(staged.readAsStringSync(), 'REAL_LOGO_BYTES');
+  });
 }

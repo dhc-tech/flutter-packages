@@ -8,12 +8,22 @@ package.
 
 This package defines the interface that platform-specific implementations
 of `apple_sign_in_plugin` must implement to be registered as the platform's
-`AppleSignInPlatform`, plus the shared, strongly-typed models
-(`AppleCredential`, `ApplePersonName`, `AppleAuthorizationScope`,
-`AppleCredentialState`, `AppleRealUserStatus`, `AppleSignInException`) and a
-default `MethodChannel`-based implementation
-(`MethodChannelAppleSignIn`) that platform packages can reuse when their
-Dart-side logic doesn't need to differ from the channel contract.
+`AppleSignInPlatform`, plus:
+
+- The shared, strongly-typed models: `AppleCredential`, `ApplePersonName`,
+  `AppleAuthorizationScope`, `AppleCredentialState`, `AppleRealUserStatus`,
+  `AppleSignInException`, `AppleAuthSession` (and its `AppleAuthIdentity` /
+  `AppleAuthTokens` / `AppleAuthAuthorization` / `AppleAuthLifecycle` /
+  `AppleAuthMetadata` components), `AppleAuthEvent`,
+  `AppleSignInCapabilities`, `AppleSignInDiagnostics`,
+  `AppleDisconnectResult`, and the `AppleBackendAdapter` interface.
+- A default `MethodChannel`-based implementation
+  (`MethodChannelAppleSignIn`) that platform packages can reuse when their
+  Dart-side logic doesn't need to differ from the channel contract.
+- A `JwtDecoder` utility for inspecting (not verifying) JWT contents —
+  used internally as a best-effort fallback to populate
+  `AppleAuthIdentity.email` when a platform's native response doesn't
+  include it directly.
 
 ## Usage
 

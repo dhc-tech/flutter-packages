@@ -83,11 +83,7 @@ white_label:
 ''');
     final TenantConfig tenant = WhiteLabelConfig.load(projectRoot.path)['acme'];
 
-    expect(
-      tenant.version.combined,
-      '2.5.0+7',
-      reason: 'shared value unchanged',
-    );
+    expect(tenant.version.combined, '2.5.0+7', reason: 'shared value unchanged');
     expect(tenant.androidVersion.combined, '2.5.0+9');
     expect(tenant.iosVersion.combined, '2.4.0+3');
   });

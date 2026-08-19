@@ -45,8 +45,7 @@ class AppleDisconnectResult {
 
   /// Whether the disconnect was completely successful (either revoked or already revoked).
   bool get isSuccessful =>
-      status == AppleDisconnectStatus.revoked ||
-      status == AppleDisconnectStatus.alreadyRevoked;
+      status == AppleDisconnectStatus.revoked || status == AppleDisconnectStatus.alreadyRevoked;
 
   @override
   String toString() => 'AppleDisconnectResult(status: $status, message: $message)';

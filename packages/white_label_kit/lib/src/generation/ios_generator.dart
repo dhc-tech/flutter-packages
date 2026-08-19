@@ -52,9 +52,7 @@ void generateIosConfig(TenantConfig tenant, {required String projectRoot}) {
     );
   }
 
-  final schemesDir = Directory(
-    p.join(xcodeprojPath, 'xcshareddata', 'xcschemes'),
-  );
+  final schemesDir = Directory(p.join(xcodeprojPath, 'xcshareddata', 'xcschemes'));
   final runnerScheme = File(p.join(schemesDir.path, 'Runner.xcscheme'));
   if (!runnerScheme.existsSync()) {
     throw IosGenerationException(
@@ -78,9 +76,7 @@ void removeIosConfig(String tenantId, {required String projectRoot}) {
   }
 
   // 1. Delete scheme file if present.
-  final schemeFile = File(
-    p.join(xcodeprojPath, 'xcshareddata', 'xcschemes', '$tenantId.xcscheme'),
-  );
+  final schemeFile = File(p.join(xcodeprojPath, 'xcshareddata', 'xcschemes', '$tenantId.xcscheme'));
   if (schemeFile.existsSync()) {
     try {
       schemeFile.deleteSync();

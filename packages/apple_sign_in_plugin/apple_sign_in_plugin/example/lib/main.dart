@@ -83,8 +83,8 @@ class _SignInPageState extends State<SignInPage> {
     final String? userIdentifier = _session?.identity.userIdentifier;
     setState(() => _isLoading = true);
     try {
-      final AppleDisconnectResult result = await AppleSignIn.instance
-          .disconnect(userIdentifier: userIdentifier);
+      final AppleDisconnectResult result =
+          await AppleSignIn.instance.disconnect(userIdentifier: userIdentifier);
       setState(() {
         _session = null;
         _statusText = '${result.status.name}: ${result.message ?? ''}';

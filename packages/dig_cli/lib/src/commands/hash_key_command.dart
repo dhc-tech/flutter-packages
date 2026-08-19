@@ -66,10 +66,7 @@ class HashKeyCommand extends Command<void> {
     var storepass = argResults?['storepass'] as String?;
     var keypass = argResults?['keypass'] as String?;
 
-    if (keystore == null ||
-        alias == null ||
-        storepass == null ||
-        keypass == null) {
+    if (keystore == null || alias == null || storepass == null || keypass == null) {
       // Auto-detect project key.properties
       final Map<String, String>? projectConfig = await _tryReadProjectKeyProperties();
       if (projectConfig != null && projectConfig.containsKey('storeFile')) {
@@ -92,10 +89,7 @@ class HashKeyCommand extends Command<void> {
       }
 
       // If user declined or not fully resolved via key.properties, ask manually
-      if (keystore == null ||
-          alias == null ||
-          storepass == null ||
-          keypass == null) {
+      if (keystore == null || alias == null || storepass == null || keypass == null) {
         kLog('\n🔑 Release Key Details Required', type: LogType.warning);
 
         if (keystore == null) {
@@ -196,18 +190,15 @@ class HashKeyCommand extends Command<void> {
         await keytoolProc.stdout.pipe(sha1Proc.stdin);
         await sha1Proc.stdout.pipe(base64Proc.stdin);
 
-        final String hashResult =
-            await base64Proc.stdout.transform(const Utf8Decoder()).join();
+        final String hashResult = await base64Proc.stdout.transform(const Utf8Decoder()).join();
         final int keytoolExit = await keytoolProc.exitCode;
         final int sha1Exit = await sha1Proc.exitCode;
         final int base64Exit = await base64Proc.exitCode;
 
-        final String stderrOutput =
-            await keytoolProc.stderr.transform(const Utf8Decoder()).join();
+        final String stderrOutput = await keytoolProc.stderr.transform(const Utf8Decoder()).join();
 
-        final finalExitCode = (keytoolExit != 0)
-            ? keytoolExit
-            : (sha1Exit != 0 ? sha1Exit : base64Exit);
+        final finalExitCode =
+            (keytoolExit != 0) ? keytoolExit : (sha1Exit != 0 ? sha1Exit : base64Exit);
 
         return ProcessResult(0, finalExitCode, hashResult, stderrOutput);
       });

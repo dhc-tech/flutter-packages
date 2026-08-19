@@ -58,10 +58,7 @@ TenantConfig _tenant(String id, {String? applicationId, String? appName}) {
       applicationId: applicationId ?? 'com.example.$id',
       appName: appName ?? id,
     ),
-    ios: IosTenantConfig(
-      bundleId: applicationId ?? 'com.example.$id',
-      appName: appName ?? id,
-    ),
+    ios: IosTenantConfig(bundleId: applicationId ?? 'com.example.$id', appName: appName ?? id),
     assets: const TenantAssets(logo: 'tenants/x/assets/logo.png'),
   );
 }
@@ -71,13 +68,10 @@ void main() {
   late File gradleFile;
 
   setUp(() {
-    projectRoot = Directory.systemTemp.createTempSync(
-      'android_generation_test_',
-    );
+    projectRoot = Directory.systemTemp.createTempSync('android_generation_test_');
     final appDir = Directory(p.join(projectRoot.path, 'android', 'app'))
       ..createSync(recursive: true);
-    gradleFile = File(p.join(appDir.path, 'build.gradle.kts'))
-      ..writeAsStringSync(_freshGradleFile);
+    gradleFile = File(p.join(appDir.path, 'build.gradle.kts'))..writeAsStringSync(_freshGradleFile);
   });
 
   tearDown(() {
@@ -119,34 +113,25 @@ void main() {
     expect(opens, closes);
   });
 
-  test(
-    'calling twice for the same tenant does not duplicate the flavor block',
-    () {
-      final TenantConfig tenant = _tenant(
-        'acme',
-        applicationId: 'com.example.acme',
-        appName: 'Acme',
-      );
+  test('calling twice for the same tenant does not duplicate the flavor block', () {
+    final TenantConfig tenant = _tenant('acme', applicationId: 'com.example.acme', appName: 'Acme');
 
-      generateAndroidFlavor(tenant, projectRoot: projectRoot.path);
-      final String afterFirst = gradleFile.readAsStringSync();
+    generateAndroidFlavor(tenant, projectRoot: projectRoot.path);
+    final String afterFirst = gradleFile.readAsStringSync();
 
-      generateAndroidFlavor(tenant, projectRoot: projectRoot.path);
-      final String afterSecond = gradleFile.readAsStringSync();
+    generateAndroidFlavor(tenant, projectRoot: projectRoot.path);
+    final String afterSecond = gradleFile.readAsStringSync();
 
-      // Byte-for-byte identical: the idempotency guard fires before any part
-      // of the file is touched a second time.
-      expect(afterSecond, equals(afterFirst));
+    // Byte-for-byte identical: the idempotency guard fires before any part
+    // of the file is touched a second time.
+    expect(afterSecond, equals(afterFirst));
 
-      final int occurrences = 'create("acme")'.allMatches(afterSecond).length;
-      expect(occurrences, 1);
+    final int occurrences = 'create("acme")'.allMatches(afterSecond).length;
+    expect(occurrences, 1);
 
-      final int flavorDimensionsOccurrences = 'flavorDimensions'
-          .allMatches(afterSecond)
-          .length;
-      expect(flavorDimensionsOccurrences, 1);
-    },
-  );
+    final int flavorDimensionsOccurrences = 'flavorDimensions'.allMatches(afterSecond).length;
+    expect(flavorDimensionsOccurrences, 1);
+  });
 
   test('a second, different tenant is added alongside the first, not instead of it', () {
     generateAndroidFlavor(
@@ -191,10 +176,7 @@ void main() {
     expect(content, contains('namespace = "com.example.example_app"'));
     expect(content, contains('defaultConfig {'));
     expect(content, contains('buildTypes {'));
-    expect(
-      content,
-      contains('signingConfig = signingConfigs.getByName("debug")'),
-    );
+    expect(content, contains('signingConfig = signingConfigs.getByName("debug")'));
     expect(content, contains('flutter {'));
     expect(content, contains('source = "../.."'));
   });

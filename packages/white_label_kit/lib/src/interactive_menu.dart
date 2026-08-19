@@ -31,18 +31,10 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
 
   while (true) {
     stdout.writeln();
-    stdout.writeln(
-      '╔══════════════════════════════════════════════════════════════════╗',
-    );
-    stdout.writeln(
-      '║              ✨ WHITE_LABEL_KIT RUNNER & BUILDER                 ║',
-    );
-    stdout.writeln(
-      '║          Automated Multi-Tenant Flutter CLI & Launcher           ║',
-    );
-    stdout.writeln(
-      '╚══════════════════════════════════════════════════════════════════╝',
-    );
+    stdout.writeln('╔══════════════════════════════════════════════════════════════════╗');
+    stdout.writeln('║              ✨ WHITE_LABEL_KIT RUNNER & BUILDER                 ║');
+    stdout.writeln('║          Automated Multi-Tenant Flutter CLI & Launcher           ║');
+    stdout.writeln('╚══════════════════════════════════════════════════════════════════╝');
     stdout.writeln();
 
     // --- 1. Tenant Selection with Validation Loop ---
@@ -75,31 +67,21 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
     }
 
     final TenantConfig tenantObj = config.tenants[selectedTenant]!;
-    stdout.writeln(
-      '\n🎯 Selected Tenant: ${tenantObj.name} ($selectedTenant)\n',
-    );
+    stdout.writeln('\n🎯 Selected Tenant: ${tenantObj.name} ($selectedTenant)\n');
 
     // --- 2. Action Selection with Validation Loop ---
     String? selectedAction;
     while (selectedAction == null) {
       stdout.writeln('⚡ SELECT ACTION:');
-      stdout.writeln(
-        '   [1] ▶️  Run in Debug Mode (Simulator / Connected Device)',
-      );
+      stdout.writeln('   [1] ▶️  Run in Debug Mode (Simulator / Connected Device)');
       stdout.writeln('   [2] ⚡  Run in Release Mode (Device)');
       stdout.writeln('   [3] 🚀  Build Release APK (Android)');
-      stdout.writeln(
-        '   [4] 📦  Build Release AppBundle / AAB (Google Play Store)',
-      );
+      stdout.writeln('   [4] 📦  Build Release AppBundle / AAB (Google Play Store)');
       stdout.writeln('   [5] 🍎  Build Release iOS (Simulator / Archive)');
-      stdout.writeln(
-        '   [6] 🔧  Configure All Tenants (white_label_kit:configure)',
-      );
+      stdout.writeln('   [6] 🔧  Configure All Tenants (white_label_kit:configure)');
       stdout.writeln('   [7] ➕  Add New Tenant (white_label_kit:add-tenant)');
       stdout.writeln('   [8] ❌  Remove Tenant (white_label_kit:remove-tenant)');
-      stdout.writeln(
-        '   [9] 🔍  Analyze & Health Check (Flutter Analyze + Tests)',
-      );
+      stdout.writeln('   [9] 🔍  Analyze & Health Check (Flutter Analyze + Tests)');
       stdout.writeln('   [0] 🚪  Exit');
       stdout.write('\nEnter action number [1-9, 0 to exit]: ');
 
@@ -107,9 +89,7 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
       if (input != null && RegExp(r'^[0-9]$').hasMatch(input)) {
         selectedAction = input;
       } else {
-        stdout.writeln(
-          '❌ Invalid action "$input". Please enter a number from 0 to 9.\n',
-        );
+        stdout.writeln('❌ Invalid action "$input". Please enter a number from 0 to 9.\n');
       }
     }
 
@@ -119,12 +99,7 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
         stdout.writeln('👋 Exiting. Happy coding!');
         return 0;
       case '1':
-        await _execute('dart', [
-          'run',
-          'white_label_kit:generate',
-          '--tenant',
-          selectedTenant,
-        ]);
+        await _execute('dart', ['run', 'white_label_kit:generate', '--tenant', selectedTenant]);
         await _execute('flutter', [
           'run',
           '--flavor',
@@ -132,12 +107,7 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
           '--dart-define=TENANT_ID=$selectedTenant',
         ]);
       case '2':
-        await _execute('dart', [
-          'run',
-          'white_label_kit:generate',
-          '--tenant',
-          selectedTenant,
-        ]);
+        await _execute('dart', ['run', 'white_label_kit:generate', '--tenant', selectedTenant]);
         await _execute('flutter', [
           'run',
           '--release',
@@ -146,12 +116,7 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
           '--dart-define=TENANT_ID=$selectedTenant',
         ]);
       case '3':
-        await _execute('dart', [
-          'run',
-          'white_label_kit:generate',
-          '--tenant',
-          selectedTenant,
-        ]);
+        await _execute('dart', ['run', 'white_label_kit:generate', '--tenant', selectedTenant]);
         await _execute('flutter', [
           'build',
           'apk',
@@ -161,12 +126,7 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
           '--dart-define=TENANT_ID=$selectedTenant',
         ]);
       case '4':
-        await _execute('dart', [
-          'run',
-          'white_label_kit:generate',
-          '--tenant',
-          selectedTenant,
-        ]);
+        await _execute('dart', ['run', 'white_label_kit:generate', '--tenant', selectedTenant]);
         await _execute('flutter', [
           'build',
           'appbundle',
@@ -176,12 +136,7 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
           '--dart-define=TENANT_ID=$selectedTenant',
         ]);
       case '5':
-        await _execute('dart', [
-          'run',
-          'white_label_kit:generate',
-          '--tenant',
-          selectedTenant,
-        ]);
+        await _execute('dart', ['run', 'white_label_kit:generate', '--tenant', selectedTenant]);
         await _execute('flutter', [
           'build',
           'ios',
@@ -206,13 +161,7 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
             name.isNotEmpty &&
             bundleId != null &&
             bundleId.isNotEmpty) {
-          await _execute('dart', [
-            'run',
-            'white_label_kit:add-tenant',
-            id,
-            name,
-            bundleId,
-          ]);
+          await _execute('dart', ['run', 'white_label_kit:add-tenant', id, name, bundleId]);
           await _execute('dart', ['run', 'white_label_kit:configure']);
           // Reload config
           try {
@@ -245,9 +194,7 @@ Future<int> runInteractiveMenu({String? projectRoot}) async {
 }
 
 Future<void> _execute(String executable, List<String> args) async {
-  stdout.writeln(
-    '\n➜ [white_label_kit] Executing: $executable ${args.join(" ")}',
-  );
+  stdout.writeln('\n➜ [white_label_kit] Executing: $executable ${args.join(" ")}');
   final Process process = await Process.start(
     executable,
     args,

@@ -18,9 +18,7 @@ void main() {
   late Directory projectRoot;
 
   setUp(() {
-    projectRoot = Directory.systemTemp.createTempSync(
-      'white_label_isolation_test_',
-    );
+    projectRoot = Directory.systemTemp.createTempSync('white_label_isolation_test_');
 
     _writeTenant(
       projectRoot,
@@ -100,17 +98,13 @@ white_label:
     final List<String> acmeAssets = stager.stagedAssetNames('acme');
     expect(acmeAssets, containsAll(['logo.png', 'icon.png']));
 
-    final String acmeLogo = File(
-      p.join(stager.stagingDirFor('acme'), 'assets', 'logo.png'),
-    ).readAsStringSync();
+    final String acmeLogo = File(p.join(stager.stagingDirFor('acme'), 'assets', 'logo.png'))
+        .readAsStringSync();
     expect(acmeLogo, 'ACME_LOGO_BYTES');
 
     // The hard requirement: nothing beta-flavored anywhere in A's staging
     // output, and B's staging directory doesn't even exist yet.
-    expect(
-      acmeAssets.any((name) => name.toLowerCase().contains('beta')),
-      isFalse,
-    );
+    expect(acmeAssets.any((name) => name.toLowerCase().contains('beta')), isFalse);
     expect(Directory(stager.stagingDirFor('beta')).existsSync(), isFalse);
   });
 
@@ -120,9 +114,8 @@ white_label:
 
     stager.stage(config['beta']);
 
-    final String betaLogo = File(
-      p.join(stager.stagingDirFor('beta'), 'assets', 'logo.png'),
-    ).readAsStringSync();
+    final String betaLogo = File(p.join(stager.stagingDirFor('beta'), 'assets', 'logo.png'))
+        .readAsStringSync();
     expect(betaLogo, 'BETA_LOGO_BYTES');
     expect(Directory(stager.stagingDirFor('acme')).existsSync(), isFalse);
   });
@@ -137,24 +130,20 @@ white_label:
 
     // Prove A's re-stage is genuinely A again, byte-for-byte — not a stale
     // leftover from the B build that happened in between.
-    final String acmeLogo = File(
-      p.join(stager.stagingDirFor('acme'), 'assets', 'logo.png'),
-    ).readAsStringSync();
+    final String acmeLogo = File(p.join(stager.stagingDirFor('acme'), 'assets', 'logo.png'))
+        .readAsStringSync();
     expect(acmeLogo, 'ACME_LOGO_BYTES');
     expect(stager.stagedAssetNames('acme'), ['icon.png', 'logo.png']);
 
     // B's staging directory from the middle step is untouched by the final
     // A stage — each tenant's staging output is independent.
-    final String betaLogo = File(
-      p.join(stager.stagingDirFor('beta'), 'assets', 'logo.png'),
-    ).readAsStringSync();
+    final String betaLogo = File(p.join(stager.stagingDirFor('beta'), 'assets', 'logo.png'))
+        .readAsStringSync();
     expect(betaLogo, 'BETA_LOGO_BYTES');
   });
 
-  test(
-    'validation rejects a tenant asset path that escapes its own directory',
-    () {
-      File(p.join(projectRoot.path, 'white_label.yaml')).writeAsStringSync('''
+  test('validation rejects a tenant asset path that escapes its own directory', () {
+    File(p.join(projectRoot.path, 'white_label.yaml')).writeAsStringSync('''
 white_label:
   default_tenant: acme
   tenants:
@@ -170,18 +159,17 @@ white_label:
         logo: "tenants/beta/assets/logo.png"
 ''');
 
-      expect(
-        () => WhiteLabelConfig.load(projectRoot.path),
-        throwsA(
-          isA<WhiteLabelConfigException>().having(
-            (e) => e.errors.join('\n'),
-            'errors',
-            contains('must live under tenants/acme/'),
-          ),
+    expect(
+      () => WhiteLabelConfig.load(projectRoot.path),
+      throwsA(
+        isA<WhiteLabelConfigException>().having(
+          (e) => e.errors.join('\n'),
+          'errors',
+          contains('must live under tenants/acme/'),
         ),
-      );
-    },
-  );
+      ),
+    );
+  });
 }
 
 void _writeTenant(

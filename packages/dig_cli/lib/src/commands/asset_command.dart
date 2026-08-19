@@ -10,7 +10,6 @@ import '../utils/logger.dart';
 
 /// Command to generate asset constants from dig.yaml
 class AssetCommand extends Command<void> {
-
   /// Registers the `build` and `watch` subcommands.
   AssetCommand() {
     addSubcommand(_AssetBuildCommand());
@@ -213,8 +212,7 @@ Map<String, Map<String, List<_AssetInfo>>> _scanAssets(
       final String normalizedPath = relativePath.replaceAll(r'\', '/');
       final List<String> pathParts = normalizedPath.split('/');
 
-      final String extension =
-          p.extension(entity.path).toLowerCase().replaceAll('.', '');
+      final String extension = p.extension(entity.path).toLowerCase().replaceAll('.', '');
 
       // Check if this path should be skipped
       // The relative path for skipping should include the base folder if it matches existing logic
@@ -271,8 +269,7 @@ Map<String, Map<String, List<_AssetInfo>>> _scanAssets(
 
         // The path in the constant should be the full path relative to the project root
         // which is basically p.join(dir.path, relativePath)
-        final String projectRelativePath =
-            p.join(dir.path, relativePath).replaceAll(r'\', '/');
+        final String projectRelativePath = p.join(dir.path, relativePath).replaceAll(r'\', '/');
 
         assets[category]![fileType]!.add(
           _AssetInfo(constantName, projectRelativePath),
@@ -322,9 +319,8 @@ String _toConstantName(String fileName) {
     result = part[0].toLowerCase() + part.substring(1);
   } else {
     final String first = parts.first.toLowerCase();
-    final Iterable<String> rest = parts
-        .skip(1)
-        .map((p) => p[0].toUpperCase() + p.substring(1).toLowerCase());
+    final Iterable<String> rest =
+        parts.skip(1).map((p) => p[0].toUpperCase() + p.substring(1).toLowerCase());
     result = first + rest.join();
   }
 
@@ -426,9 +422,8 @@ String _toCategoryClassName(String category, String fileType) {
 
   // Split category by underscore and capitalize each part
   final List<String> categoryParts = category.split('_');
-  final String categoryCapitalized = categoryParts
-      .map((part) => part[0].toUpperCase() + part.substring(1))
-      .join();
+  final String categoryCapitalized =
+      categoryParts.map((part) => part[0].toUpperCase() + part.substring(1)).join();
 
   final String typeCapitalized = fileType[0].toUpperCase() + fileType.substring(1);
   return '$categoryCapitalized$typeCapitalized';
@@ -456,8 +451,7 @@ String _generateTypeFile(
 
   for (final asset in assets) {
     // Ensure constant name is a valid Dart identifier
-    final String safeName =
-        RegExp(r'^[0-9]').hasMatch(asset.name) ? 'ic${asset.name}' : asset.name;
+    final String safeName = RegExp(r'^[0-9]').hasMatch(asset.name) ? 'ic${asset.name}' : asset.name;
     buffer.writeln('  /// ${asset.path}');
     buffer.writeln("  static const String $safeName = '${asset.path}';");
     if (asset != assets.last) {
@@ -563,20 +557,17 @@ Future<void> _updatePubspec(Directory assetsDir) async {
   final requiredAssets = <String>{};
 
   // Normalize assetsDir path relative to project root
-  final String baseAssetsPath = p
-      .relative(assetsDir.path, from: Directory.current.path)
-      .replaceAll(r'\', '/');
-  final normalizedBase =
-      baseAssetsPath.endsWith('/') ? baseAssetsPath : '$baseAssetsPath/';
+  final String baseAssetsPath =
+      p.relative(assetsDir.path, from: Directory.current.path).replaceAll(r'\', '/');
+  final normalizedBase = baseAssetsPath.endsWith('/') ? baseAssetsPath : '$baseAssetsPath/';
 
   requiredAssets.add(normalizedBase);
 
   final List<FileSystemEntity> allEntities = assetsDir.listSync(recursive: true);
   for (final entity in allEntities) {
     if (entity is File) {
-      final String folderPath = p
-          .dirname(p.relative(entity.path, from: Directory.current.path))
-          .replaceAll(r'\', '/');
+      final String folderPath =
+          p.dirname(p.relative(entity.path, from: Directory.current.path)).replaceAll(r'\', '/');
 
       requiredAssets.add('$folderPath/');
     }
@@ -770,8 +761,7 @@ bool _shouldSkip(String path, List<String> skipPatterns) {
     // - 'icons' matches 'assets/icons/...'
     // - 'icons/svg' matches 'assets/icons/svg/...'
     // - 'fonts' matches 'assets/fonts/...'
-    if (path.contains('/$normalizedPattern/') ||
-        path.startsWith('assets/$normalizedPattern/')) {
+    if (path.contains('/$normalizedPattern/') || path.startsWith('assets/$normalizedPattern/')) {
       return true;
     }
   }
@@ -779,7 +769,6 @@ bool _shouldSkip(String path, List<String> skipPatterns) {
 }
 
 class _AssetInfo {
-
   _AssetInfo(this.name, this.path);
   final String name;
   final String path;

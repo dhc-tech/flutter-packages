@@ -86,7 +86,8 @@ void main() {
       AppleSignIn.instance.backendAdapter = adapter;
 
       final events = <AppleAuthEvent>[];
-      final StreamSubscription<AppleAuthEvent> subscription = AppleSignIn.instance.events.listen(events.add);
+      final StreamSubscription<AppleAuthEvent> subscription =
+          AppleSignIn.instance.events.listen(events.add);
 
       final AppleAuthSession session = await AppleSignIn.instance.signIn(
         scopes: {AppleAuthorizationScope.email, AppleAuthorizationScope.fullName},
@@ -123,7 +124,8 @@ void main() {
 
     test('signOut clears active session and emits signedOut event', () async {
       final events = <AppleAuthEvent>[];
-      final StreamSubscription<AppleAuthEvent> subscription = AppleSignIn.instance.events.listen(events.add);
+      final StreamSubscription<AppleAuthEvent> subscription =
+          AppleSignIn.instance.events.listen(events.add);
 
       await AppleSignIn.instance.signIn(scopes: {AppleAuthorizationScope.email});
       expect(AppleSignIn.instance.currentSession, isNotNull);
@@ -139,7 +141,8 @@ void main() {
 
     test('native onCredentialRevoked emits credentialRevoked event', () async {
       final events = <AppleAuthEvent>[];
-      final StreamSubscription<AppleAuthEvent> subscription = AppleSignIn.instance.events.listen(events.add);
+      final StreamSubscription<AppleAuthEvent> subscription =
+          AppleSignIn.instance.events.listen(events.add);
 
       fakePlatform.revocationController.add(null);
 
@@ -154,9 +157,11 @@ void main() {
       fakePlatform.credentialStateResult = AppleCredentialState.transferred;
 
       final events = <AppleAuthEvent>[];
-      final StreamSubscription<AppleAuthEvent> subscription = AppleSignIn.instance.events.listen(events.add);
+      final StreamSubscription<AppleAuthEvent> subscription =
+          AppleSignIn.instance.events.listen(events.add);
 
-      final AppleCredentialState state = await AppleSignIn.instance.getCredentialState('user_transferred');
+      final AppleCredentialState state =
+          await AppleSignIn.instance.getCredentialState('user_transferred');
       expect(state, AppleCredentialState.transferred);
 
       await pumpEventQueue();
@@ -170,7 +175,8 @@ void main() {
       final adapter = _MockBackendAdapter();
       AppleSignIn.instance.backendAdapter = adapter;
 
-      final AppleDisconnectResult result = await AppleSignIn.instance.disconnect(userIdentifier: 'user789');
+      final AppleDisconnectResult result =
+          await AppleSignIn.instance.disconnect(userIdentifier: 'user789');
       expect(result.status, AppleDisconnectStatus.revoked);
       expect(result.isSuccessful, isTrue);
       expect(adapter.revokeCalled, isTrue);

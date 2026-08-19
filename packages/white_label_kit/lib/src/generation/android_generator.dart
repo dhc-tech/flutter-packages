@@ -33,9 +33,7 @@ import '../config/tenant_config.dart';
 /// if it exists but has no top-level `android { ... }` block to work with —
 /// this function never blindly regexes a file it can't make sense of.
 void generateAndroidFlavor(TenantConfig tenant, {required String projectRoot}) {
-  final gradleFile = File(
-    p.join(projectRoot, 'android', 'app', 'build.gradle.kts'),
-  );
+  final gradleFile = File(p.join(projectRoot, 'android', 'app', 'build.gradle.kts'));
   if (!gradleFile.existsSync()) {
     throw StateError(
       'No android/app/build.gradle.kts found under "$projectRoot" — is '
@@ -49,9 +47,7 @@ void generateAndroidFlavor(TenantConfig tenant, {required String projectRoot}) {
   // this tenant's flavor already exists, do nothing at all — not even the
   // flavorDimensions touch-up below, so a re-run over an already-generated
   // file is byte-for-byte a no-op.
-  final tenantEntryPattern = RegExp(
-    'create\\("${RegExp.escape(tenant.id)}"\\)',
-  );
+  final tenantEntryPattern = RegExp('create\\("${RegExp.escape(tenant.id)}"\\)');
   if (tenantEntryPattern.hasMatch(content)) {
     return;
   }
@@ -65,9 +61,8 @@ void generateAndroidFlavor(TenantConfig tenant, {required String projectRoot}) {
   }
 
   // Step 1: flavorDimensions, added once and shared by all tenants.
-  if (!RegExp(r'flavorDimensions').hasMatch(
-    content.substring(androidBlock.openBrace, androidBlock.closeBrace),
-  )) {
+  if (!RegExp(r'flavorDimensions')
+      .hasMatch(content.substring(androidBlock.openBrace, androidBlock.closeBrace))) {
     final int insertAt = androidBlock.openBrace + 1;
     content = content.replaceRange(
       insertAt,
@@ -108,8 +103,7 @@ void generateAndroidFlavor(TenantConfig tenant, {required String projectRoot}) {
 
   final String flavorEntry = _flavorEntryBlock(tenant);
 
-  final RegExpMatch? productFlavorsMatch = RegExp(r'productFlavors\s*\{')
-      .firstMatch(androidBody);
+  final RegExpMatch? productFlavorsMatch = RegExp(r'productFlavors\s*\{').firstMatch(androidBody);
 
   if (productFlavorsMatch == null) {
     // No productFlavors block at all yet: create one (with this tenant's
@@ -139,8 +133,7 @@ void generateAndroidFlavor(TenantConfig tenant, {required String projectRoot}) {
     }
     int insertPos = productFlavorsBlock.closeBrace;
     final int lastLineBreak = content.lastIndexOf('\n', insertPos - 1);
-    if (lastLineBreak != -1 &&
-        content.substring(lastLineBreak + 1, insertPos).trim().isEmpty) {
+    if (lastLineBreak != -1 && content.substring(lastLineBreak + 1, insertPos).trim().isEmpty) {
       insertPos = lastLineBreak + 1;
     }
     content = content.replaceRange(insertPos, insertPos, flavorEntry);
@@ -155,9 +148,7 @@ void generateAndroidFlavor(TenantConfig tenant, {required String projectRoot}) {
 /// Idempotent: if the flavor is not present or the file does not exist,
 /// does nothing.
 void removeAndroidFlavor(String tenantId, {required String projectRoot}) {
-  final gradleFile = File(
-    p.join(projectRoot, 'android', 'app', 'build.gradle.kts'),
-  );
+  final gradleFile = File(p.join(projectRoot, 'android', 'app', 'build.gradle.kts'));
   if (!gradleFile.existsSync()) {
     return;
   }
@@ -165,9 +156,7 @@ void removeAndroidFlavor(String tenantId, {required String projectRoot}) {
   String content = gradleFile.readAsStringSync();
 
   final pattern = RegExp(
-    r'(?:[ \t]*(?://[^\r\n]*)?\r?\n)?[ \t]*create\("' +
-        RegExp.escape(tenantId) +
-        r'"\)\s*\{',
+    r'(?:[ \t]*(?://[^\r\n]*)?\r?\n)?[ \t]*create\("' + RegExp.escape(tenantId) + r'"\)\s*\{',
   );
   final RegExpMatch? match = pattern.firstMatch(content);
   if (match == null) {
@@ -186,8 +175,7 @@ void removeAndroidFlavor(String tenantId, {required String projectRoot}) {
   int end = block.closeBrace + 1;
   if (end < content.length && content[end] == '\n') {
     end++;
-  } else if (end + 1 < content.length &&
-      content.substring(end, end + 2) == '\r\n') {
+  } else if (end + 1 < content.length && content.substring(end, end + 2) == '\r\n') {
     end += 2;
   }
 
@@ -211,8 +199,7 @@ String _flavorEntryBlock(TenantConfig tenant) {
       .substring(1);
 }
 
-String _escapeKotlinString(String value) =>
-    value.replaceAll(r'\', r'\\').replaceAll('"', r'\"');
+String _escapeKotlinString(String value) => value.replaceAll(r'\', r'\\').replaceAll('"', r'\"');
 
 class _Block {
   const _Block(this.openBrace, this.closeBrace);

@@ -11,7 +11,6 @@ import '../utils/spinner.dart';
 /// Rules describing which files/directories to exclude from a ZIP archive,
 /// derived from a project's `.gitignore`.
 class IgnoreRules {
-
   /// Creates ignore rules from explicit sets of directory names, file names,
   /// and file extensions.
   IgnoreRules(this.exactDirs, this.exactFiles, this.extensions);
@@ -90,7 +89,6 @@ class IgnoreRules {
 /// Command that packages the current Flutter project into a clean ZIP
 /// archive, excluding files matched by `.gitignore`.
 class ZipCommand extends Command<void> {
-
   /// Registers the `--output` option.
   ZipCommand() {
     argParser.addOption('output', abbr: 'o', help: 'Specify output directory');

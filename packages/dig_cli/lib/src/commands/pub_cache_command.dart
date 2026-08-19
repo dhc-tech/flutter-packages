@@ -28,8 +28,7 @@ Future<void> repairPubCache() async {
   try {
     final ProcessResult result = await runWithSpinner(
       '🔄 Running pub cache repair...',
-      () =>
-          Process.run('flutter', ['pub', 'cache', 'repair'], runInShell: true),
+      () => Process.run('flutter', ['pub', 'cache', 'repair'], runInShell: true),
     );
 
     if (result.exitCode != 0) {

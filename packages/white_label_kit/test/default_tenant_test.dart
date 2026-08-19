@@ -21,9 +21,7 @@ void main() {
   late Directory projectRoot;
 
   setUp(() {
-    projectRoot = Directory.systemTemp.createTempSync(
-      'white_label_default_tenant_test_',
-    );
+    projectRoot = Directory.systemTemp.createTempSync('white_label_default_tenant_test_');
   });
 
   tearDown(() {
@@ -83,10 +81,7 @@ ${_tenantYaml('beta')}
         isA<WhiteLabelConfigException>().having(
           (e) => e.errors.join('\n'),
           'errors',
-          allOf(
-            contains('Multiple tenants declared'),
-            contains('default_tenant'),
-          ),
+          allOf(contains('Multiple tenants declared'), contains('default_tenant')),
         ),
       ),
     );
@@ -107,9 +102,7 @@ ${_tenantYaml('acme')}
         isA<WhiteLabelConfigException>().having(
           (e) => e.errors.join('\n'),
           'errors',
-          contains(
-            '`default_tenant: nope` is not one of the declared tenants.',
-          ),
+          contains('`default_tenant: nope` is not one of the declared tenants.'),
         ),
       ),
     );

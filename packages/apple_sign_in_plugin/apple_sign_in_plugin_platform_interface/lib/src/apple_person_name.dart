@@ -50,8 +50,7 @@ class ApplePersonName {
       nickname == null;
 
   @override
-  String toString() =>
-      'ApplePersonName(namePrefix: $namePrefix, givenName: $givenName, '
+  String toString() => 'ApplePersonName(namePrefix: $namePrefix, givenName: $givenName, '
       'middleName: $middleName, familyName: $familyName, '
       'nameSuffix: $nameSuffix, nickname: $nickname)';
 
@@ -67,11 +66,11 @@ class ApplePersonName {
 
   @override
   int get hashCode => Object.hash(
-    namePrefix,
-    givenName,
-    middleName,
-    familyName,
-    nameSuffix,
-    nickname,
-  );
+        namePrefix,
+        givenName,
+        middleName,
+        familyName,
+        nameSuffix,
+        nickname,
+      );
 }

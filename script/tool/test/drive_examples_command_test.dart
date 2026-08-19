@@ -1588,9 +1588,8 @@ void main() {
             'example/without_web/test_driver/integration_test.dart',
           ],
         );
-        final Directory supportedExampleDirectory = getExampleDir(
-          package,
-        ).childDirectory('with_web');
+        final Directory supportedExampleDirectory = getExampleDir(package)
+            .childDirectory('with_web');
 
         final List<String> output = await runCapturingPrint(runner, <String>[
           'drive-examples',

@@ -11,8 +11,7 @@ class VersionCommand extends Command<dynamic> {
   @override
   final name = 'version';
   @override
-  final description =
-      'Shows the current version and information about DIG CLI.';
+  final description = 'Shows the current version and information about DIG CLI.';
 
   @override
   Future<void> run() async {

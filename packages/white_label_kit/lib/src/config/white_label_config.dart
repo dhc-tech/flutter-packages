@@ -12,10 +12,7 @@ import 'tenant_config.dart';
 /// public unchecked constructor, so a [WhiteLabelConfig] instance is always
 /// known-valid by the time application/generator code touches it.
 class WhiteLabelConfig {
-  const WhiteLabelConfig._({
-    required this.defaultTenant,
-    required this.tenants,
-  });
+  const WhiteLabelConfig._({required this.defaultTenant, required this.tenants});
 
   /// The id of the tenant used when no explicit tenant is requested.
   final String defaultTenant;
@@ -28,11 +25,7 @@ class WhiteLabelConfig {
   TenantConfig operator [](String tenantId) {
     final TenantConfig? tenant = tenants[tenantId];
     if (tenant == null) {
-      throw ArgumentError.value(
-        tenantId,
-        'tenantId',
-        'No such tenant in white_label.yaml',
-      );
+      throw ArgumentError.value(tenantId, 'tenantId', 'No such tenant in white_label.yaml');
     }
     return tenant;
   }
@@ -100,9 +93,7 @@ class WhiteLabelConfig {
     if (configPath == null) {
       return File('$projectRoot/white_label.yaml');
     }
-    return File(
-      p.isAbsolute(configPath) ? configPath : p.join(projectRoot, configPath),
-    );
+    return File(p.isAbsolute(configPath) ? configPath : p.join(projectRoot, configPath));
   }
 
   /// Parses YAML text directly — used by [load] and by tests that don't want
@@ -169,9 +160,7 @@ class WhiteLabelConfig {
     var resolvedDefaultTenant = defaultTenant;
     if (defaultTenant != null) {
       if (tenants.isNotEmpty && !tenants.containsKey(defaultTenant)) {
-        errors.add(
-          '`default_tenant: $defaultTenant` is not one of the declared tenants.',
-        );
+        errors.add('`default_tenant: $defaultTenant` is not one of the declared tenants.');
       }
     } else if (tenants.length == 1) {
       resolvedDefaultTenant = tenants.keys.single;
@@ -188,10 +177,7 @@ class WhiteLabelConfig {
       throw WhiteLabelConfigException(errors);
     }
 
-    return WhiteLabelConfig._(
-      defaultTenant: resolvedDefaultTenant!,
-      tenants: tenants,
-    );
+    return WhiteLabelConfig._(defaultTenant: resolvedDefaultTenant!, tenants: tenants);
   }
 
   static TenantConfig? _parseTenant(
@@ -218,9 +204,7 @@ class WhiteLabelConfig {
     final applicationId = android?['application_id']?.toString();
     final String? androidAppName = android?['app_name']?.toString() ?? name;
     if (applicationId == null) {
-      errors.add(
-        'Tenant "$id" is missing required field `android.application_id`.',
-      );
+      errors.add('Tenant "$id" is missing required field `android.application_id`.');
     } else {
       final ValidationResult r = ConfigValidator.androidApplicationId(applicationId);
       if (r is Invalid) {
@@ -271,11 +255,7 @@ class WhiteLabelConfig {
         const TenantVersion(name: '1.0.0', buildNumber: 1);
     final TenantVersion? androidVersionOverride = android?['version'] == null
         ? null
-        : _parseVersion(
-            android!['version'],
-            'tenants.$id.android.version',
-            errors,
-          );
+        : _parseVersion(android!['version'], 'tenants.$id.android.version', errors);
     final TenantVersion? iosVersionOverride = ios?['version'] == null
         ? null
         : _parseVersion(ios!['version'], 'tenants.$id.ios.version', errors);
@@ -301,12 +281,7 @@ class WhiteLabelConfig {
           errors.add('Tenant "$id": ${r.message}');
         }
       }
-      brandColors = _parseColorMap(
-        theme,
-        'brand_colors',
-        'tenants.$id.theme.brand_colors',
-        errors,
-      );
+      brandColors = _parseColorMap(theme, 'brand_colors', 'tenants.$id.theme.brand_colors', errors);
       featureColors = _parseColorMap(
         theme,
         'feature_colors',
@@ -356,9 +331,7 @@ class WhiteLabelConfig {
         if (value is bool) {
           features[key.toString()] = value;
         } else {
-          errors.add(
-            'Tenant "$id": feature "$key" must be true/false, got "$value".',
-          );
+          errors.add('Tenant "$id": feature "$key" must be true/false, got "$value".');
         }
       });
     }
@@ -377,12 +350,8 @@ class WhiteLabelConfig {
         errors,
       );
       final googleServicesJson = fb?['google_services_json']?.toString();
-      final googleServiceInfoPlist = fb?['google_service_info_plist']
-          ?.toString();
-      for (final String path in [
-        googleServicesJson,
-        googleServiceInfoPlist,
-      ].whereType<String>()) {
+      final googleServiceInfoPlist = fb?['google_service_info_plist']?.toString();
+      for (final String path in [googleServicesJson, googleServiceInfoPlist].whereType<String>()) {
         final ValidationResult r = ConfigValidator.assetPath(
           path,
           tenantId: id,
@@ -401,10 +370,7 @@ class WhiteLabelConfig {
     // Bail out of building a TenantConfig for this entry if anything above
     // was missing/invalid — errors already recorded, caller throws once all
     // tenants have been walked so a user sees every problem in one pass.
-    if (name == null ||
-        applicationId == null ||
-        bundleId == null ||
-        logo == null) {
+    if (name == null || applicationId == null || bundleId == null || logo == null) {
       return null;
     }
 
@@ -416,11 +382,7 @@ class WhiteLabelConfig {
         appName: androidAppName!,
         version: androidVersionOverride,
       ),
-      ios: IosTenantConfig(
-        bundleId: bundleId,
-        appName: iosAppName!,
-        version: iosVersionOverride,
-      ),
+      ios: IosTenantConfig(bundleId: bundleId, appName: iosAppName!, version: iosVersionOverride),
       assets: TenantAssets(logo: logo, icon: icon, splash: splash),
       version: sharedVersion,
       theme: TenantTheme(
@@ -476,11 +438,7 @@ class WhiteLabelConfig {
     return result;
   }
 
-  static TenantVersion? _parseVersion(
-    dynamic node,
-    String path,
-    List<String> errors,
-  ) {
+  static TenantVersion? _parseVersion(dynamic node, String path, List<String> errors) {
     if (node == null) {
       return null;
     }

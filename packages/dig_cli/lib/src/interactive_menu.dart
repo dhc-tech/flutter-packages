@@ -41,8 +41,7 @@ class InteractiveMenu {
   }
 
   String? _promptUser(String label, {String? defaultValue}) {
-    final displayDefault =
-        defaultValue != null ? ' (${_painter.textPen(defaultValue)})' : '';
+    final displayDefault = defaultValue != null ? ' (${_painter.textPen(defaultValue)})' : '';
     stdout.write('  $label$displayDefault: ');
     final String? input = stdin.readLineSync()?.trim();
     return (input == null || input.isEmpty) ? defaultValue : input;
@@ -58,8 +57,7 @@ class InteractiveMenu {
     while (true) {
       _clearScreen();
       final bool isFlutter = await isFlutterProject();
-      final status =
-          isFlutter ? 'Flutter Project Detected' : 'No Flutter Project Found';
+      final status = isFlutter ? 'Flutter Project Detected' : 'No Flutter Project Found';
       final statusPen = isFlutter ? (AnsiPen()..green()) : (AnsiPen()..red());
 
       _painter.drawHeader('DIG CLI DASHBOARD', width: _width);

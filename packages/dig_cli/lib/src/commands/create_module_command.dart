@@ -11,7 +11,6 @@ import '../utils/spinner.dart';
 /// Command that scaffolds a new GetX module (View, Controller, Binding)
 /// and registers its routes.
 class CreateModuleCommand extends Command<void> {
-
   /// Registers the `--name` option.
   CreateModuleCommand() {
     argParser.addOption(
@@ -25,8 +24,7 @@ class CreateModuleCommand extends Command<void> {
   @override
   final aliases = ['add-module'];
   @override
-  final description =
-      'Creates a new GetX module (View, Controller, Binding) and registers routes.';
+  final description = 'Creates a new GetX module (View, Controller, Binding) and registers routes.';
 
   @override
   Future<void> run() async {
@@ -74,10 +72,8 @@ class CreateModuleCommand extends Command<void> {
 
     await runWithSpinner('🏗️  Scaffolding $className module...', () async {
       await Directory(p.join(moduleDir.path, 'view')).create(recursive: true);
-      await Directory(p.join(moduleDir.path, 'controller'))
-          .create(recursive: true);
-      await Directory(p.join(moduleDir.path, 'binding'))
-          .create(recursive: true);
+      await Directory(p.join(moduleDir.path, 'controller')).create(recursive: true);
+      await Directory(p.join(moduleDir.path, 'binding')).create(recursive: true);
 
       await _createController(moduleDir, className, slug);
       await _createBinding(moduleDir, className, slug);
@@ -208,14 +204,11 @@ export 'splash/splash_export.dart';
     lines.add(exportLine);
 
     // Header and non-export lines
-    final List<String> headerLines =
-        lines.where((l) => !l.trim().startsWith('export')).toList();
-    final List<String> exportLines =
-        lines.where((l) => l.trim().startsWith('export')).toList();
+    final List<String> headerLines = lines.where((l) => !l.trim().startsWith('export')).toList();
+    final List<String> exportLines = lines.where((l) => l.trim().startsWith('export')).toList();
     exportLines.sort();
 
-    final newContent =
-        "${[...headerLines, ...exportLines].join('\n').trim()}\n";
+    final newContent = "${[...headerLines, ...exportLines].join('\n').trim()}\n";
     await exportFile.writeAsString(newContent);
   }
 

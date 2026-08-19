@@ -58,9 +58,8 @@ Future<String?> getProjectName() async {
 
 /// Gets the user's desktop path.
 Future<String> getDesktopPath() async {
-  final String? home = Platform.isWindows
-      ? Platform.environment['USERPROFILE']
-      : Platform.environment['HOME'];
+  final String? home =
+      Platform.isWindows ? Platform.environment['USERPROFILE'] : Platform.environment['HOME'];
   if (home == null) {
     throw Exception('Could not find home directory.');
   }

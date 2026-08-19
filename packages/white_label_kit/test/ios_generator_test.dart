@@ -24,11 +24,7 @@ void main() {
 
   setUpAll(() {
     try {
-      final ProcessResult result = Process.runSync('ruby', [
-        '-rxcodeproj',
-        '-e',
-        'puts "ok"',
-      ]);
+      final ProcessResult result = Process.runSync('ruby', ['-rxcodeproj', '-e', 'puts "ok"']);
       rubyAvailable = result.exitCode == 0;
     } on ProcessException {
       rubyAvailable = false;
@@ -39,9 +35,7 @@ void main() {
 
   setUp(() {
     projectRoot = Directory.systemTemp.createTempSync('ios_generator_test_');
-    final fixtureIosDir = Directory(
-      p.join(Directory.current.path, 'test', 'fixtures', 'ios'),
-    );
+    final fixtureIosDir = Directory(p.join(Directory.current.path, 'test', 'fixtures', 'ios'));
     if (!fixtureIosDir.existsSync()) {
       fail(
         'Fixture not found at ${fixtureIosDir.path} — this test must run '
@@ -56,65 +50,54 @@ void main() {
   const tenant = TenantConfig(
     id: 'acme',
     name: 'Acme',
-    android: AndroidTenantConfig(
-      applicationId: 'com.example.acme',
-      appName: 'Acme',
-    ),
+    android: AndroidTenantConfig(applicationId: 'com.example.acme', appName: 'Acme'),
     ios: IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme'),
     assets: TenantAssets(logo: 'tenants/acme/assets/logo.png'),
   );
 
-  test(
-    'throws IosGenerationException when ios/Runner.xcodeproj is missing',
-    () {
-      final Directory bareRoot = Directory.systemTemp.createTempSync(
-        'ios_generator_bare_',
-      );
-      addTearDown(() => bareRoot.deleteSync(recursive: true));
+  test('throws IosGenerationException when ios/Runner.xcodeproj is missing', () {
+    final Directory bareRoot = Directory.systemTemp.createTempSync('ios_generator_bare_');
+    addTearDown(() => bareRoot.deleteSync(recursive: true));
 
-      expect(
-        () => generateIosConfig(tenant, projectRoot: bareRoot.path),
-        throwsA(isA<IosGenerationException>()),
-      );
-    },
-  );
+    expect(
+      () => generateIosConfig(tenant, projectRoot: bareRoot.path),
+      throwsA(isA<IosGenerationException>()),
+    );
+  });
 
-  test(
-    'clones a tenant-specific scheme with tenant-suffixed build configs',
-    () {
-      if (!rubyAvailable) {
-        markTestSkipped('ruby/xcodeproj gem not available in this environment');
-        return;
-      }
+  test('clones a tenant-specific scheme with tenant-suffixed build configs', () {
+    if (!rubyAvailable) {
+      markTestSkipped('ruby/xcodeproj gem not available in this environment');
+      return;
+    }
 
-      generateIosConfig(tenant, projectRoot: projectRoot.path);
+    generateIosConfig(tenant, projectRoot: projectRoot.path);
 
-      final schemeFile = File(
-        p.join(
-          projectRoot.path,
-          'ios',
-          'Runner.xcodeproj',
-          'xcshareddata',
-          'xcschemes',
-          'acme.xcscheme',
-        ),
-      );
-      expect(schemeFile.existsSync(), isTrue);
-      final String content = schemeFile.readAsStringSync();
+    final schemeFile = File(
+      p.join(
+        projectRoot.path,
+        'ios',
+        'Runner.xcodeproj',
+        'xcshareddata',
+        'xcschemes',
+        'acme.xcscheme',
+      ),
+    );
+    expect(schemeFile.existsSync(), isTrue);
+    final String content = schemeFile.readAsStringSync();
 
-      expect(content, contains('buildConfiguration = "Debug-acme"'));
-      expect(content, contains('buildConfiguration = "Release-acme"'));
-      expect(content, contains('buildConfiguration = "Profile-acme"'));
-      // No stray un-suffixed build configuration reference left behind.
-      expect(content, isNot(contains('buildConfiguration = "Debug"')));
-      expect(content, isNot(contains('buildConfiguration = "Release"')));
-      expect(content, isNot(contains('buildConfiguration = "Profile"')));
-      // The scheme still targets the one shared Runner blueprint — cloning it
-      // must not touch which target it builds/runs/tests.
-      expect(content, contains('BlueprintName = "Runner"'));
-      expect(content, contains('BlueprintName = "RunnerTests"'));
-    },
-  );
+    expect(content, contains('buildConfiguration = "Debug-acme"'));
+    expect(content, contains('buildConfiguration = "Release-acme"'));
+    expect(content, contains('buildConfiguration = "Profile-acme"'));
+    // No stray un-suffixed build configuration reference left behind.
+    expect(content, isNot(contains('buildConfiguration = "Debug"')));
+    expect(content, isNot(contains('buildConfiguration = "Release"')));
+    expect(content, isNot(contains('buildConfiguration = "Profile"')));
+    // The scheme still targets the one shared Runner blueprint — cloning it
+    // must not touch which target it builds/runs/tests.
+    expect(content, contains('BlueprintName = "Runner"'));
+    expect(content, contains('BlueprintName = "RunnerTests"'));
+  });
 
   test('idempotent: running twice does not duplicate build configurations, '
       'and the pbxproj stays parseable by the xcodeproj gem', () {
@@ -176,10 +159,7 @@ void main() {
     const updatedTenant = TenantConfig(
       id: 'acme',
       name: 'Acme',
-      android: AndroidTenantConfig(
-        applicationId: 'com.example.acme',
-        appName: 'Acme',
-      ),
+      android: AndroidTenantConfig(applicationId: 'com.example.acme', appName: 'Acme'),
       ios: IosTenantConfig(bundleId: 'com.example.acme.v2', appName: 'Acme'),
       assets: TenantAssets(logo: 'tenants/acme/assets/logo.png'),
     );
@@ -199,10 +179,7 @@ void main() {
     const beta = TenantConfig(
       id: 'beta',
       name: 'Beta Corp',
-      android: AndroidTenantConfig(
-        applicationId: 'com.example.beta',
-        appName: 'Beta Corp',
-      ),
+      android: AndroidTenantConfig(applicationId: 'com.example.beta', appName: 'Beta Corp'),
       ios: IosTenantConfig(bundleId: 'com.example.beta', appName: 'Beta Corp'),
       assets: TenantAssets(logo: 'tenants/beta/assets/logo.png'),
     );

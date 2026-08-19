@@ -10,8 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 String _fakeIdToken(String sub, [String? email]) {
-  String b64(Map<String, dynamic> m) =>
-      base64Url.encode(utf8.encode(jsonEncode(m)));
+  String b64(Map<String, dynamic> m) => base64Url.encode(utf8.encode(jsonEncode(m)));
   final header = b64({'alg': 'RS256', 'kid': 'testkey'});
   final payloadMap = <String, dynamic>{
     'sub': sub,

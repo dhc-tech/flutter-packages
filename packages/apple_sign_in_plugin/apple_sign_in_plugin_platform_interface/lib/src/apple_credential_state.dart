@@ -27,9 +27,9 @@ enum AppleCredentialState {
   /// `ASAuthorizationAppleIDProvider.CredentialState` enum reports over the
   /// platform channel.
   static AppleCredentialState fromWireValue(int value) => switch (value) {
-    0 => AppleCredentialState.authorized,
-    1 => AppleCredentialState.revoked,
-    3 => AppleCredentialState.transferred,
-    _ => AppleCredentialState.notFound,
-  };
+        0 => AppleCredentialState.authorized,
+        1 => AppleCredentialState.revoked,
+        3 => AppleCredentialState.transferred,
+        _ => AppleCredentialState.notFound,
+      };
 }

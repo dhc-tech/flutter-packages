@@ -33,9 +33,7 @@ void main() {
         assets: TenantAssets(logo: 'tenants/acme/assets/logo.png'),
         version: TenantVersion(name: '1.5.0', buildNumber: 3),
         theme: TenantTheme(primaryColor: '#D41414', secondaryColor: '#00FF00'),
-        environment: TenantEnvironment(
-          apiBaseUrl: 'https://api.acme.example.com',
-        ),
+        environment: TenantEnvironment(apiBaseUrl: 'https://api.acme.example.com'),
         features: {'dark_mode': true, 'beta_banner': false},
       );
 
@@ -65,37 +63,28 @@ void main() {
       expect(runtime.ios.version.combined, '2.0.5+7');
     });
 
-    test(
-      'falls back to the shared version when no platform override is set',
-      () {
-        const config = TenantConfig(
-          id: 'beta',
-          name: 'Beta Corp',
-          android: AndroidTenantConfig(
-            applicationId: 'com.example.beta',
-            appName: 'Beta',
-          ),
-          ios: IosTenantConfig(bundleId: 'com.example.beta', appName: 'Beta'),
-          assets: TenantAssets(logo: 'tenants/beta/assets/logo.png'),
-          version: TenantVersion(name: '3.0.0', buildNumber: 42),
-        );
+    test('falls back to the shared version when no platform override is set', () {
+      const config = TenantConfig(
+        id: 'beta',
+        name: 'Beta Corp',
+        android: AndroidTenantConfig(applicationId: 'com.example.beta', appName: 'Beta'),
+        ios: IosTenantConfig(bundleId: 'com.example.beta', appName: 'Beta'),
+        assets: TenantAssets(logo: 'tenants/beta/assets/logo.png'),
+        version: TenantVersion(name: '3.0.0', buildNumber: 42),
+      );
 
-        final runtime = WhiteLabelRuntime.fromConfig(config);
+      final runtime = WhiteLabelRuntime.fromConfig(config);
 
-        expect(runtime.android.version.combined, '3.0.0+42');
-        expect(runtime.ios.version.combined, '3.0.0+42');
-      },
-    );
+      expect(runtime.android.version.combined, '3.0.0+42');
+      expect(runtime.ios.version.combined, '3.0.0+42');
+    });
 
     test('leaves theme/environment fields null and features empty when the '
         'TenantConfig declares none', () {
       const config = TenantConfig(
         id: 'plain',
         name: 'Plain',
-        android: AndroidTenantConfig(
-          applicationId: 'com.example.plain',
-          appName: 'Plain',
-        ),
+        android: AndroidTenantConfig(applicationId: 'com.example.plain', appName: 'Plain'),
         ios: IosTenantConfig(bundleId: 'com.example.plain', appName: 'Plain'),
         assets: TenantAssets(logo: 'tenants/plain/assets/logo.png'),
       );
@@ -116,9 +105,7 @@ void main() {
         tenantId: 'acme',
         tenantName: 'Acme Corp',
         theme: WhiteLabelTheme(primaryColorHex: '#D41414'),
-        environment: WhiteLabelEnvironment(
-          apiBaseUrl: 'https://api.acme.example.com',
-        ),
+        environment: WhiteLabelEnvironment(apiBaseUrl: 'https://api.acme.example.com'),
         features: {'dark_mode': true},
         android: WhiteLabelAndroidInfo(
           applicationId: 'com.example.acme',
@@ -135,35 +122,21 @@ void main() {
       const config = TenantConfig(
         id: 'acme',
         name: 'Acme Corp',
-        android: AndroidTenantConfig(
-          applicationId: 'com.example.acme',
-          appName: 'Acme',
-        ),
+        android: AndroidTenantConfig(applicationId: 'com.example.acme', appName: 'Acme'),
         ios: IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme'),
         assets: TenantAssets(logo: 'tenants/acme/assets/logo.png'),
         theme: TenantTheme(primaryColor: '#D41414'),
-        environment: TenantEnvironment(
-          apiBaseUrl: 'https://api.acme.example.com',
-        ),
+        environment: TenantEnvironment(apiBaseUrl: 'https://api.acme.example.com'),
         features: {'dark_mode': true},
       );
       final fromConfig = WhiteLabelRuntime.fromConfig(config);
 
       expect(fromLiteral.tenantId, fromConfig.tenantId);
       expect(fromLiteral.tenantName, fromConfig.tenantName);
-      expect(
-        fromLiteral.theme.primaryColorHex,
-        fromConfig.theme.primaryColorHex,
-      );
-      expect(
-        fromLiteral.environment.apiBaseUrl,
-        fromConfig.environment.apiBaseUrl,
-      );
+      expect(fromLiteral.theme.primaryColorHex, fromConfig.theme.primaryColorHex);
+      expect(fromLiteral.environment.apiBaseUrl, fromConfig.environment.apiBaseUrl);
       expect(fromLiteral.features, fromConfig.features);
-      expect(
-        fromLiteral.android.version.combined,
-        fromConfig.android.version.combined,
-      );
+      expect(fromLiteral.android.version.combined, fromConfig.android.version.combined);
       expect(fromLiteral.ios.version.combined, fromConfig.ios.version.combined);
     });
   });
@@ -198,10 +171,7 @@ void main() {
     test('returns false (does not throw) for a flag that was never declared '
         '-- the documented default, so a new flag is never a breaking '
         'change for existing tenant configs', () {
-      expect(
-        () => runtime.isFeatureEnabled('some_future_flag'),
-        returnsNormally,
-      );
+      expect(() => runtime.isFeatureEnabled('some_future_flag'), returnsNormally);
       expect(runtime.isFeatureEnabled('some_future_flag'), isFalse);
     });
   });

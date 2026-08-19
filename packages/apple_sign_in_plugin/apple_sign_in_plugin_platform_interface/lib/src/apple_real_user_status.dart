@@ -17,8 +17,8 @@ enum AppleRealUserStatus {
   /// Builds an [AppleRealUserStatus] from the raw integer Apple's native
   /// `ASUserDetectionStatus` enum reports over the platform channel.
   static AppleRealUserStatus fromWireValue(int? value) => switch (value) {
-    1 => AppleRealUserStatus.unknown,
-    2 => AppleRealUserStatus.likelyReal,
-    _ => AppleRealUserStatus.unsupported,
-  };
+        1 => AppleRealUserStatus.unknown,
+        2 => AppleRealUserStatus.likelyReal,
+        _ => AppleRealUserStatus.unsupported,
+      };
 }

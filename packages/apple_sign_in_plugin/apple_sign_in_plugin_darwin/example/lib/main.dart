@@ -51,7 +51,8 @@ class _SignInPageState extends State<SignInPage> {
       _errorText = null;
     });
     try {
-      final AppleCredential credential = await AppleSignInPlatform.instance.signIn(
+      final AppleCredential credential =
+          await AppleSignInPlatform.instance.signIn(
         scopes: {
           AppleAuthorizationScope.email,
           AppleAuthorizationScope.fullName,
@@ -155,7 +156,8 @@ class _SignInPageState extends State<SignInPage> {
             credential.name == null
                 ? 'Not shared this time'
                 : '${credential.name!.givenName ?? ''} '
-                      '${credential.name!.familyName ?? ''}'.trim(),
+                        '${credential.name!.familyName ?? ''}'
+                    .trim(),
           ),
           _infoRow(
             'Authorized scopes',

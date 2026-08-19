@@ -117,7 +117,8 @@ class AppleSignIn {
   /// Calling this on non-Apple platforms throws an [AppleSignInException]
   /// with [AppleSignInErrorCode.platformNotSupported].
   Future<AppleCredentialState> getCredentialState(String userIdentifier) async {
-    final AppleCredentialState state = await AppleSignInPlatform.instance.getCredentialState(userIdentifier);
+    final AppleCredentialState state =
+        await AppleSignInPlatform.instance.getCredentialState(userIdentifier);
 
     if (state == AppleCredentialState.transferred) {
       _eventController.add(
@@ -133,8 +134,7 @@ class AppleSignIn {
   }
 
   /// Listens for native credential revocation events on iOS and macOS.
-  Stream<void> get onCredentialRevoked =>
-      AppleSignInPlatform.instance.onCredentialRevoked;
+  Stream<void> get onCredentialRevoked => AppleSignInPlatform.instance.onCredentialRevoked;
 
   /// High-level user disconnect operation.
   ///
@@ -170,12 +170,14 @@ class AppleSignIn {
         }
         return const AppleDisconnectResult(
           status: AppleDisconnectStatus.manualActionRequired,
-          message: 'Local session cleared. To revoke authorization, the user can remove the app in Apple ID Settings, or configure an AppleBackendAdapter for programmatic revocation.',
+          message:
+              'Local session cleared. To revoke authorization, the user can remove the app in Apple ID Settings, or configure an AppleBackendAdapter for programmatic revocation.',
         );
       } catch (_) {
         return const AppleDisconnectResult(
           status: AppleDisconnectStatus.manualActionRequired,
-          message: 'Local session cleared. Configure an AppleBackendAdapter for programmatic token revocation.',
+          message:
+              'Local session cleared. Configure an AppleBackendAdapter for programmatic token revocation.',
         );
       }
     }
@@ -183,7 +185,8 @@ class AppleSignIn {
     if (caps.webAppleJs || caps.browserAuthorization) {
       return const AppleDisconnectResult(
         status: AppleDisconnectStatus.backendRequired,
-        message: 'On non-Apple platforms, true Apple token revocation requires an AppleBackendAdapter to call /auth/revoke.',
+        message:
+            'On non-Apple platforms, true Apple token revocation requires an AppleBackendAdapter to call /auth/revoke.',
       );
     }
 
@@ -309,6 +312,5 @@ class AppleSignInPlugin {
       AppleSignIn.instance.getCredentialState(userIdentifier);
 
   /// Calls [AppleSignIn.instance.onCredentialRevoked].
-  static Stream<void> get onCredentialRevoked =>
-      AppleSignIn.instance.onCredentialRevoked;
+  static Stream<void> get onCredentialRevoked => AppleSignIn.instance.onCredentialRevoked;
 }

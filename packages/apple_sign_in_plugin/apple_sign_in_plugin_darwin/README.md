@@ -14,7 +14,7 @@ between iOS and macOS (`sharedDarwinSource`); see `darwin/`.
 
 This package is endorsed, meaning you can simply use `apple_sign_in_plugin`
 normally. This package will be automatically included in your app when you
-depend on `apple_sign_in_plugin: ^2.0.0`, so you likely do not need to add
+depend on `apple_sign_in_plugin`, so you likely do not need to add
 it to your own `pubspec.yaml`.
 
 ## 👤 Author

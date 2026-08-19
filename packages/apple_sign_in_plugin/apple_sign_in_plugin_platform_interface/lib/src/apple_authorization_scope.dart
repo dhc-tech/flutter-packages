@@ -18,7 +18,7 @@ enum AppleAuthorizationScope {
   /// The raw string Apple's REST/JS API expects in the `scope` query
   /// parameter (space separated when combined).
   String get restApiValue => switch (this) {
-    AppleAuthorizationScope.email => 'email',
-    AppleAuthorizationScope.fullName => 'name',
-  };
+        AppleAuthorizationScope.email => 'email',
+        AppleAuthorizationScope.fullName => 'name',
+      };
 }

@@ -73,9 +73,7 @@ Future<String> _generate({Map<String, String>? environment}) async {
     flattenOutput: true,
   );
   expect(result.succeeded, isTrue, reason: result.errors.join('\n'));
-  return result.readerWriter.testing.readString(
-    makeAssetId('pkg|lib/white_label.g.dart'),
-  );
+  return result.readerWriter.testing.readString(makeAssetId('pkg|lib/white_label.g.dart'));
 }
 
 void main() {
@@ -83,108 +81,70 @@ void main() {
     final WhiteLabelConfig config = WhiteLabelConfig.parse(_yaml);
 
     test('uses TENANT_ID when it names a declared tenant', () {
-      expect(
-        resolveGeneratorTenantId(config, environment: {'TENANT_ID': 'beta'}),
-        'beta',
-      );
+      expect(resolveGeneratorTenantId(config, environment: {'TENANT_ID': 'beta'}), 'beta');
     });
 
     test('falls back to default_tenant when TENANT_ID is unset', () {
       expect(resolveGeneratorTenantId(config, environment: {}), 'acme');
     });
 
-    test(
-      'falls back to default_tenant when TENANT_ID names an unknown tenant',
-      () {
-        expect(
-          resolveGeneratorTenantId(config, environment: {'TENANT_ID': 'nope'}),
-          'acme',
-        );
-      },
-    );
+    test('falls back to default_tenant when TENANT_ID names an unknown tenant', () {
+      expect(resolveGeneratorTenantId(config, environment: {'TENANT_ID': 'nope'}), 'acme');
+    });
+  });
+
+  test('emits whiteLabelDefaultTenant and whiteLabelTenantIds (names only)', () async {
+    final String generated = await _generate(environment: {});
+
+    expect(generated, contains("const String whiteLabelDefaultTenant = 'acme';"));
+    expect(generated, contains("const List<String> whiteLabelTenantIds = ['acme', 'beta'];"));
   });
 
   test(
-    'emits whiteLabelDefaultTenant and whiteLabelTenantIds (names only)',
+    'emits exactly ONE const WhiteLabelRuntime (the default tenant, no TENANT_ID set)',
     () async {
       final String generated = await _generate(environment: {});
+      final WhiteLabelConfig config = WhiteLabelConfig.parse(_yaml);
+      final expected = WhiteLabelRuntime.fromConfig(config['acme']);
 
-      expect(
-        generated,
-        contains("const String whiteLabelDefaultTenant = 'acme';"),
-      );
-      expect(
-        generated,
-        contains("const List<String> whiteLabelTenantIds = ['acme', 'beta'];"),
-      );
+      expect(generated, contains('const WhiteLabelRuntime whiteLabelRuntime = WhiteLabelRuntime('));
+      // Old, leaky API must be gone entirely.
+      expect(generated, isNot(contains('whiteLabelRuntimes')));
+      expect(generated, isNot(contains('whiteLabelDefaultRuntime')));
+
+      expect(generated, contains("tenantId: '${expected.tenantId}'"));
+      expect(generated, contains("primaryColorHex: '${expected.theme.primaryColorHex}'"));
+      expect(generated, contains("apiBaseUrl: '${expected.environment.apiBaseUrl}'"));
+      expect(generated, contains("features: {'dark_mode': true}"));
+      expect(generated, contains("applicationId: '${expected.android.applicationId}'"));
     },
   );
 
-  test('emits exactly ONE const WhiteLabelRuntime (the default tenant, no TENANT_ID set)', () async {
-    final String generated = await _generate(environment: {});
+  test("TENANT_ID=beta selects beta — and, critically, leaks NONE of acme's data", () async {
+    final String generated = await _generate(environment: {'TENANT_ID': 'beta'});
     final WhiteLabelConfig config = WhiteLabelConfig.parse(_yaml);
-    final expected = WhiteLabelRuntime.fromConfig(config['acme']);
+    final expectedBeta = WhiteLabelRuntime.fromConfig(config['beta']);
 
+    // Positive: beta's own data is present.
+    expect(generated, contains("tenantId: 'beta'"));
+    expect(generated, contains("applicationId: '${expectedBeta.android.applicationId}'"));
+    expect(generated, contains("apiBaseUrl: '${expectedBeta.environment.apiBaseUrl}'"));
     expect(
       generated,
       contains(
-        'const WhiteLabelRuntime whiteLabelRuntime = WhiteLabelRuntime(',
+        "name: '${expectedBeta.android.version.name}', buildNumber: "
+        '${expectedBeta.android.version.buildNumber}',
       ),
     );
-    // Old, leaky API must be gone entirely.
-    expect(generated, isNot(contains('whiteLabelRuntimes')));
-    expect(generated, isNot(contains('whiteLabelDefaultRuntime')));
 
-    expect(generated, contains("tenantId: '${expected.tenantId}'"));
-    expect(
-      generated,
-      contains("primaryColorHex: '${expected.theme.primaryColorHex}'"),
-    );
-    expect(
-      generated,
-      contains("apiBaseUrl: '${expected.environment.apiBaseUrl}'"),
-    );
-    expect(generated, contains("features: {'dark_mode': true}"));
-    expect(
-      generated,
-      contains("applicationId: '${expected.android.applicationId}'"),
-    );
+    // THE ACTUAL SECURITY CHECK: acme's identifying data must be verifiably
+    // absent from a build selected for beta — not merely "beta is also
+    // there somewhere", but "acme is nowhere in this file".
+    expect(generated, isNot(contains('com.example.acme')));
+    expect(generated, isNot(contains('api.acme.example.com')));
+    expect(generated, isNot(contains('D41414'))); // acme's primary_color
+    expect(generated, isNot(contains("tenantId: 'acme'")));
   });
-
-  test(
-    "TENANT_ID=beta selects beta — and, critically, leaks NONE of acme's data",
-    () async {
-      final String generated = await _generate(environment: {'TENANT_ID': 'beta'});
-      final WhiteLabelConfig config = WhiteLabelConfig.parse(_yaml);
-      final expectedBeta = WhiteLabelRuntime.fromConfig(config['beta']);
-
-      // Positive: beta's own data is present.
-      expect(generated, contains("tenantId: 'beta'"));
-      expect(
-        generated,
-        contains("applicationId: '${expectedBeta.android.applicationId}'"),
-      );
-      expect(
-        generated,
-        contains("apiBaseUrl: '${expectedBeta.environment.apiBaseUrl}'"),
-      );
-      expect(
-        generated,
-        contains(
-          "name: '${expectedBeta.android.version.name}', buildNumber: "
-          '${expectedBeta.android.version.buildNumber}',
-        ),
-      );
-
-      // THE ACTUAL SECURITY CHECK: acme's identifying data must be verifiably
-      // absent from a build selected for beta — not merely "beta is also
-      // there somewhere", but "acme is nowhere in this file".
-      expect(generated, isNot(contains('com.example.acme')));
-      expect(generated, isNot(contains('api.acme.example.com')));
-      expect(generated, isNot(contains('D41414'))); // acme's primary_color
-      expect(generated, isNot(contains("tenantId: 'acme'")));
-    },
-  );
 
   test('invalid white_label.yaml still fails the build (regression)', () async {
     final TestBuilderResult result = await testBuilder(

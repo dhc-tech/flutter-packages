@@ -283,9 +283,9 @@ project 'Runner', {
     test('legacy directory replaces, rather than overlaying', () async {
       writeFakeFlutterCreateOutput(testRoot);
       createFakePlugin('plugina', packagesDir);
-      final File extraFile = RepositoryPackage(
-        testRoot.childDirectory(allPackagesProjectName),
-      ).platformDirectory(FlutterPlatform.android).childFile('extra_file');
+      final File extraFile = RepositoryPackage(testRoot.childDirectory(allPackagesProjectName))
+          .platformDirectory(FlutterPlatform.android)
+          .childFile('extra_file');
       extraFile.createSync(recursive: true);
       // Make a fake legacy source with all the necessary files, but not
       // including the extra file.

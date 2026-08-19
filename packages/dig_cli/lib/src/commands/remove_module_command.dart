@@ -21,8 +21,7 @@ class RemoveModuleCommand extends Command<dynamic> {
   @override
   final name = 'remove-module';
   @override
-  final description =
-      'Removes an existing GetX module and unregisters its routes.';
+  final description = 'Removes an existing GetX module and unregisters its routes.';
 
   @override
   Future<void> run() async {
@@ -190,8 +189,7 @@ class RemoveModuleCommand extends Command<dynamic> {
     }
 
     // Move startIndex back to include potential leading whitespace/indentation on that line
-    while (startIndex > 0 &&
-        (content[startIndex - 1] == ' ' || content[startIndex - 1] == '\t')) {
+    while (startIndex > 0 && (content[startIndex - 1] == ' ' || content[startIndex - 1] == '\t')) {
       startIndex--;
     }
 

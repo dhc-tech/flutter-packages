@@ -186,10 +186,8 @@ Future<void> buildIos({
       return;
     }
 
-    final List<FileSystemEntity> ipaFiles = await ipaDir
-        .list()
-        .where((entity) => entity.path.endsWith('.ipa'))
-        .toList();
+    final List<FileSystemEntity> ipaFiles =
+        await ipaDir.list().where((entity) => entity.path.endsWith('.ipa')).toList();
 
     if (ipaFiles.isEmpty) {
       kLog('❗ No IPA file found in build output.', type: LogType.error);

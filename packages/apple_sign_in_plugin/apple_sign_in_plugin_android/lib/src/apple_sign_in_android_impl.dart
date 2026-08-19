@@ -23,11 +23,9 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
 
   /// The method channel used to communicate with the native Android plugin.
   @visibleForTesting
-  final MethodChannel channel =
-      const MethodChannel('apple_sign_in_plugin_android');
+  final MethodChannel channel = const MethodChannel('apple_sign_in_plugin_android');
 
-  static const String _kAuthorizeUrl =
-      'https://appleid.apple.com/auth/authorize';
+  static const String _kAuthorizeUrl = 'https://appleid.apple.com/auth/authorize';
 
   static const Duration _kCallbackTimeout = Duration(minutes: 5);
 
@@ -35,8 +33,7 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
   String? _pendingState;
   Timer? _timeoutTimer;
 
-  bool get _isInProgress =>
-      _pendingCompleter != null && !_pendingCompleter!.isCompleted;
+  bool get _isInProgress => _pendingCompleter != null && !_pendingCompleter!.isCompleted;
 
   /// The Android OAuth flow configuration.
   // ignore: use_setters_to_change_properties
@@ -147,7 +144,10 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
     final String? expectedState = _pendingState;
     final AppleSignInAndroidConfig? currentConfig = config;
 
-    if (completer == null || completer.isCompleted || expectedState == null || currentConfig == null) {
+    if (completer == null ||
+        completer.isCompleted ||
+        expectedState == null ||
+        currentConfig == null) {
       return;
     }
 
@@ -194,10 +194,9 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
     final String? errorParam = params['error'];
     if (errorParam != null) {
       _cleanUp();
-      final AppleSignInErrorCode code =
-          errorParam == 'user_cancelled_authorize'
-              ? AppleSignInErrorCode.canceled
-              : AppleSignInErrorCode.authorizationFailed;
+      final AppleSignInErrorCode code = errorParam == 'user_cancelled_authorize'
+          ? AppleSignInErrorCode.canceled
+          : AppleSignInErrorCode.authorizationFailed;
       completer.completeError(
         AppleSignInException(
           code,
@@ -229,11 +228,9 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
     try {
       final String? userJson = params['user'];
       if (userJson != null) {
-        final user =
-            jsonDecode(userJson) as Map<String, dynamic>;
+        final user = jsonDecode(userJson) as Map<String, dynamic>;
         email ??= user['email'] as String?;
-        final nameMap =
-            user['name'] as Map<String, dynamic>?;
+        final nameMap = user['name'] as Map<String, dynamic>?;
         if (nameMap != null) {
           final n = ApplePersonName(
             givenName: nameMap['firstName'] as String?,
@@ -307,8 +304,7 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
     required String state,
     String? nonce,
   }) {
-    final String scopeString =
-        scopes.map((AppleAuthorizationScope s) => s.restApiValue).join(' ');
+    final String scopeString = scopes.map((AppleAuthorizationScope s) => s.restApiValue).join(' ');
     final params = <String, String>{
       'client_id': config.serviceId,
       'redirect_uri': config.redirectUri,
@@ -343,8 +339,7 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
 
   String _generateSecureRandom(int byteCount) {
     final rng = Random.secure();
-    final bytes =
-        List<int>.generate(byteCount, (_) => rng.nextInt(256));
+    final bytes = List<int>.generate(byteCount, (_) => rng.nextInt(256));
     return base64Url.encode(bytes);
   }
 

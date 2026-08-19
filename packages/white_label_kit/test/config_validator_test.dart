@@ -17,10 +17,7 @@ void main() {
 
   group('androidApplicationId', () {
     test('accepts reverse-DNS form', () {
-      expect(
-        ConfigValidator.androidApplicationId('com.example.acme'),
-        isA<Valid>(),
-      );
+      expect(ConfigValidator.androidApplicationId('com.example.acme'), isA<Valid>());
     });
     test('rejects a display-name-shaped value', () {
       final ValidationResult result = ConfigValidator.androidApplicationId('Acme App');
@@ -37,10 +34,7 @@ void main() {
       expect(ConfigValidator.iosBundleId('com.example.acme-app'), isA<Valid>());
     });
     test('rejects underscores (iOS does not allow them)', () {
-      expect(
-        ConfigValidator.iosBundleId('com.example.acme_app'),
-        isA<Invalid>(),
-      );
+      expect(ConfigValidator.iosBundleId('com.example.acme_app'), isA<Invalid>());
     });
   });
 
@@ -65,35 +59,23 @@ void main() {
 
   group('assetPath', () {
     test('rejects absolute paths', () {
-      expect(
-        ConfigValidator.assetPath('/etc/passwd', tenantId: 'acme'),
-        isA<Invalid>(),
-      );
+      expect(ConfigValidator.assetPath('/etc/passwd', tenantId: 'acme'), isA<Invalid>());
     });
     test('rejects .. traversal', () {
       expect(
-        ConfigValidator.assetPath(
-          'tenants/acme/../beta/logo.png',
-          tenantId: 'acme',
-        ),
+        ConfigValidator.assetPath('tenants/acme/../beta/logo.png', tenantId: 'acme'),
         isA<Invalid>(),
       );
     });
     test('rejects pointing at a different tenant', () {
       expect(
-        ConfigValidator.assetPath(
-          'tenants/beta/assets/logo.png',
-          tenantId: 'acme',
-        ),
+        ConfigValidator.assetPath('tenants/beta/assets/logo.png', tenantId: 'acme'),
         isA<Invalid>(),
       );
     });
     test("accepts a path under the tenant's own directory", () {
       expect(
-        ConfigValidator.assetPath(
-          'tenants/acme/assets/logo.png',
-          tenantId: 'acme',
-        ),
+        ConfigValidator.assetPath('tenants/acme/assets/logo.png', tenantId: 'acme'),
         isA<Valid>(),
       );
     });
