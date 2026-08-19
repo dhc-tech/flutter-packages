@@ -138,6 +138,23 @@ credentials (see `dart pub token` / `dart pub publish` credential
 docs) and stored as the `PUB_CREDENTIALS` repository secret. No
 pub.dev "Automated publishing"/OIDC configuration is used or required.
 
+## `.repo_tool_config.yaml`: not required
+
+flutter/packages' `script/tool` reads an optional
+`.repo_tool_config.yaml` at the repo root (`common/tool_config.dart`,
+`configFilename`). Reading that source directly: the config is only
+ever loaded by `getRepositoryName`, `getMinFlutterVersion`,
+`getMinDartVersion`, `getAllowedDependencies`, and
+`getNonStandardPackageLabels` — and those are called exclusively from
+`repo_info_validator.dart`, `pubspec_validator.dart`, and
+`validate_command.dart` (the `validate-repo-info` / dependency-check
+paths of the `validate` command). This repo's only wired `script/tool`
+invocation is `release.yml`'s `publish --all-changed` (see above),
+which never touches `tool_config.dart`. So the file is not required
+for this repo's actual usage, and was deliberately not added — it
+would be a cosmetic file with no effect until/unless a future PR wires
+up `validate --enforce-*`/`validate-repo-info` from this vendored tool.
+
 ## What was deliberately not built
 
 - **A separate `sync_release_pr.yml`** — flutter/packages' own
@@ -154,3 +171,22 @@ pub.dev "Automated publishing"/OIDC configuration is used or required.
   would add files without adding capability.
 - **A dedicated release dashboard/tracking service** — built for a
   much larger, higher-traffic monorepo; not proportionate here.
+- **`remove_cicd.yml`** — upstream removes a stale `CICD` label that
+  is meaningful only in flutter/packages' Google-internal LUCI/Cocoon
+  CI integration (a label that re-triggers/reflects a Cocoon dispatch
+  and must be cleared on every new push). This repo's CI is plain
+  GitHub Actions (`ci.yml`), triggered automatically on every push
+  with no Cocoon-style manual re-trigger label at all, so there is no
+  `CICD` label to ever go stale. Confirmed by reading the workflow
+  (2026-08-19): its only job is removing that one specific label name.
+- **`post_merge_labeler.yml`** — upstream's `pull_request_label.yml`
+  references a second config, `.github/post_merge_labeler.yml`, applied
+  only on the PR's `closed` (merge) event, for labels that are only
+  meaningful after merge lands. It is not Cocoon/federation-specific,
+  but this repo's `pull_request_label.yml` only fires on
+  `opened`/`synchronize`/`reopened` and that is sufficient here: every
+  label this repo's automation depends on (`p: <package>`,
+  `infra: workflows`, `infra: dependencies`) is read by pre-merge
+  automation (AI review path instructions, Dependabot grouping, PR
+  labeling itself) and by nothing that only runs post-merge. Adding a
+  `closed`-triggered duplicate config would relabel nothing new.
