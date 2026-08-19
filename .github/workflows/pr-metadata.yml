@@ -1,0 +1,191 @@
+# Copyright 2026 DHC Tech
+# Use of this source code is governed by an MIT-style license that can be
+# found in the LICENSE file.
+#
+# Single consolidated PR classification + merge-readiness engine, built on
+# the official actions/github-script action rather than a marketplace
+# "PR readiness" action of unknown provenance. Computes, in one pass so
+# there is one source of truth and no racing label writers:
+#   - size:XS/S/M/L/XL         (from diff size)
+#   - type:<conventional-type> (from the PR title, which pr-title.yml
+#                                already validates as Conventional Commits)
+#   - breaking-change          (from `!` in the title or a BREAKING CHANGE
+#                                footer in the body)
+#   - dependencies             (changed dependency manifests, or authored
+#                                by dependabot[bot])
+#   - status:blocked / status:changes-requested / status:ci-failed /
+#     status:needs-review / status:ready (mutually exclusive; recomputed
+#     from scratch on every run, in that priority order)
+#
+# When status:ready is reached for a non-dependency PR, this enables
+# GitHub's own native auto-merge (GraphQL enablePullRequestAutoMerge) —
+# GitHub still withholds the actual merge until branch protection's
+# required checks and required reviews are satisfied, so this cannot
+# bypass protection. Dependency PRs are deliberately excluded here; see
+# dependabot-auto-merge.yml for their separate, stricter conditions.
+
+name: PR Metadata
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, edited, ready_for_review, converted_to_draft]
+  pull_request_review:
+    types: [submitted, dismissed]
+  check_suite:
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: read
+
+concurrency:
+  group: pr-metadata-${{ github.event.pull_request.number || github.event.check_suite.pull_requests[0].number }}
+  cancel-in-progress: true
+
+jobs:
+  classify:
+    name: classify
+    runs-on: ubuntu-latest
+    # For check_suite events, only run when GitHub already associated PRs
+    # with this check suite, and skip suites from third-party checks that
+    # never touch our own PRs.
+    if: >-
+      github.event_name != 'check_suite' ||
+      (github.event.check_suite.pull_requests[0] != null && github.event.check_suite.head_branch != 'main')
+    steps:
+      - name: Classify and update PR
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v8.0.0
+        with:
+          script: |
+            const SIZE_LABELS = ['size:XS', 'size:S', 'size:M', 'size:L', 'size:XL'];
+            const STATUS_LABELS = [
+              'status:blocked',
+              'status:changes-requested',
+              'status:ci-failed',
+              'status:needs-review',
+              'status:ready',
+            ];
+            const CONVENTIONAL_TYPES = [
+              'feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert',
+            ];
+            const DEPENDENCY_PATHS = [
+              'pubspec.yaml', 'pubspec.lock', 'build.gradle', 'build.gradle.kts', 'Podfile', 'Podfile.lock',
+            ];
+
+            const prNumber =
+              context.payload.pull_request?.number ??
+              context.payload.check_suite?.pull_requests?.[0]?.number;
+            if (!prNumber) {
+              core.info('No associated pull request; nothing to classify.');
+              return;
+            }
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+
+            const existingLabels = pr.labels.map((l) => l.name);
+            const nextLabels = new Set(existingLabels);
+            const removeLabel = (name) => nextLabels.delete(name);
+            const setLabel = (name) => nextLabels.add(name);
+
+            // ---- size:* ----
+            const totalChanges = pr.additions + pr.deletions;
+            let sizeLabel;
+            if (totalChanges <= 10) sizeLabel = 'size:XS';
+            else if (totalChanges <= 100) sizeLabel = 'size:S';
+            else if (totalChanges <= 500) sizeLabel = 'size:M';
+            else if (totalChanges <= 1000) sizeLabel = 'size:L';
+            else sizeLabel = 'size:XL';
+            for (const l of SIZE_LABELS) removeLabel(l);
+            setLabel(sizeLabel);
+
+            // ---- type:* (from the Conventional Commits PR title) ----
+            const titleMatch = pr.title.match(/^(\w+)(\([^)]*\))?(!)?:/);
+            const type = titleMatch && CONVENTIONAL_TYPES.includes(titleMatch[1]) ? titleMatch[1] : null;
+            for (const t of CONVENTIONAL_TYPES) removeLabel(`type:${t}`);
+            if (type) setLabel(`type:${type}`);
+
+            // ---- breaking-change ----
+            const isBreaking =
+              (titleMatch && titleMatch[3] === '!') || /BREAKING CHANGE/.test(pr.body || '');
+            if (isBreaking) setLabel('breaking-change');
+            else removeLabel('breaking-change');
+
+            // ---- dependencies ----
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+            const isDependencyPr =
+              pr.user?.login === 'dependabot[bot]' ||
+              files.some((f) => DEPENDENCY_PATHS.some((p) => f.filename.endsWith(p)));
+            if (isDependencyPr) setLabel('infra: dependencies');
+            else removeLabel('infra: dependencies');
+
+            // ---- status:* (priority: blocked > changes-requested > ci-failed > needs-review > ready) ----
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+            const latestReviewByUser = new Map();
+            for (const r of reviews) {
+              if (r.user && r.state !== 'COMMENTED') latestReviewByUser.set(r.user.login, r.state);
+            }
+            const hasChangesRequested = [...latestReviewByUser.values()].includes('CHANGES_REQUESTED');
+            const hasApproval = [...latestReviewByUser.values()].includes('APPROVED');
+
+            const { data: checkRuns } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: pr.head.sha,
+            });
+            const relevantRuns = checkRuns.check_runs.filter((c) => c.name !== 'classify');
+            const anyFailed = relevantRuns.some((c) =>
+              ['failure', 'cancelled', 'timed_out'].includes(c.conclusion),
+            );
+            const anyPending = relevantRuns.some((c) => c.status !== 'completed');
+
+            let status;
+            if (pr.draft) status = 'status:blocked';
+            else if (pr.mergeable_state === 'dirty') status = 'status:blocked';
+            else if (hasChangesRequested) status = 'status:changes-requested';
+            else if (anyFailed) status = 'status:ci-failed';
+            else if (!hasApproval || anyPending) status = 'status:needs-review';
+            else status = 'status:ready';
+
+            for (const s of STATUS_LABELS) removeLabel(s);
+            setLabel(status);
+
+            // ---- apply label changes ----
+            const finalLabels = [...nextLabels].sort();
+            if (JSON.stringify(finalLabels) !== JSON.stringify([...existingLabels].sort())) {
+              await github.rest.issues.setLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                labels: finalLabels,
+              });
+            }
+
+            // ---- native auto-merge for non-dependency PRs once ready ----
+            if (status === 'status:ready' && !isDependencyPr && !pr.auto_merge) {
+              try {
+                await github.graphql(
+                  `mutation($id: ID!) {
+                    enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: SQUASH }) {
+                      clientMutationId
+                    }
+                  }`,
+                  { id: pr.node_id },
+                );
+                core.info(`Enabled native auto-merge for #${prNumber}.`);
+              } catch (err) {
+                core.warning(`Could not enable auto-merge for #${prNumber}: ${err.message}`);
+              }
+            }
