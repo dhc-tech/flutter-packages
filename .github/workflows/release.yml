@@ -1,10 +1,22 @@
-# Release preparation: on every merge to main that touches package code,
-# detect whether any
-# package needs a release and, if so, prepare it. This workflow does
-# NOT contain the release implementation itself (see
-# reusable_release.yml) and does NOT publish anything (see publish.yml)
-# — its only job is deciding "does a release need preparing right now"
-# and invoking the shared logic that does the actual preparing.
+# Release: two stages, matching flutter/packages' own architecture
+# (github.com/flutter/packages .github/workflows/release.yml).
+#
+# Stage 1 — "prepare" (this repo's own melos-based addition; flutter/
+# packages assumes a human/PR already bumped pubspec.yaml + CHANGELOG.md
+# before its release.yml runs — see script/tool's publish_command.dart
+# doc comment: it only checks/tags/publishes an *already-versioned*
+# package, it does not compute version bumps itself). On every merge to
+# main that touches package code and isn't itself a release-prep merge,
+# detect whether any package needs a release and open a "chore(release):"
+# PR via reusable_release.yml.
+#
+# Stage 2 — "publish", a structural clone of flutter/packages' actual
+# release job: once that release PR merges to main (commit message
+# contains "chore(release):"), wait for CI, then run script/tool's own
+# `publish` command, which in one atomic step publishes to pub.dev via
+# PUB_CREDENTIALS, tags the release, and pushes the tag — exactly as
+# flutter/packages does it. No pub.dev OIDC, no id-token permission, no
+# generic `dart pub publish` step: this IS flutter/packages' own tool.
 
 name: 🚀 Release
 
@@ -15,7 +27,8 @@ on:
     paths:
       - 'packages/**'
 
-permissions: {}
+# Declare default permissions as read only (matches flutter/packages).
+permissions: read-all
 
 concurrency:
   group: release-main
@@ -34,3 +47,76 @@ jobs:
     uses: ./.github/workflows/reusable_release.yml
     with:
       packages: all
+
+  publish:
+    name: release
+    # Only the release PR's own merge commit actually publishes —
+    # mirrors flutter/packages, where every push to main runs this job,
+    # but here a plain feature merge has nothing new to publish because
+    # script/tool's publish command only acts on packages whose pubspec
+    # version changed vs. the previous commit (--all-changed).
+    if: "contains(github.event.head_commit.message, 'chore(release):')"
+    permissions:
+      contents: write # Release needs to push a tag back to the repo.
+    runs-on: ubuntu-latest
+    steps:
+      # Checks out a copy of the repo.
+      - name: Check out code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # Fetch all history so the tool can get all the tags to determine version.
+          persist-credentials: false
+      - name: "Install Flutter"
+        uses: ./.github/workflows/internals/install_flutter
+      - name: Set up tools
+        run: dart pub get
+        working-directory: ${{ github.workspace }}/script/tool
+
+      # Give some time for checks to start becoming populated.
+      # Because of latency in Github Webhooks, we need to wait for a while
+      # before being able to look at checks scheduled for this commit.
+      - name: Give webhooks a minute
+        run: sleep 60s
+        shell: bash
+
+      # The next step waits for all tests, but when there are issues with the
+      # hooks it can take a long time for the tests to even be registered. If
+      # "Wait on all tests" runs before that happens, it will pass immediately
+      # because there doesn't appear to be anything to wait for. To avoid
+      # that, explicitly wait for one check by name first — the required
+      # aggregate check produced by this repo's own ci.yml (flutter/packages
+      # waits on their LUCI check 'Linux ci_yaml packages roller' the same
+      # way; this repo has no LUCI/Cocoon infra, so the equivalent required
+      # check here is ci.yml's own aggregate gate).
+      - name: Wait for test check-in
+        uses: lewagon/wait-on-check-action@96d9100b431964d10e0136aff8b9ccb92470505e # v1.8.0
+        with:
+          ref: ${{ github.sha }}
+          check-name: '✅ CI Success'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30 # seconds
+          allowed-conclusions: success,neutral
+          # verbose:true will produce too many logs that hang github actions web UI.
+          verbose: false
+
+      # This workflow should be the last to run. So wait for all the other tests to succeed.
+      - name: Wait on all tests
+        uses: lewagon/wait-on-check-action@96d9100b431964d10e0136aff8b9ccb92470505e # v1.8.0
+        with:
+          ref: ${{ github.sha }}
+          running-workflow-name: 'release'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 180 # seconds
+          allowed-conclusions: success,neutral
+          # verbose:true will produce too many logs that hang github actions web UI.
+          verbose: false
+
+      - name: run release
+        run: |
+          gh auth setup-git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          dart ./script/tool/lib/src/main.dart publish --all-changed --base-sha=HEAD~ --skip-confirmation --remote=origin
+        env:
+          PUB_CREDENTIALS: "${{ secrets.PUB_CREDENTIALS }}"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

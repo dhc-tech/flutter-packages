@@ -1,7 +1,12 @@
 # Release Architecture
 
-Layered, PR-gated release workflows with independent per-package
-versioning, sized for this repo's actual scope (3 packages).
+Layered release workflows with independent per-package versioning,
+sized for this repo's actual scope (3 packages). The publish/tag stage
+is a literal structural clone of
+[flutter/packages](https://github.com/flutter/packages)' own
+`release.yml` + `script/tool` architecture (see
+`docs/flutter_packages_clone_notes.md` if present, or the PR that
+introduced this file, for the full clone rationale).
 
 ## Why packages are versioned independently
 
@@ -17,12 +22,39 @@ since its own last release tag, independently.
 
 | Layer | File | Responsibility |
 |---|---|---|
-| Release preparation (automatic) | `release.yml` | On every merge to `main` touching `packages/**`, prepare a release PR if any package needs one. |
+| Release preparation (automatic) | `release.yml`'s `prepare` job | On every merge to `main` touching `packages/**` that isn't itself a release-prep merge, prepare a release PR if any package needs one. This stage is this repo's own addition — flutter/packages assumes a human/PR already bumped `pubspec.yaml`/`CHANGELOG.md` before their `release.yml` runs; `script/tool`'s `publish` command does not compute version bumps itself (confirmed from source, see below). |
 | Release preparation (batch) | `batch_release_pr.yml` | Manual (`workflow_dispatch`): prepare a release PR for a chosen set of packages, or all of them. |
 | Release preparation (branch) | `release_from_branches.yml` | Manual: prepare a release PR from a ref other than `main` (e.g. a hotfix branch). |
 | Shared release logic | `reusable_release.yml` | The one implementation all three callers above use — melos version/changelog computation, release-branch creation, opening (or updating) the release PR. Not called directly. |
-| Final release / tagging | `release_tag_on_merge.yml` | Once a `chore(release): ...` PR merges to `main`, create and push the real `<package>-vX.Y.Z` tag(s). |
-| Package publishing | `publish.yml` | Triggered by a package release tag: validates, then publishes that one package to pub.dev via OIDC. |
+| Publish + tag (automatic, atomic) | `release.yml`'s `publish` job | Once a `chore(release): ...` PR merges to `main`, waits for CI (`✅ CI Success`), then runs flutter/packages' own vendored `script/tool` CLI: `dart ./script/tool/lib/src/main.dart publish --all-changed --base-sha=HEAD~ --skip-confirmation --remote=origin`. This one command publishes every package whose pubspec version changed to pub.dev (via `PUB_CREDENTIALS`), tags the release, and pushes the tag — atomically. |
+
+This is exactly flutter/packages' own architecture: their `release.yml`
+runs on every push to `main` and does the entire publish+tag+push in
+one job via `script/tool`'s `publish` command — there is no separate
+tag-creation workflow and no separate per-tag publish workflow
+upstream. `script/tool/lib/src/publish_command.dart` (vendored verbatim
+under `script/tool/`) documents the command as:
+
+> Wraps pub publish with a few niceties used by the flutter/plugin team.
+> 1. Checks for any modified files in git and refuses to publish if
+>    there's an issue.
+> 2. Tags the release with the format `<package-name>-v<package-version>`.
+> 3. Pushes the release to a remote.
+
+It does **not** compute version bumps itself — it expects
+`pubspec.yaml`/`CHANGELOG.md` to already be bumped in the commit it's
+publishing (via `update-release-info`, a separate `script/tool`
+command not wired into automatic CI here), which is exactly what this
+repo's melos-based `prepare` job (stage 1, unchanged by this clone)
+provides.
+
+The old `release_tag_on_merge.yml` (separate tag-creation workflow) and
+`publish.yml` (tag-triggered, pub.dev-OIDC publish workflow) have been
+**removed**. Both are fully superseded by `script/tool`'s `publish`
+command, which does tagging, pushing, and pub.dev publishing (via
+stored `PUB_CREDENTIALS`, never OIDC) atomically in one process.
+Keeping them alongside the new `release.yml` publish job would have
+left two competing publish paths for the same event.
 
 ## Normal flow (single or multiple packages)
 
@@ -30,18 +62,21 @@ since its own last release tag, independently.
 PR (feature/fix)
   → CI + review + AI review
   → merge to main
-  → release.yml prepares/updates a release PR
+  → release.yml's `prepare` job opens/updates a release PR
     (independently versions every package with release-worthy commits)
   → release PR gets CI + review like any other change
-  → release PR merges to main
-  → release_tag_on_merge.yml pushes one tag per released package
-  → publish.yml runs once per tag, publishing that package only
+  → release PR merges to main (commit message contains "chore(release):")
+  → release.yml's `publish` job runs: waits for CI, then invokes
+    script/tool's `publish --all-changed` once, which for every package
+    whose pubspec version changed: publishes to pub.dev, tags the
+    release, and pushes the tag — atomically, in one process
 ```
 
 If only `dig_cli` has release-worthy commits, the release PR contains
 only `dig_cli`'s version bump + changelog — `white_label_kit` and
 `apple_sign_in_plugin` are untouched. If several packages changed, the
-same PR contains all of them, each with its own version.
+same PR contains all of them, each with its own version, and the single
+`publish --all-changed` invocation handles all of them in one run.
 
 ## Batch flow (manual)
 
@@ -50,9 +85,9 @@ maintainer runs batch_release_pr.yml (packages: "all" or a list)
   → reusable_release.yml prepares one release PR
     covering exactly the requested packages, each independently versioned
   → release PR gets CI + review
-  → merges
-  → release_tag_on_merge.yml tags each released package
-  → publish.yml publishes each, independently
+  → merges (commit message contains "chore(release):")
+  → release.yml's `publish` job runs `publish --all-changed` once,
+    publishing + tagging + pushing every changed package
 ```
 
 A batch release is "release these together," never "give them all the
@@ -63,49 +98,56 @@ same version."
 Branch protection requires every change to `main` to go through a pull
 request — including release commits. This was the actual root cause of
 an early release attempt failing outright ("Changes must be made
-through a pull request"), while the tags it also pushed were *not*
-rejected (tags aren't the protected `main` ref), leaving orphaned tags
-pointing at commits never on `main`. The fix: release commits go
-through the exact same PR + CI + review gate as any other change.
-Tags are only created in a later, separate stage, once the release
-commit is actually on `main`.
+through a pull request"). The fix: release commits go through the
+exact same PR + CI + review gate as any other change. Tagging now
+happens only after that commit is actually on `main`, as part of the
+same `publish` job that publishes to pub.dev — never before, and never
+as a separate stage.
 
 ## Package tags
 
 Format: `<package-name>-v<version>` (e.g. `dig_cli-v1.9.0`). Never a
-single global version tag. `release_tag_on_merge.yml` checks each tag's
-existence before creating it — a rerun never duplicates or overwrites
-one.
+single global version tag. `script/tool`'s `publish` command checks
+each tag's existence in the repository before creating it — a rerun of
+`release.yml`'s `publish` job never duplicates or overwrites one.
 
 ## Pub.dev publishing
 
-- Triggered by a package's release tag (`publish.yml`)
-- One tag = one package = one isolated workflow run — a batch release
-  producing 3 tags produces 3 independent publish runs; one package's
-  failure has no effect on the others
-- Authenticated via [pub.dev automated publishing](https://dart.dev/tools/pub/automated-publishing)
-  (GitHub Actions OIDC, `permissions: id-token: write`) — no stored
-  credentials, no PAT
-- Before any real publish: validates `publish_to: none` isn't set, the
-  tag's version matches `pubspec.yaml`'s version, `CHANGELOG.md` has an
-  entry for that version, and that the version isn't already published
-  — then always runs `dart pub publish --dry-run` before the real
-  publish
+- Runs as part of `release.yml`'s `publish` job, on every push to
+  `main` whose commit message contains `chore(release):` — mirrors
+  flutter/packages' own `release.yml`, which runs its publish job on
+  every push to `main` (script/tool's own change-detection then skips
+  packages with nothing new to publish).
+- `--all-changed` handles any number of changed packages in one
+  invocation; a batch release producing 3 changed packages still runs
+  as a single `publish` command call.
+- Authenticated via **`PUB_CREDENTIALS`, a stored repository secret**,
+  read by `script/tool`'s `publish` command — **not** pub.dev OIDC,
+  and no `id-token: write` permission anywhere in the workflow. This is
+  the literal flutter/packages auth mechanism, not a substitute.
+- `script/tool`'s `publish` command performs its own pre-publish
+  checks (already-published detection, git-tag collision checks) as
+  part of the same process — no separate dry-run/validation workflow
+  step is needed here, because that logic lives inside the vendored
+  tool itself.
 
 ### One-time manual pub.dev configuration (per package)
 
-On each package's `pub.dev/packages/<name>/admin` page → Automated
-publishing:
-- Repository: `dhc-tech/flutter-packages`
-- Tag pattern: `<name>-v{{version}}`
-- Enable publishing from GitHub Actions + push events
+`PUB_CREDENTIALS` must be populated with valid pub.dev publishing
+credentials (see `dart pub token` / `dart pub publish` credential
+docs) and stored as the `PUB_CREDENTIALS` repository secret. No
+pub.dev "Automated publishing"/OIDC configuration is used or required.
 
 ## What was deliberately not built
 
-- **A separate `sync_release_pr.yml`** — `release.yml` already
-  re-syncs an open release PR every time it fires (via
-  `reusable_release.yml`'s existing-open-PR detection), so a standalone
-  file would just duplicate that.
+- **A separate `sync_release_pr.yml`** — flutter/packages' own
+  `sync_release_pr.yml` exists only to sync federated/batched-release
+  branches (`release-go_router-*`, `release-cupertino_ui-*`,
+  `release-material_ui-*`) back to `main`; none of this repo's 3
+  packages are federated plugins using that batch-branch convention,
+  so it has no equivalent need here. `release.yml`'s `prepare` job
+  already re-syncs an open release PR every time it fires (via
+  `reusable_release.yml`'s existing-open-PR detection).
 - **Per-package batch workflows** (e.g. `dig_cli_batch.yml`) — every
   release path already accepts any package by name, with zero workflow
   changes needed to add a new package. A dedicated per-package workflow
