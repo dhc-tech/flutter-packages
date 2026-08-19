@@ -1,0 +1,43 @@
+tasks:
+  - name: prepare tool
+    script: .ci/scripts/prepare_tool.sh
+    infra_step: true # Note infra steps failing prevents "always" from running.
+  # format requires that 'pub get' has been run to determine the language
+  # version, so the tool will auto-run it if necessary. Run it manually first
+  # so that the network requests are in a separate infra step.
+  - name: download Dart deps
+    script: .ci/scripts/tool_runner.sh
+    args: ["fetch-deps"]
+    infra_step: true
+  - name: tool unit tests
+    script: .ci/scripts/plugin_tools_tests.sh
+  - name: tool format
+    script: .ci/scripts/plugin_tools_format.sh
+  - name: flutter_goldens unit tests
+    script: .ci/scripts/flutter_goldens_tests.sh
+  - name: flutter_goldens format
+    script: .ci/scripts/flutter_goldens_format.sh
+  - name: format
+    script: .ci/scripts/tool_runner.sh
+    # Skip Swift formatting on Linux builders.
+    args: ["format", "--fail-on-change", "--no-swift"]
+    always: true
+  - name: license validation
+    script: .ci/scripts/tool_runner.sh
+    args: ["license-check"]
+    always: true
+  - name: README snippet validation
+    script: .ci/scripts/tool_runner.sh
+    args: ["update-excerpts", "--fail-on-change"]
+    always: true
+  - name: Repository standards validation
+    script: .ci/scripts/validate.sh
+    always: true
+  - name: federated safety check
+    script: .ci/scripts/check_federated_safety.sh
+    always: true
+  # This is the slowest test, so prefer keeping it last.
+  - name: publishability
+    script: .ci/scripts/tool_runner.sh
+    args: ["publish-check", "--allow-pre-release"]
+    always: true

@@ -1,0 +1,52 @@
+name: apple_sign_in_plugin
+description: "A Sign in with Apple plugin for iOS, macOS, Android, Web, Windows, and Linux. Uses Apple's AuthenticationServices on Apple platforms and Apple's official web authorization flow on other platforms — no third-party Apple Sign-In SDK."
+repository: https://github.com/dhc-tech/flutter-packages/tree/main/packages/apple_sign_in_plugin/apple_sign_in_plugin
+issue_tracker: https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+apple_sign_in_plugin%22
+version: 2.0.0-dev.1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: ">=3.16.0"
+
+flutter:
+  plugin:
+    platforms:
+      ios:
+        default_package: apple_sign_in_plugin_darwin
+      macos:
+        default_package: apple_sign_in_plugin_darwin
+      android:
+        default_package: apple_sign_in_plugin_android
+      web:
+        default_package: apple_sign_in_plugin_web
+      windows:
+        default_package: apple_sign_in_plugin_windows
+      linux:
+        default_package: apple_sign_in_plugin_linux
+
+dependencies:
+  apple_sign_in_plugin_android: ^0.0.1
+  apple_sign_in_plugin_darwin: ^0.0.1
+  apple_sign_in_plugin_linux: ^0.0.1
+  apple_sign_in_plugin_platform_interface: ^0.0.1
+  apple_sign_in_plugin_web: ^0.0.1
+  apple_sign_in_plugin_windows: ^0.0.1
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: '>=6.0.0 <8.0.0'
+  flutter_test:
+    sdk: flutter
+  test: ^1.25.0
+
+topics:
+  - apple-sign-in
+  - authentication
+  - auth
+  - ios
+  - macos
+  - android
+  - web
+  - windows
+  - linux

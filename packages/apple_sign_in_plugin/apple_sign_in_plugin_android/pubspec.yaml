@@ -1,0 +1,35 @@
+name: apple_sign_in_plugin_android
+description: Android implementation of the apple_sign_in_plugin package, using Apple's official web authorization flow via Chrome Custom Tabs and MethodChannel.
+repository: https://github.com/dhc-tech/flutter-packages/tree/main/packages/apple_sign_in_plugin/apple_sign_in_plugin_android
+issue_tracker: https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+apple_sign_in_plugin_android%22
+version: 0.0.1
+
+environment:
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: ">=3.16.0"
+
+flutter:
+  plugin:
+    implements: apple_sign_in_plugin
+    platforms:
+      android:
+        package: tech.dhc.apple_sign_in_plugin_android
+        pluginClass: AppleSignInPluginAndroid
+        dartPluginClass: AppleSignInPluginAndroid
+
+dependencies:
+  apple_sign_in_plugin_platform_interface:
+    path: ../apple_sign_in_plugin_platform_interface
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: '>=6.0.0 <8.0.0'
+  flutter_test:
+    sdk: flutter
+  test: ^1.25.0
+
+topics:
+  - apple-sign-in
+  - authentication
+  - android

@@ -1,0 +1,18 @@
+# See Dependabot documentation for all configuration options:
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      all-github-actions:
+        patterns: [ "*" ]
+    labels:
+      - "autosubmit"
+    # Updating patch versions for "github-actions" is too chatty.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
