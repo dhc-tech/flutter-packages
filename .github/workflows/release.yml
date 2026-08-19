@@ -89,7 +89,7 @@ jobs:
       # way; this repo has no LUCI/Cocoon infra, so the equivalent required
       # check here is ci.yml's own aggregate gate).
       - name: Wait for test check-in
-        uses: lewagon/wait-on-check-action@96d9100b431964d10e0136aff8b9ccb92470505e
+        uses: lewagon/wait-on-check-action@96d9100b431964d10e0136aff8b9ccb92470505e # v1.8.0
         with:
           ref: ${{ github.sha }}
           check-name: '✅ CI Success'
@@ -101,7 +101,7 @@ jobs:
 
       # This workflow should be the last to run. So wait for all the other tests to succeed.
       - name: Wait on all tests
-        uses: lewagon/wait-on-check-action@96d9100b431964d10e0136aff8b9ccb92470505e
+        uses: lewagon/wait-on-check-action@96d9100b431964d10e0136aff8b9ccb92470505e # v1.8.0
         with:
           ref: ${{ github.sha }}
           running-workflow-name: 'release'
