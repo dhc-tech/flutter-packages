@@ -8,7 +8,11 @@ name: Pull Request Labeler
 # content.
 on:
   pull_request_target:
-    types: [opened, synchronize, reopened]
+    # Matches flutter/packages' pull_request_label.yml trigger types
+    # exactly, including `closed` — re-syncs labels one last time on
+    # close/merge (e.g. sync-labels removing a now-stale path label if
+    # the final pushed commit changed what was touched).
+    types: [opened, synchronize, reopened, closed]
 
 concurrency:
   group: pr-labeler-${{ github.event.pull_request.number }}

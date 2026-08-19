@@ -16,6 +16,12 @@ updates:
           - "github/codeql-action/*"
     labels:
       - "infra: workflows"
+    # Matches flutter/packages' own dependabot.yml reasoning verbatim:
+    # patch-only github-actions bumps are too chatty to be worth a PR
+    # each.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
     # Not labeling "autosubmit" here — dependabot_auto_merge.yml decides
     # whether to add it based on the update's actual severity
     # (major vs. minor/patch, via dependabot/fetch-metadata's
