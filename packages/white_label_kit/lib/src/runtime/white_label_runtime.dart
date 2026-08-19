@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 import '../config/tenant_config.dart';
 
 /// **This is what an app's runtime code should reach for.**

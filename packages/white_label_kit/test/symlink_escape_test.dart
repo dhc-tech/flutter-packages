@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 // Regression test for a real defect found by an independent audit: a
 // symlink placed INSIDE a tenant's own asset directory (e.g.
 // tenants/acme/assets/logo.png) that points OUTSIDE the tenant tree was

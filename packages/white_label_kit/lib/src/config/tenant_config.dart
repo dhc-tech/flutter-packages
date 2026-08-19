@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 /// Strongly-typed, immutable representation of one tenant's configuration —
 /// the parsed/validated form of one entry under `white_label.tenants.*` in
 /// `white_label.yaml`. Never constructed from partially-validated data:

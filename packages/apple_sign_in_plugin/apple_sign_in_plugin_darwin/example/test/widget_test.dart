@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 import 'package:apple_sign_in_plugin_darwin_example/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

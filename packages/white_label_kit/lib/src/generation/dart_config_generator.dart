@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 /// Generates `lib/white_label.g.dart` — a plain, directly-invoked step (via
 /// the `generate` CLI command, see `bin/white_label.dart`), the same way
 /// `flutter_native_splash:create`/`icons_launcher:create` generate their

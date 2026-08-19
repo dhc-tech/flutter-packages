@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 // Default-tenant resolution rules (see WhiteLabelConfig.parse):
 //
 //   1. Explicit `default_tenant` must name a declared tenant.

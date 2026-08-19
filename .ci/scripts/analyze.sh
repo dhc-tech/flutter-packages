@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright 2026 DHC Tech
+# Use of this source code is governed by an MIT-style license that can be
+# found in the LICENSE file.
 # Runs formatting validation and strict static analysis across all packages.
 
 set -e

@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 /// Result of a single validation rule. Sealed on purpose so callers must
 /// handle both cases — there is no "just a bool", because every failure
 /// needs to carry an actionable message (see README's "Errors must be

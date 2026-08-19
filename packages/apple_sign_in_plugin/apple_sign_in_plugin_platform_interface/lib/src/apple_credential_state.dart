@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 /// The state of a previously-issued Apple credential, as reported by
 /// `ASAuthorizationAppleIDProvider.getCredentialState(forUserID:)` on
 /// iOS/macOS.
