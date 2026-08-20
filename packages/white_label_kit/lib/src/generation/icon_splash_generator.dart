@@ -165,12 +165,8 @@ flutter_native_splash:
     error:
         'flutter_native_splash:create exited ${result.exitCode}: '
                 '${result.stderr}\n'
-                'If this says the package can\'t be found: unlike '
-                'icons_launcher, flutter_native_splash is NOT a dependency '
-                'of white_label_kit (it requires the Flutter SDK to '
-                'resolve, which would break `dart pub publish` for this '
-                'package). Add it to your own app first: '
-                '`flutter pub add flutter_native_splash`.'
+                'Hint: run `flutter pub add flutter_native_splash` in your '
+                'app first — it is not a dependency of white_label_kit.'
             .trim(),
   );
 }
