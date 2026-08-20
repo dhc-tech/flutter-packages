@@ -1,3 +1,7 @@
+## 0.0.1-dev.0
+
+* Initial dev pre-release of the federated apple_sign_in_plugin_platform_interface package.
+
 ## 0.0.1
 
 * Initial release. Extracted from `apple_sign_in_plugin` as part of
