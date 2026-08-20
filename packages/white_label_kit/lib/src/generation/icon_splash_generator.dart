@@ -64,12 +64,20 @@ icons_launcher:
 ''');
   }
 
-  final ProcessResult result = Process.runSync('dart', [
-    'run',
-    'icons_launcher:create',
-    '--flavor',
-    tenant.id,
-  ], workingDirectory: projectRoot);
+  final ProcessResult result;
+  try {
+    result = Process.runSync('dart', [
+      'run',
+      'icons_launcher:create',
+      '--flavor',
+      tenant.id,
+    ], workingDirectory: projectRoot);
+  } on ProcessException catch (e) {
+    return IconSplashGenerateResult(
+      ran: false,
+      error: 'Could not run `dart run icons_launcher:create`: $e',
+    );
+  }
 
   if (result.exitCode == 0) {
     return const IconSplashGenerateResult(ran: true);
@@ -118,12 +126,20 @@ flutter_native_splash:
 ''');
   }
 
-  final ProcessResult result = Process.runSync('dart', [
-    'run',
-    'flutter_native_splash:create',
-    '--flavor',
-    tenant.id,
-  ], workingDirectory: projectRoot);
+  final ProcessResult result;
+  try {
+    result = Process.runSync('dart', [
+      'run',
+      'flutter_native_splash:create',
+      '--flavor',
+      tenant.id,
+    ], workingDirectory: projectRoot);
+  } on ProcessException catch (e) {
+    return IconSplashGenerateResult(
+      ran: false,
+      error: 'Could not run `dart run flutter_native_splash:create`: $e',
+    );
+  }
 
   if (result.exitCode == 0) {
     return const IconSplashGenerateResult(ran: true);
