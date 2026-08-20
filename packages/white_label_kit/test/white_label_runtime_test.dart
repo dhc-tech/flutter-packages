@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 // WhiteLabelRuntime is the public, app-facing runtime API (see its
 // dartdoc / lib/white_label_kit.dart's library dartdoc for why it exists
 // separately from WhiteLabelConfig/TenantConfig). This covers:

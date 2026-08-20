@@ -4,7 +4,7 @@
 > Supports **iOS, macOS, Android, Web (JavaScript & WebAssembly WasmGC), Windows, and Linux** with **zero third-party Apple auth SDKs**.
 
 📘 **New to this package?** Follow the
-[Implementation Guide](docs/implementation-guide.md) for an ordered,
+[Implementation Guide](doc/implementation-guide.md) for an ordered,
 zero-to-working walkthrough (Apple Developer Console → client → backend
 → testing). The sections below are the reference; the guide is the map.
 
@@ -219,13 +219,13 @@ print('Message: ${result.message}');
 
 Complete, copy-paste recipes with zero third-party Apple SDKs:
 
-* 📖 [Generic REST Protocol Reference](docs/backend/rest/README.md)
-* 🐘 [Plain PHP Implementation](docs/backend/php/README.md)
-* 🔴 [Laravel Service & Controller Recipe](docs/backend/laravel/README.md)
-* 🟩 [Node.js Implementation](docs/backend/node/README.md)
-* 🚂 [Express.js Endpoints](docs/backend/express/README.md)
-* 🐈 [NestJS Auth Module](docs/backend/nestjs/README.md)
-* 🔄 [Migration Guide from `sign_in_with_apple`](docs/migration-from-sign-in-with-apple.md)
+* 📖 [Generic REST Protocol Reference](doc/backend/rest/README.md)
+* 🐘 [Plain PHP Implementation](doc/backend/php/README.md)
+* 🔴 [Laravel Service & Controller Recipe](doc/backend/laravel/README.md)
+* 🟩 [Node.js Implementation](doc/backend/node/README.md)
+* 🚂 [Express.js Endpoints](doc/backend/express/README.md)
+* 🐈 [NestJS Auth Module](doc/backend/nestjs/README.md)
+* 🔄 [Migration Guide from `sign_in_with_apple`](doc/migration-from-sign-in-with-apple.md)
 
 ---
 

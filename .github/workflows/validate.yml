@@ -65,12 +65,12 @@ jobs:
         # generated runner boilerplate (win32_window.h) even across
         # consecutive runs on the same machine, making it unusable as a
         # merge gate. Dart/Kotlin/Java formatting remain enforced.
-        #
-        # license-check and publish-check are not run here yet:
-        # - license-check flags ~176 pre-existing files repo-wide that
-        #   never had copyright headers; fixing that is a separate,
-        #   larger cleanup, not a per-PR gate.
-        # - publish-check depends on live pub.dev validation and this
-        #   package's local dependency_overrides for unpublished sibling
-        #   packages, which needs a closer look before it's a reliable gate.
         run: dart ./script/tool/lib/src/main.dart format --fail-on-change --no-swift --no-clang-format
+
+      - name: Run 'license-check' to check for license issues
+        if: ${{ !cancelled() }}
+        run: dart ./script/tool/lib/src/main.dart license-check
+
+      - name: Run 'publish-check' to make sure everything is in a publishable state
+        if: ${{ !cancelled() }}
+        run: dart ./script/tool/lib/src/main.dart publish-check --allow-pre-release
