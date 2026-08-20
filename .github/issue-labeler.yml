@@ -1,0 +1,26 @@
+# Config for github/issue-labeler (.github/workflows/issue-labeler.yml).
+# Matches against the issue title + body; a label is applied when any of
+# its regexes match. Reuses this repo's existing label set (see
+# .github/labeler.yml for the PR-side path-based equivalent) instead of
+# inventing a parallel issue-only taxonomy.
+
+'p: apple_sign_in_plugin':
+  - '(?i)apple[_ -]?sign[_ -]?in'
+
+'p: dig_cli':
+  - '(?i)dig[_ -]?cli'
+
+'p: white_label_kit':
+  - '(?i)white[_ -]?label'
+
+'type:bug':
+  - '(?i)\b(bug|crash|error|exception|broken|doesn''t work|not working)\b'
+
+'type:feat':
+  - '(?i)\b(feature request|feature|enhancement|proposal)\b'
+
+'documentation':
+  - '(?i)\b(docs?|documentation|readme)\b'
+
+'infra: workflows':
+  - '(?i)\b(ci|github action|workflow|pipeline)\b'

@@ -1,0 +1,33 @@
+# Copyright 2026 DHC Tech
+# Use of this source code is governed by an MIT-style license that can be
+# found in the LICENSE file.
+#
+# Official github/issue-labeler: keyword/regex-based issue triage. Chosen
+# over an AI issue-triage app because there is no well-maintained,
+# non-duplicate Marketplace App for this specific task (Sourcery and
+# similar review apps only operate on PR diffs, not issue text), and this
+# official action covers the actual need (route new issues to the right
+# package/type label) without adding another third-party dependency.
+
+name: Issue Labeler
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  triage:
+    name: triage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
+        with:
+          configuration-path: .github/issue-labeler.yml
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          include-title: 1
+          include-body: 1
+          sync-labels: 1
