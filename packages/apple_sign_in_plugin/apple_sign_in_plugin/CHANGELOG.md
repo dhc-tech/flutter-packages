@@ -1,3 +1,8 @@
+## 2.0.0-dev.1
+
+* Trimmed `pubspec.yaml` topics to 5 (pub.dev's maximum); the previous
+  9-topic list blocked publishing entirely.
+
 ## 2.0.0-dev.0
 
 * **BREAKING**: Complete rewrite. Removed the dependency on the
