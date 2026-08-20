@@ -2,9 +2,6 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-/// The Flutter Web implementation of `apple_sign_in_plugin`.
-library;
-
 import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
 
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
