@@ -1121,46 +1121,6 @@ Future<int> _genericBuild(List<String> args) async {
   var overallExitCode = 0;
   final String projectRoot = Directory.current.path;
 
-  // ── Icons & Splash (icons_launcher / flutter_native_splash) ────────────
-  // Runs here too (not only in `configure`) so `build` alone — the command
-  // most consumers actually run day to day — is enough on its own; nobody
-  // should have to remember to `configure` first just to get icons/splash.
-  // Both are fully auto-derived from the tenant's own declared assets/theme
-  // in white_label.yaml (see generateLauncherIcon/generateNativeSplash) —
-  // nothing to configure by hand, no separate config file to author.
-  // Skipped only if the tenant has no usable image on disk at all (every
-  // tenant has at least assets.logo, which is required, so this is rare).
-  // A failure in either is a warning, never a reason to abort the build —
-  // see each function's doc comment.
-  final LauncherIconResult launcherIcon = generateLauncherIcon(
-    tenant,
-    projectRoot: projectRoot,
-  );
-  if (launcherIcon.ran) {
-    stdout.writeln('✅ Icons: launcher icon generated for "${tenant.id}".');
-  }
-  if (launcherIcon.error != null) {
-    stdout.writeln(
-      '⚠️  Icons: generation failed for "${tenant.id}": ${launcherIcon.error}',
-    );
-  }
-
-  final NativeSplashResult splash = generateNativeSplash(
-    tenant,
-    projectRoot: projectRoot,
-  );
-  if (splash.ran) {
-    stdout.writeln(
-      '✅ Splash: flutter_native_splash generated for "${tenant.id}"'
-      '${splash.launchScreenRegistered ? ' (launch screen registered)' : ''}.',
-    );
-  }
-  if (splash.error != null) {
-    stdout.writeln(
-      '⚠️  Splash: generation failed for "${tenant.id}": ${splash.error}',
-    );
-  }
-
   if (platform == 'android' || platform == 'android-aab' || platform == 'all') {
     // ── Android ─────────────────────────────────────────────────────────────
     try {
@@ -1563,47 +1523,6 @@ Future<int> _configureTenants(List<String> args) async {
         );
       } catch (e) {
         stderr.writeln('   ⚠️  IDE config generation encountered an error: $e');
-      }
-    }
-
-    // ── Icons & Splash (icons_launcher / flutter_native_splash) ────────────
-    // Both fully auto-derived from the tenant's own declared assets/theme
-    // in white_label.yaml — no config file to set up by hand. A failure in
-    // either is a warning, not a reason to fail the whole `configure` run
-    // — see each function's doc comment.
-    if (!dryRun) {
-      final LauncherIconResult launcherIcon = generateLauncherIcon(
-        tenant,
-        projectRoot: projectRoot,
-      );
-      if (launcherIcon.ran) {
-        stdout.writeln(
-          '   ✅ Icons: launcher icon generated for "${tenant.id}"',
-        );
-      }
-      if (launcherIcon.error != null) {
-        stdout.writeln(
-          '   ⚠️  Icons: generation failed for "${tenant.id}": '
-          '${launcherIcon.error}',
-        );
-      }
-
-      final NativeSplashResult splash = generateNativeSplash(
-        tenant,
-        projectRoot: projectRoot,
-      );
-      if (splash.ran) {
-        stdout.writeln(
-          '   ✅ Splash: flutter_native_splash generated for '
-          '"${tenant.id}"'
-          '${splash.launchScreenRegistered ? ' (launch screen registered)' : ''}',
-        );
-      }
-      if (splash.error != null) {
-        stdout.writeln(
-          '   ⚠️  Splash: generation failed for "${tenant.id}": '
-          '${splash.error}',
-        );
       }
     }
 

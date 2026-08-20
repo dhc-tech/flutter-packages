@@ -27,8 +27,6 @@ executables:
 
 dependencies:
   build: ^4.0.10
-  flutter_native_splash: ^2.4.8
-  icons_launcher: ^3.1.0
   path: ^1.9.1
   yaml: ^3.1.3
 
