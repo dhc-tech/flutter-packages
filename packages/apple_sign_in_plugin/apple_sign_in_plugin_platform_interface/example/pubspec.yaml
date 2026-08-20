@@ -3,7 +3,7 @@ description: "Example app demonstrating how a platform implementation registers 
 publish_to: 'none' # This package is not intended for publishing.
 
 environment:
-  sdk: '>=3.4.4 <4.0.0'
+  sdk: '>=3.5.0 <4.0.0'
 
 dependencies:
   apple_sign_in_plugin_platform_interface:

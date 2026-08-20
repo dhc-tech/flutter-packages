@@ -25,7 +25,7 @@ authorization code it returns must still be verified server-side before
 you trust them for anything security-sensitive. See
 [`apple_sign_in_plugin_platform_interface`'s "Backend Boundary" section](https://pub.dev/packages/apple_sign_in_plugin_platform_interface#backend-boundary)
 for details, and the top-level
-[`apple_sign_in_plugin` README's "Do I Need a Backend?"](https://pub.dev/packages/apple_sign_in_plugin#-do-i-need-a-backend)
+[`apple_sign_in_plugin` README's "Do I Need a Backend?"](https://pub.dev/packages/apple_sign_in_plugin#do-i-need-a-backend)
 section for backend recipes (PHP, Laravel, Node.js, Express, NestJS).
 
 ## 👤 Author

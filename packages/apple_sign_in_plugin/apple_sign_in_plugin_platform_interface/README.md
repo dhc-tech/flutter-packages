@@ -56,7 +56,7 @@ until a server you control has verified it.
   (like true token revocation) that Apple only allows a server to perform.
 
 See the top-level
-[`apple_sign_in_plugin` README's "Do I Need a Backend?"](https://pub.dev/packages/apple_sign_in_plugin#-do-i-need-a-backend)
+[`apple_sign_in_plugin` README's "Do I Need a Backend?"](https://pub.dev/packages/apple_sign_in_plugin#do-i-need-a-backend)
 section for the full picture, including backend recipes for PHP, Laravel,
 Node.js, Express, and NestJS.
 
