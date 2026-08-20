@@ -102,6 +102,17 @@ icons_launcher:
 /// one), and never throws (failures are reported via
 /// [IconSplashGenerateResult.error]).
 ///
+/// Unlike [maybeGenerateLauncherIcon]'s `icons_launcher` (a pure-Dart
+/// package, safe as a real dependency of this one), `flutter_native_splash`
+/// itself requires the Flutter SDK to resolve — depending on it directly
+/// here would make this package impossible to `dart pub publish` (it would
+/// force every consumer, including non-Flutter tooling contexts, through
+/// Flutter-SDK-only resolution). So the host app must add
+/// `flutter_native_splash` to its own `pubspec.yaml` for this to actually
+/// run — `dart run flutter_native_splash:create` fails to resolve
+/// otherwise, reported the same way as any other failure (via
+/// [IconSplashGenerateResult.error]), not a special case.
+///
 /// The auto-created config uses `assets.splash` (falling back to
 /// `assets.icon`, then `assets.logo`) as the image and
 /// `theme.primary_color` (falling back to white, `#ffffff`) as the
@@ -153,7 +164,13 @@ flutter_native_splash:
     ran: false,
     error:
         'flutter_native_splash:create exited ${result.exitCode}: '
-                '${result.stderr}'
+                '${result.stderr}\n'
+                'If this says the package can\'t be found: unlike '
+                'icons_launcher, flutter_native_splash is NOT a dependency '
+                'of white_label_kit (it requires the Flutter SDK to '
+                'resolve, which would break `dart pub publish` for this '
+                'package). Add it to your own app first: '
+                '`flutter pub add flutter_native_splash`.'
             .trim(),
   );
 }
