@@ -208,6 +208,76 @@ void main() {
     expect(info['runner_debug_bundle_id'], 'com.example.acme.v2');
   });
 
+  test('sets APP_DISPLAY_NAME from TenantConfig.ios.appName on Runner and '
+      'project scope, but not on other native targets', () {
+    if (!rubyAvailable) {
+      markTestSkipped('ruby/xcodeproj gem not available in this environment');
+      return;
+    }
+
+    const branded = TenantConfig(
+      id: 'acme',
+      name: 'Acme',
+      android: AndroidTenantConfig(
+        applicationId: 'com.example.acme',
+        appName: 'Acme',
+      ),
+      ios: IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme App'),
+      assets: TenantAssets(logo: 'tenants/acme/assets/logo.png'),
+    );
+
+    generateIosConfig(branded, projectRoot: projectRoot.path);
+
+    final String xcodeprojPath = p.join(
+      projectRoot.path,
+      'ios',
+      'Runner.xcodeproj',
+    );
+    final Map<String, dynamic> info = _inspectProject(xcodeprojPath, 'acme');
+
+    // This is what actually fixes the real-world bug: a stock Info.plist
+    // reads CFBundleDisplayName/CFBundleName from $(APP_DISPLAY_NAME), so
+    // without this the flavor build shows "Runner" on the home screen
+    // instead of the tenant's real name.
+    expect(info['runner_debug_app_display_name'], 'Acme App');
+    expect(info['runner_release_app_display_name'], 'Acme App');
+    // RunnerTests has no branding — matching config *names* only.
+    expect(info['tests_debug_app_display_name'], isNull);
+  });
+
+  test('removeIosConfig does not leave orphaned XCBuildConfiguration objects '
+      'in the project after an add/remove cycle', () {
+    if (!rubyAvailable) {
+      markTestSkipped('ruby/xcodeproj gem not available in this environment');
+      return;
+    }
+
+    final String xcodeprojPath = p.join(
+      projectRoot.path,
+      'ios',
+      'Runner.xcodeproj',
+    );
+
+    final Map<String, dynamic> before = _inspectProject(xcodeprojPath, 'acme');
+
+    generateIosConfig(tenant, projectRoot: projectRoot.path);
+    removeIosConfig('acme', projectRoot: projectRoot.path);
+
+    final Map<String, dynamic> after = _inspectProject(xcodeprojPath, 'acme');
+
+    // Every "acme"-suffixed config actually gone, not just unlinked from
+    // a target's build_configuration_list.
+    expect(after['runner_debug_count'], 0);
+    expect(after['runner_release_count'], 0);
+    expect(after['runner_profile_count'], 0);
+    expect(after['project_debug_count'], 0);
+    expect(after['tests_debug_count'], 0);
+    // The real regression check: object count returns to baseline instead
+    // of accumulating dead XCBuildConfiguration objects the .pbxproj never
+    // sheds on its own.
+    expect(after['total_objects'], before['total_objects']);
+  });
+
   test('two tenants get independent, non-colliding schemes and configs', () {
     if (!rubyAvailable) {
       markTestSkipped('ruby/xcodeproj gem not available in this environment');
@@ -294,6 +364,10 @@ def bundle_id_of(list, name)
   configs_named(list, name).first&.build_settings&.[]('PRODUCT_BUNDLE_IDENTIFIER')
 end
 
+def display_name_of(list, name)
+  configs_named(list, name).first&.build_settings&.[]('APP_DISPLAY_NAME')
+end
+
 result = {
   targets: project.targets.map(&:name),
   project_debug_count: configs_named(project.root_object.build_configuration_list, "Debug-#{tenant}").length,
@@ -304,6 +378,10 @@ result = {
   runner_debug_bundle_id: bundle_id_of(runner&.build_configuration_list, "Debug-#{tenant}"),
   runner_release_bundle_id: bundle_id_of(runner&.build_configuration_list, "Release-#{tenant}"),
   runner_profile_bundle_id: bundle_id_of(runner&.build_configuration_list, "Profile-#{tenant}"),
+  runner_debug_app_display_name: display_name_of(runner&.build_configuration_list, "Debug-#{tenant}"),
+  runner_release_app_display_name: display_name_of(runner&.build_configuration_list, "Release-#{tenant}"),
+  tests_debug_app_display_name: display_name_of(tests_target&.build_configuration_list, "Debug-#{tenant}"),
+  total_objects: project.objects.length,
 }
 puts JSON.generate(result)
 ''';
