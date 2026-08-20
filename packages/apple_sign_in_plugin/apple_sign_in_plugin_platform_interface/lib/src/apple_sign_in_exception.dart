@@ -36,7 +36,7 @@ enum AppleSignInErrorCode {
   /// A network request required to complete the flow failed.
   networkFailed,
 
-  /// [AppleSignInPlugin.getCredentialState] failed.
+  /// `getCredentialState` failed.
   credentialStateFailed,
 
   /// The requested feature is not implemented on the current platform yet.

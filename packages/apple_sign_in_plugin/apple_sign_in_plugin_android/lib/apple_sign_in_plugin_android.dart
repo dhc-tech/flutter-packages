@@ -16,11 +16,11 @@ export 'src/apple_sign_in_android_impl.dart' show AppleSignInAndroidConfig, Appl
 /// This class registers [AppleSignInAndroidImpl] as the active
 /// [AppleSignInPlatform] instance when the plugin is loaded on Android.
 ///
-/// Application code should interact with [AppleSignInPlugin] from
+/// Application code should interact with `AppleSignIn` from
 /// `package:apple_sign_in_plugin/apple_sign_in_plugin.dart` rather
 /// than with this class directly. The one exception is configuration:
-/// call [AppleSignInAndroidImpl.configure] (accessed via
-/// [AppleSignInPlatform.instance]) before the first [signIn] call.
+/// set [AppleSignInAndroidImpl.config] (accessed via
+/// [AppleSignInPlatform.instance]) before the first `signIn()` call.
 class AppleSignInPluginAndroid {
   /// Registers the Android implementation as the active platform instance.
   static void registerWith() {
