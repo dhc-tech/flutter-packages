@@ -1,0 +1,7 @@
+# Local development override — remove before publishing.
+# apple_sign_in_plugin_platform_interface is not yet on pub.dev; force
+# every package in this resolution graph (including apple_sign_in_plugin_android's
+# own hosted-version constraint on it) onto the local sibling package.
+dependency_overrides:
+  apple_sign_in_plugin_platform_interface:
+    path: ../../apple_sign_in_plugin_platform_interface

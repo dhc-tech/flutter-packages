@@ -83,6 +83,10 @@ extension on _AppleIDName {
 /// Uses Apple's official **Sign in with Apple JS SDK**
 /// (`https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js`).
 class AppleSignInWebImpl extends AppleSignInPlatform {
+  /// Creates a new [AppleSignInWebImpl]. The Sign in with Apple JS SDK is
+  /// lazily loaded on first use, not in the constructor.
+  AppleSignInWebImpl();
+
   static const String _kSdkUrl =
       'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
 
