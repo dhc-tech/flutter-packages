@@ -4,8 +4,8 @@
   `apple_sign_in_plugin_platform_interface` (were `^0.0.1`, which doesn't
   match any published version — only `-dev` prereleases exist — so `pub
   get`/`pana` resolution failed entirely). Now pinned to each package's
-  actual published `-dev` version, matching what the platform packages
-  themselves already depended on each other with.
+  actual published `-dev` version, matching the dependencies already used
+  between the platform packages.
 * Shortened `pubspec.yaml`'s `description` to fit pub.dev's 60–180
   character limit (was 231 characters, costing 10 pub points).
 
