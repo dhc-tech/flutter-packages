@@ -1,3 +1,14 @@
+## 2.0.0-dev.2
+
+* Fixed dependency constraints on all platform packages and
+  `apple_sign_in_plugin_platform_interface` (were `^0.0.1`, which doesn't
+  match any published version — only `-dev` prereleases exist — so `pub
+  get`/`pana` resolution failed entirely). Now pinned to each package's
+  actual published `-dev` version, matching what the platform packages
+  themselves already depended on each other with.
+* Shortened `pubspec.yaml`'s `description` to fit pub.dev's 60–180
+  character limit (was 231 characters, costing 10 pub points).
+
 ## 2.0.0-dev.1
 
 * Trimmed `pubspec.yaml` topics to 5 (pub.dev's maximum); the previous
