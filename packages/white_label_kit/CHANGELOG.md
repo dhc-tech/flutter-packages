@@ -23,10 +23,13 @@
   or `assets.splash`/`assets.icon`/`assets.logo` + `theme.primary_color`)
   **only if it doesn't already exist** — a hand-authored file is never
   touched. Off by default: a tenant that declares neither flag sees no
-  change in behavior. `icons_launcher`/`flutter_native_splash` are real
-  `dependencies` of this package (not dev-only), so `dart run
-  icons_launcher:create`/`flutter_native_splash:create` resolve for a
-  consuming app with nothing added to its own `pubspec.yaml`. See the new
+  change in behavior. `icons_launcher` is a real `dependency` of this
+  package, so `dart run icons_launcher:create` resolves for a consuming
+  app with nothing added to its own `pubspec.yaml`. `flutter_native_splash`
+  **cannot** be a dependency of this package the same way (see
+  `maybeGenerateNativeSplash`'s doc comment for why) — a consuming app
+  must add it to its own `pubspec.yaml` for splash generation to work;
+  icon generation needs no such step. See the new
   `maybeGenerateLauncherIcon`/`maybeGenerateNativeSplash` exports
   (`lib/src/generation/icon_splash_generator.dart`).
 
