@@ -38,6 +38,7 @@ export 'src/config/tenant_config.dart';
 export 'src/config/white_label_config.dart';
 export 'src/generation/android_generator.dart';
 export 'src/generation/dart_config_generator.dart';
+export 'src/generation/icon_splash_generator.dart';
 export 'src/generation/ide_generator.dart';
 export 'src/generation/ios_generator.dart';
 export 'src/generation/tenant_stager.dart';

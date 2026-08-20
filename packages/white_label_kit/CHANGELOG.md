@@ -14,6 +14,21 @@
   actually removed from the project's object table, so a
   remove/re-add cycle for the same tenant id accumulated dead objects over
   time.
+* New, opt-in: `configure` and the generic `build` command can now
+  auto-generate a tenant's launcher/notification icon
+  (`icons_launcher-<id>.yaml`) and native splash screen
+  (`flutter_native_splash-<id>.yaml`) — declare `features: {
+  icon_generate: true }` / `{ splash_generate: true }` for a tenant and
+  either config file is auto-created (from `assets.icon`/`assets.logo`,
+  or `assets.splash`/`assets.icon`/`assets.logo` + `theme.primary_color`)
+  **only if it doesn't already exist** — a hand-authored file is never
+  touched. Off by default: a tenant that declares neither flag sees no
+  change in behavior. `icons_launcher`/`flutter_native_splash` are real
+  `dependencies` of this package (not dev-only), so `dart run
+  icons_launcher:create`/`flutter_native_splash:create` resolve for a
+  consuming app with nothing added to its own `pubspec.yaml`. See the new
+  `maybeGenerateLauncherIcon`/`maybeGenerateNativeSplash` exports
+  (`lib/src/generation/icon_splash_generator.dart`).
 
 ## 0.0.3
 
