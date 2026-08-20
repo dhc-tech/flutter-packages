@@ -12,8 +12,7 @@ import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 
 import 'src/apple_sign_in_web_impl.dart';
 
-export 'src/apple_sign_in_web_impl.dart'
-    show AppleSignInWebConfig, AppleSignInWebImpl;
+export 'src/apple_sign_in_web_impl.dart' show AppleSignInWebConfig, AppleSignInWebImpl;
 
 /// The Flutter Web implementation of `apple_sign_in_plugin`.
 class AppleSignInPluginWeb {

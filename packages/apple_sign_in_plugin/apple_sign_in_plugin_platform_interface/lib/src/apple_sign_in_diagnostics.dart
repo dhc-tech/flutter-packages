@@ -50,8 +50,7 @@ class AppleSignInDiagnostics {
       ..writeln('Platform: $platformName')
       ..writeln('Available: $isAvailable')
       ..writeln('Configured: $isConfigured')
-      ..writeln(
-          'Native Credential State Supported: ${capabilities.nativeCredentialState}')
+      ..writeln('Native Credential State Supported: ${capabilities.nativeCredentialState}')
       ..writeln('Revocation Stream Supported: ${capabilities.revocationEvents}')
       ..writeln('WebAssembly Supported: ${capabilities.wasmWeb}')
       ..writeln('Backend Adapter Registered: $hasBackendAdapter');

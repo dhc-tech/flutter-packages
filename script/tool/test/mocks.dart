@@ -104,11 +104,12 @@ MockGitDir createForwardingMockGitDir({
 }) {
   final gitDir = MockGitDir();
   when(gitDir.path).thenReturn(packagesDir.parent.path);
-  when(gitDir.runCommand(any, throwOnError: anyNamed('throwOnError')))
-      .thenAnswer((Invocation invocation) {
-        final arguments = List<String>.from(invocation.positionalArguments[0]! as List<String>);
-        final String gitCommand = arguments.removeAt(0);
-        return processRunner.run('git-$gitCommand', arguments);
-      });
+  when(gitDir.runCommand(any, throwOnError: anyNamed('throwOnError'))).thenAnswer((
+    Invocation invocation,
+  ) {
+    final arguments = List<String>.from(invocation.positionalArguments[0]! as List<String>);
+    final String gitCommand = arguments.removeAt(0);
+    return processRunner.run('git-$gitCommand', arguments);
+  });
   return gitDir;
 }

@@ -33,7 +33,8 @@ void main() {
           <String, dynamic>{
             'bundlePath': '/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 13.0.simruntime',
             'buildversion': '17A577',
-            'runtimeRoot': '/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 13.0.simruntime/Contents/Resources/RuntimeRoot',
+            'runtimeRoot':
+                '/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 13.0.simruntime/Contents/Resources/RuntimeRoot',
             'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-13-0',
             'version': '13.0',
             'isAvailable': true,
@@ -42,16 +43,19 @@ void main() {
           <String, dynamic>{
             'bundlePath': '/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 13.4.simruntime',
             'buildversion': '17L255',
-            'runtimeRoot': '/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 13.4.simruntime/Contents/Resources/RuntimeRoot',
+            'runtimeRoot':
+                '/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 13.4.simruntime/Contents/Resources/RuntimeRoot',
             'identifier': 'com.apple.CoreSimulator.SimRuntime.iOS-13-4',
             'version': '13.4',
             'isAvailable': true,
             'name': 'iOS 13.4',
           },
           <String, dynamic>{
-            'bundlePath': '/Applications/Xcode_11_7.app/Contents/Developer/Platforms/WatchOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/watchOS.simruntime',
+            'bundlePath':
+                '/Applications/Xcode_11_7.app/Contents/Developer/Platforms/WatchOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/watchOS.simruntime',
             'buildversion': '17T531',
-            'runtimeRoot': '/Applications/Xcode_11_7.app/Contents/Developer/Platforms/WatchOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/watchOS.simruntime/Contents/Resources/RuntimeRoot',
+            'runtimeRoot':
+                '/Applications/Xcode_11_7.app/Contents/Developer/Platforms/WatchOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/watchOS.simruntime/Contents/Resources/RuntimeRoot',
             'identifier': 'com.apple.CoreSimulator.SimRuntime.watchOS-6-2',
             'version': '6.2.1',
             'isAvailable': true,
@@ -61,7 +65,8 @@ void main() {
         'devices': <String, dynamic>{
           'com.apple.CoreSimulator.SimRuntime.iOS-13-4': <Map<String, dynamic>>[
             <String, dynamic>{
-              'dataPath': '/Users/xxx/Library/Developer/CoreSimulator/Devices/2706BBEB-1E01-403E-A8E9-70E8E5A24774/data',
+              'dataPath':
+                  '/Users/xxx/Library/Developer/CoreSimulator/Devices/2706BBEB-1E01-403E-A8E9-70E8E5A24774/data',
               'logPath':
                   '/Users/xxx/Library/Logs/CoreSimulator/2706BBEB-1E01-403E-A8E9-70E8E5A24774',
               'udid': '2706BBEB-1E01-403E-A8E9-70E8E5A24774',
@@ -71,7 +76,8 @@ void main() {
               'name': 'iPhone 8',
             },
             <String, dynamic>{
-              'dataPath': '/Users/xxx/Library/Developer/CoreSimulator/Devices/1E76A0FD-38AC-4537-A989-EA639D7D012A/data',
+              'dataPath':
+                  '/Users/xxx/Library/Developer/CoreSimulator/Devices/1E76A0FD-38AC-4537-A989-EA639D7D012A/data',
               'logPath':
                   '/Users/xxx/Library/Logs/CoreSimulator/1E76A0FD-38AC-4537-A989-EA639D7D012A',
               'udid': expectedDeviceId,
@@ -98,9 +104,11 @@ void main() {
       final devices = <String, dynamic>{
         'runtimes': <Map<String, dynamic>>[
           <String, dynamic>{
-            'bundlePath': '/Applications/Xcode_11_7.app/Contents/Developer/Platforms/WatchOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/watchOS.simruntime',
+            'bundlePath':
+                '/Applications/Xcode_11_7.app/Contents/Developer/Platforms/WatchOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/watchOS.simruntime',
             'buildversion': '17T531',
-            'runtimeRoot': '/Applications/Xcode_11_7.app/Contents/Developer/Platforms/WatchOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/watchOS.simruntime/Contents/Resources/RuntimeRoot',
+            'runtimeRoot':
+                '/Applications/Xcode_11_7.app/Contents/Developer/Platforms/WatchOS.platform/Library/Developer/CoreSimulator/Profiles/Runtimes/watchOS.simruntime/Contents/Resources/RuntimeRoot',
             'identifier': 'com.apple.CoreSimulator.SimRuntime.watchOS-6-2',
             'version': '6.2.1',
             'isAvailable': true,
@@ -110,7 +118,8 @@ void main() {
         'devices': <String, dynamic>{
           'com.apple.CoreSimulator.SimRuntime.watchOS-6-2': <Map<String, dynamic>>[
             <String, dynamic>{
-              'dataPath': '/Users/xxx/Library/Developer/CoreSimulator/Devices/1E76A0FD-38AC-4537-A989-EA639D7D012A/data',
+              'dataPath':
+                  '/Users/xxx/Library/Developer/CoreSimulator/Devices/1E76A0FD-38AC-4537-A989-EA639D7D012A/data',
               'logPath':
                   '/Users/xxx/Library/Logs/CoreSimulator/1E76A0FD-38AC-4537-A989-EA639D7D012A',
               'udid': '1E76A0FD-38AC-4537-A989-EA639D7D012A',

@@ -12,15 +12,12 @@ String _createTestJwt({
   Map<String, dynamic> header = const {'alg': 'HS256', 'typ': 'JWT'},
 }) {
   String toBase64Url(Map<String, dynamic> jsonMap) {
-    return base64Url
-        .encode(utf8.encode(jsonEncode(jsonMap)))
-        .replaceAll('=', '');
+    return base64Url.encode(utf8.encode(jsonEncode(jsonMap))).replaceAll('=', '');
   }
 
   final String h = toBase64Url(header);
   final String p = toBase64Url(payload);
-  final String s =
-      base64Url.encode(utf8.encode('mock_signature')).replaceAll('=', '');
+  final String s = base64Url.encode(utf8.encode('mock_signature')).replaceAll('=', '');
   return '$h.$p.$s';
 }
 

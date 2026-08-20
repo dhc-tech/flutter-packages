@@ -1,4 +1,4 @@
-## 2.0.0-dev.1
+## 2.0.0-dev.0
 
 * **BREAKING**: Complete rewrite. Removed the dependency on the
   third-party `sign_in_with_apple` package — every platform is now

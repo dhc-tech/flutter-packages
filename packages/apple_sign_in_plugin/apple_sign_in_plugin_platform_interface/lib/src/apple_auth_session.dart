@@ -60,9 +60,8 @@ class AppleAuthIdentity {
     if (name == null || name!.isEmpty) {
       return null;
     }
-    final Iterable<String> parts = [name!.givenName, name!.familyName]
-        .whereType<String>()
-        .where((s) => s.isNotEmpty);
+    final Iterable<String> parts =
+        [name!.givenName, name!.familyName].whereType<String>().where((s) => s.isNotEmpty);
     return parts.isEmpty ? null : parts.join(' ');
   }
 
@@ -116,8 +115,7 @@ class AppleAuthAuthorization {
   final AppleRealUserStatus realUserStatus;
 
   @override
-  String toString() =>
-      'AppleAuthAuthorization(scopes: $scopes, realUserStatus: $realUserStatus)';
+  String toString() => 'AppleAuthAuthorization(scopes: $scopes, realUserStatus: $realUserStatus)';
 }
 
 /// Session status and native credential state information.
@@ -198,8 +196,8 @@ class AppleAuthSession {
     // Apple always sends `email` directly on the credential when the scope
     // was granted, but as a fallback for platforms/flows that only surface
     // it via the identity token, decode it from there too.
-    final String? resolvedEmail = credential.email ??
-        _decodeEmailFromIdentityToken(credential.identityToken);
+    final String? resolvedEmail =
+        credential.email ?? _decodeEmailFromIdentityToken(credential.identityToken);
 
     return AppleAuthSession(
       identity: AppleAuthIdentity(
