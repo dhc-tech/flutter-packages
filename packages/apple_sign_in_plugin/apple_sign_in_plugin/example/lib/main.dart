@@ -253,7 +253,7 @@ class _SignInPageState extends State<SignInPage> {
               // Never display the full secret — this app is not the
               // consumer of these values, the backend is.
               secret != null
-                  ? '${secret.substring(0, secret.length.clamp(0, 12))}…[sent to backend, not shown]'
+                  ? '${_maskedPreview(secret)} [sent to backend, not shown]'
                   : 'Not available',
               style: const TextStyle(fontFamily: 'Courier', fontSize: 12),
             ),
@@ -262,4 +262,23 @@ class _SignInPageState extends State<SignInPage> {
       ),
     );
   }
+}
+
+/// Returns a short, masked preview of [secret] that never reveals the full
+/// value — not even a single character of it — regardless of how short it
+/// is.
+String _maskedPreview(String secret) {
+  if (secret.isEmpty) {
+    return '';
+  }
+  const int previewLength = 8;
+  // Secrets short enough that showing any of their characters (plus an
+  // ellipsis) could reveal, or nearly reveal, the whole value are fully
+  // masked instead.
+  if (secret.length <= 8) {
+    return '•' * previewLength;
+  }
+  final start = secret.substring(0, 2);
+  final end = secret.substring(secret.length - 2);
+  return '$start…$end';
 }

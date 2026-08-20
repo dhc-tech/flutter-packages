@@ -20,10 +20,19 @@ import '../config/tenant_config.dart';
 /// 1. **Xcode build configurations** — `Debug-<tenant>`/`Release-<tenant>`/
 ///    `Profile-<tenant>` are added to the project and to the `Runner`
 ///    target, each a duplicate of the corresponding base configuration with
-///    `PRODUCT_BUNDLE_IDENTIFIER` set to [TenantConfig.ios]'s `bundleId`.
-///    targets — ensuring Xcode/`xcodebuild` never see an inconsistent configuration set across
-///    targets. This is a generic, from-scratch equivalent that edits `PRODUCT_BUNDLE_IDENTIFIER`
-///    directly as a build setting because a stock `flutter create` project
+///    `PRODUCT_BUNDLE_IDENTIFIER` set to [TenantConfig.ios]'s `bundleId` and
+///    `APP_DISPLAY_NAME` set to [TenantConfig.ios]'s `appName` — a stock
+///    `flutter create` project's `Info.plist` already reads
+///    `CFBundleDisplayName`/`CFBundleName` from `$(APP_DISPLAY_NAME)`, so
+///    setting this build setting is all a consuming app needs to do for the
+///    home-screen app name to be correct per flavor (no `Info.plist` edit
+///    required). Both settings are applied to the project root object and
+///    the `Runner` target only — never to other native
+///    targets. Every other native target (e.g. `RunnerTests`) just needs
+///    matching configuration *names* to exist — no branding — so Xcode/`xcodebuild` never
+///    see an inconsistent configuration set across
+///    targets. This is a generic, from-scratch equivalent that edits `PRODUCT_BUNDLE_IDENTIFIER`/
+///    `APP_DISPLAY_NAME` directly as build settings because a stock `flutter create` project
 ///    has no per-flavor `.xcconfig` scaffolding to point at).
 ///
 ///    Done via a small Ruby script (shipped here as a string, not a
@@ -141,6 +150,7 @@ void _runXcodeprojScript(TenantConfig tenant, String xcodeprojPath) {
       xcodeprojPath,
       tenant.id,
       tenant.ios.bundleId,
+      tenant.ios.appName,
     ]);
     if (result.exitCode != 0) {
       throw IosGenerationException(
@@ -188,9 +198,9 @@ void _cloneScheme(String tenantId, File runnerScheme, Directory schemesDir) {
 const String _xcodeprojRubyScript = r'''
 require 'xcodeproj'
 
-xcodeproj_path, tenant_id, bundle_id = ARGV
+xcodeproj_path, tenant_id, bundle_id, app_name = ARGV
 if [xcodeproj_path, tenant_id, bundle_id].any? { |a| a.nil? || a.empty? }
-  abort 'Usage: ios_xcode_generate.rb <xcodeproj_path> <tenant_id> <bundle_id>'
+  abort 'Usage: ios_xcode_generate.rb <xcodeproj_path> <tenant_id> <bundle_id> [app_name]'
 end
 
 project = Xcodeproj::Project.open(xcodeproj_path)
@@ -200,13 +210,13 @@ abort "Runner target not found in #{xcodeproj_path}" unless runner_target
 
 # Finds (or creates) build configuration `new_name` in `config_list`, cloned
 # from `base_name` the first time it's created. Always re-syncs
-# PRODUCT_BUNDLE_IDENTIFIER (when `bundle_id` is given) on every call,
+# PRODUCT_BUNDLE_IDENTIFIER/APP_DISPLAY_NAME (when given) on every call,
 # whether the configuration is new or already existed — so re-running this
-# script after a tenant's bundle id changes actually applies the change
-# instead of being a no-op past the first run. Never appends a second
-# configuration with the same name: `build_configurations <<` only ever runs
-# on the branch where none was found.
-def sync_config(config_list, base_name, new_name, bundle_id)
+# script after a tenant's bundle id/app name changes actually applies the
+# change instead of being a no-op past the first run. Never appends a
+# second configuration with the same name: `build_configurations <<` only
+# ever runs on the branch where none was found.
+def sync_config(config_list, base_name, new_name, bundle_id, app_name = nil)
   config = config_list.build_configurations.find { |c| c.name == new_name }
   if config.nil?
     base = config_list.build_configurations.find { |c| c.name == base_name }
@@ -218,15 +228,22 @@ def sync_config(config_list, base_name, new_name, bundle_id)
     config_list.build_configurations << config
   end
   config.build_settings['PRODUCT_BUNDLE_IDENTIFIER'] = bundle_id if bundle_id
+  # A stock `flutter create` Info.plist already reads CFBundleDisplayName/
+  # CFBundleName from $(APP_DISPLAY_NAME) — setting this build setting is
+  # enough for the home-screen app name to be correct per flavor, no
+  # Info.plist edit needed. Without this, a tenant build shows "Runner" on
+  # the home screen instead of its real brand name.
+  config.build_settings['APP_DISPLAY_NAME'] = app_name if app_name && !app_name.empty?
   config
 end
 
-# Project + Runner target get the real branding (PRODUCT_BUNDLE_IDENTIFIER).
+# Project + Runner target get the real branding (PRODUCT_BUNDLE_IDENTIFIER,
+# APP_DISPLAY_NAME).
 [project.root_object, runner_target].each do |scope|
   list = scope.build_configuration_list
-  sync_config(list, 'Debug', "Debug-#{tenant_id}", bundle_id)
-  sync_config(list, 'Release', "Release-#{tenant_id}", bundle_id)
-  sync_config(list, 'Profile', "Profile-#{tenant_id}", bundle_id)
+  sync_config(list, 'Debug', "Debug-#{tenant_id}", bundle_id, app_name)
+  sync_config(list, 'Release', "Release-#{tenant_id}", bundle_id, app_name)
+  sync_config(list, 'Profile', "Profile-#{tenant_id}", bundle_id, app_name)
 end
 
 # Every other native target (e.g. RunnerTests) just needs matching
@@ -261,7 +278,20 @@ config_names = ["Debug-#{tenant_id}", "Release-#{tenant_id}", "Profile-#{tenant_
 ([project.root_object] + project.targets).each do |scope|
   list = scope.build_configuration_list
   next unless list
-  list.build_configurations.delete_if { |c| config_names.include?(c.name) }
+  # `delete_if` unlinks from `build_configurations` in place (the list is a
+  # live association, not a plain array — reassigning it via `-=` silently
+  # doesn't stick). That alone still leaves the actual XCBuildConfiguration
+  # object sitting in the project's objects table forever (dead weight the
+  # .pbxproj never sheds on its own), so also call `remove_from_project` on
+  # each one removed, so re-running add/remove/add for the same tenant id
+  # doesn't accumulate orphaned objects over time.
+  removed = []
+  list.build_configurations.delete_if do |c|
+    match = config_names.include?(c.name)
+    removed << c if match
+    match
+  end
+  removed.each(&:remove_from_project)
 end
 
 project.save

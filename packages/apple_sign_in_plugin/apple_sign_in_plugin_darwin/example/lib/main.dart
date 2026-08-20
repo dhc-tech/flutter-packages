@@ -7,6 +7,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 void main() {
+  // Unlike apple_sign_in_plugin_android/linux/web/windows (none of which
+  // have a native Apple Sign-In API, and so need an AppleSignInAndroidConfig/
+  // AppleSignInDesktopConfig/AppleSignInWebConfig with your Apple Services
+  // ID set before signIn() can be called), Darwin talks to
+  // ASAuthorizationAppleIDProvider directly — no config, no Services ID.
   runApp(const MyApp());
 }
 
@@ -231,7 +236,7 @@ class _SignInPageState extends State<SignInPage> {
               // Never display the full secret — this app is not the
               // consumer of these values, the backend is.
               secret != null
-                  ? '${secret.substring(0, secret.length.clamp(0, 12))}…[sent to backend, not shown]'
+                  ? '${_maskedPreview(secret)} [sent to backend, not shown]'
                   : 'Not available',
               style: const TextStyle(fontFamily: 'Courier', fontSize: 12),
             ),
@@ -240,4 +245,28 @@ class _SignInPageState extends State<SignInPage> {
       ),
     );
   }
+}
+
+// This example intentionally duplicates its UI/logic across each
+// platform package's own example app (see the other apple_sign_in_plugin_*
+// example/lib/main.dart files) rather than sharing a common package —
+// each platform example is meant to be independently runnable, matching
+// Flutter's own federated-plugin example convention.
+/// Returns a short, masked preview of [secret] that never reveals the full
+/// value — not even a single character of it — regardless of how short it
+/// is.
+String _maskedPreview(String secret) {
+  if (secret.isEmpty) {
+    return '';
+  }
+  const int previewLength = 8;
+  // Secrets short enough that showing any of their characters (plus an
+  // ellipsis) could reveal, or nearly reveal, the whole value are fully
+  // masked instead.
+  if (secret.length <= 8) {
+    return '•' * previewLength;
+  }
+  final start = secret.substring(0, 2);
+  final end = secret.substring(secret.length - 2);
+  return '$start…$end';
 }

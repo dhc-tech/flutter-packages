@@ -1121,6 +1121,36 @@ Future<int> _genericBuild(List<String> args) async {
   var overallExitCode = 0;
   final String projectRoot = Directory.current.path;
 
+  // ── Icons & Splash (opt-in via features: icon_generate/splash_generate) ──
+  // Runs here too (not only in `configure`) so `build` alone is enough on
+  // its own. Off by default — see maybeGenerateLauncherIcon/
+  // maybeGenerateNativeSplash's doc comments.
+  final IconSplashGenerateResult? icon = maybeGenerateLauncherIcon(
+    tenant,
+    projectRoot: projectRoot,
+  );
+  if (icon != null && icon.ran) {
+    stdout.writeln('✅ Icons: generated for "${tenant.id}".');
+  }
+  if (icon != null && icon.error != null) {
+    stdout.writeln(
+      '⚠️  Icons: generation failed for "${tenant.id}": ${icon.error}',
+    );
+  }
+
+  final IconSplashGenerateResult? splash = maybeGenerateNativeSplash(
+    tenant,
+    projectRoot: projectRoot,
+  );
+  if (splash != null && splash.ran) {
+    stdout.writeln('✅ Splash: generated for "${tenant.id}".');
+  }
+  if (splash != null && splash.error != null) {
+    stdout.writeln(
+      '⚠️  Splash: generation failed for "${tenant.id}": ${splash.error}',
+    );
+  }
+
   if (platform == 'android' || platform == 'android-aab' || platform == 'all') {
     // ── Android ─────────────────────────────────────────────────────────────
     try {
@@ -1523,6 +1553,40 @@ Future<int> _configureTenants(List<String> args) async {
         );
       } catch (e) {
         stderr.writeln('   ⚠️  IDE config generation encountered an error: $e');
+      }
+    }
+
+    // ── Icons & Splash (opt-in via features: icon_generate/splash_generate) ─
+    // Off by default — only runs if the tenant explicitly declares
+    // features: { icon_generate: true } / { splash_generate: true } in
+    // white_label.yaml. When on, auto-creates the config file only if one
+    // doesn't already exist (never overwrites a hand-authored one).
+    if (!dryRun) {
+      final IconSplashGenerateResult? icon = maybeGenerateLauncherIcon(
+        tenant,
+        projectRoot: projectRoot,
+      );
+      if (icon != null && icon.ran) {
+        stdout.writeln('   ✅ Icons: generated for "${tenant.id}"');
+      }
+      if (icon != null && icon.error != null) {
+        stdout.writeln(
+          '   ⚠️  Icons: generation failed for "${tenant.id}": ${icon.error}',
+        );
+      }
+
+      final IconSplashGenerateResult? splash = maybeGenerateNativeSplash(
+        tenant,
+        projectRoot: projectRoot,
+      );
+      if (splash != null && splash.ran) {
+        stdout.writeln('   ✅ Splash: generated for "${tenant.id}"');
+      }
+      if (splash != null && splash.error != null) {
+        stdout.writeln(
+          '   ⚠️  Splash: generation failed for "${tenant.id}": '
+          '${splash.error}',
+        );
       }
     }
 
