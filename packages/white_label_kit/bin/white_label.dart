@@ -1121,15 +1121,17 @@ Future<int> _genericBuild(List<String> args) async {
   var overallExitCode = 0;
   final String projectRoot = Directory.current.path;
 
-  // ── Icons & Splash (flutter_launcher_icons / flutter_native_splash) ────
+  // ── Icons & Splash (icons_launcher / flutter_native_splash) ────────────
   // Runs here too (not only in `configure`) so `build` alone — the command
   // most consumers actually run day to day — is enough on its own; nobody
   // should have to remember to `configure` first just to get icons/splash.
-  // Icons are auto-derived from the tenant's own assets.icon/assets.logo
-  // (see generateLauncherIcon) — nothing to configure by hand. Splash
-  // still needs its own flutter_native_splash-<id>.yaml, silently skipped
-  // if absent. A failure in either is a warning, never a reason to abort
-  // the build — see each function's doc comment.
+  // Both are fully auto-derived from the tenant's own declared assets/theme
+  // in white_label.yaml (see generateLauncherIcon/generateNativeSplash) —
+  // nothing to configure by hand, no separate config file to author.
+  // Skipped only if the tenant has no usable image on disk at all (every
+  // tenant has at least assets.logo, which is required, so this is rare).
+  // A failure in either is a warning, never a reason to abort the build —
+  // see each function's doc comment.
   final LauncherIconResult launcherIcon = generateLauncherIcon(
     tenant,
     projectRoot: projectRoot,
@@ -1144,7 +1146,7 @@ Future<int> _genericBuild(List<String> args) async {
   }
 
   final NativeSplashResult splash = generateNativeSplash(
-    tenant.id,
+    tenant,
     projectRoot: projectRoot,
   );
   if (splash.ran) {
@@ -1155,8 +1157,7 @@ Future<int> _genericBuild(List<String> args) async {
   }
   if (splash.error != null) {
     stdout.writeln(
-      '⚠️  Splash: flutter_native_splash-${tenant.id}.yaml exists but '
-      'generation failed: ${splash.error}',
+      '⚠️  Splash: generation failed for "${tenant.id}": ${splash.error}',
     );
   }
 
@@ -1565,14 +1566,11 @@ Future<int> _configureTenants(List<String> args) async {
       }
     }
 
-    // ── Icons & Splash (flutter_launcher_icons / flutter_native_splash) ────
-    // Icons are auto-derived from the tenant's own assets.icon/assets.logo
-    // (see generateLauncherIcon) — no config file to set up by hand. Splash
-    // still needs its own flutter_native_splash-<id>.yaml, silently
-    // skipped if absent — a consumer who hasn't set it up is never forced
-    // to add the dependency. A failure in either is a warning, not a
-    // reason to fail the whole `configure` run — see each function's doc
-    // comment.
+    // ── Icons & Splash (icons_launcher / flutter_native_splash) ────────────
+    // Both fully auto-derived from the tenant's own declared assets/theme
+    // in white_label.yaml — no config file to set up by hand. A failure in
+    // either is a warning, not a reason to fail the whole `configure` run
+    // — see each function's doc comment.
     if (!dryRun) {
       final LauncherIconResult launcherIcon = generateLauncherIcon(
         tenant,
@@ -1591,7 +1589,7 @@ Future<int> _configureTenants(List<String> args) async {
       }
 
       final NativeSplashResult splash = generateNativeSplash(
-        tenant.id,
+        tenant,
         projectRoot: projectRoot,
       );
       if (splash.ran) {
@@ -1603,8 +1601,8 @@ Future<int> _configureTenants(List<String> args) async {
       }
       if (splash.error != null) {
         stdout.writeln(
-          '   ⚠️  Splash: flutter_native_splash-${tenant.id}.yaml exists '
-          'but generation failed: ${splash.error}',
+          '   ⚠️  Splash: generation failed for "${tenant.id}": '
+          '${splash.error}',
         );
       }
     }

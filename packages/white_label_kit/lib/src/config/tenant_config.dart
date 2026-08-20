@@ -20,6 +20,8 @@ class TenantConfig {
     this.environment = const TenantEnvironment(),
     this.features = const {},
     this.firebase,
+    this.iconsLauncherOverrides = const {},
+    this.nativeSplashOverrides = const {},
   });
 
   /// The tenant's directory/config key, e.g. `acme` — also used as the
@@ -66,6 +68,33 @@ class TenantConfig {
   /// [assets] — there is no separate, weaker validation path for Firebase
   /// files (see `TenantStager.stage`).
   final TenantFirebaseConfig? firebase;
+
+  /// Raw passthrough of this tenant's `icons_launcher:` block in
+  /// `white_label.yaml`, if declared — merged over
+  /// [generateLauncherIcon]'s own auto-derived defaults (`image_path`,
+  /// `platforms.android.notification_image`, etc.) when writing
+  /// `icons_launcher-<id>.yaml`, so every option the real
+  /// `icons_launcher` package supports (adaptive icon background/
+  /// foreground, per-platform enable/disable, macOS/web/windows targets,
+  /// …) is reachable straight from `white_label.yaml` without this
+  /// package needing to model each one individually. A key this map
+  /// shares with the auto-derived defaults wins over the default; nested
+  /// maps (e.g. `platforms.android`) are merged one level deep, not
+  /// wholesale replaced. See <https://pub.dev/packages/icons_launcher> for
+  /// the full option reference.
+  final Map<String, dynamic> iconsLauncherOverrides;
+
+  /// Raw passthrough of this tenant's `native_splash:` block in
+  /// `white_label.yaml`, if declared — merged over
+  /// [generateNativeSplash]'s own auto-derived defaults (`color`, `image`,
+  /// `android_12`) the same way [iconsLauncherOverrides] merges over
+  /// [generateLauncherIcon]'s, so every option the real
+  /// `flutter_native_splash` package supports (`color_dark`, `fullscreen`,
+  /// `android_gravity`, per-platform image/color overrides, …) is
+  /// reachable straight from `white_label.yaml`. See
+  /// <https://pub.dev/packages/flutter_native_splash> for the full option
+  /// reference.
+  final Map<String, dynamic> nativeSplashOverrides;
 
   /// The version to use for this tenant's Android build: [AndroidTenantConfig.version]
   /// if the tenant declared a platform-specific override, otherwise the
@@ -199,6 +228,7 @@ class TenantTheme {
   const TenantTheme({
     this.primaryColor,
     this.secondaryColor,
+    this.splashColor,
     this.brandColors = const {},
     this.featureColors = const {},
     this.sectionColors = const {},
@@ -207,6 +237,17 @@ class TenantTheme {
 
   /// `#RRGGBB` or `#AARRGGBB` — see [ConfigValidator.colorHex].
   final String? primaryColor;
+
+  /// `#RRGGBB` or `#AARRGGBB` — see [ConfigValidator.colorHex]. The
+  /// background color `generateNativeSplash` uses for this tenant's native
+  /// splash screen, if different from [primaryColor]. A brand's `primary`
+  /// color is often too vivid/saturated for a full-screen splash
+  /// background (a real, previously-hit bug — a vivid primary color
+  /// caused a jarring flash against a lighter custom Dart splash screen) —
+  /// declare this separately rather than assuming [primaryColor] is always
+  /// splash-appropriate. Falls back to [primaryColor], then white
+  /// (`#ffffff`), if not declared.
+  final String? splashColor;
 
   /// `#RRGGBB` or `#AARRGGBB` — see [ConfigValidator.colorHex].
   final String? secondaryColor;

@@ -302,6 +302,7 @@ class WhiteLabelConfig {
     final dynamic themeNode = map['theme'];
     String? primaryColor;
     String? secondaryColor;
+    String? splashColor;
     var brandColors = const <String, String>{};
     var featureColors = const <String, String>{};
     var sectionColors = const <String, String>{};
@@ -314,9 +315,11 @@ class WhiteLabelConfig {
       );
       primaryColor = theme?['primary_color']?.toString();
       secondaryColor = theme?['secondary_color']?.toString();
+      splashColor = theme?['splash_color']?.toString();
       for (final String c in [
         primaryColor,
         secondaryColor,
+        splashColor,
       ].whereType<String>()) {
         final ValidationResult r = ConfigValidator.colorHex(c);
         if (r is Invalid) {
@@ -420,6 +423,37 @@ class WhiteLabelConfig {
       );
     }
 
+    // `icons_launcher:`/`native_splash:` are raw, unvalidated passthrough
+    // blocks — every option the real icons_launcher/flutter_native_splash
+    // packages support, reachable from white_label.yaml without this
+    // package needing to model each one. See TenantConfig.
+    // iconsLauncherOverrides/nativeSplashOverrides doc comments.
+    Map<String, dynamic> iconsLauncherOverrides = const {};
+    final dynamic iconsLauncherNode = map['icons_launcher'];
+    if (iconsLauncherNode != null) {
+      final Map<dynamic, dynamic>? raw = ConfigValidator.expectMap(
+        iconsLauncherNode,
+        'tenants.$id.icons_launcher',
+        errors,
+      );
+      if (raw != null) {
+        iconsLauncherOverrides = _deepStringKeyed(raw) as Map<String, dynamic>;
+      }
+    }
+
+    Map<String, dynamic> nativeSplashOverrides = const {};
+    final dynamic nativeSplashNode = map['native_splash'];
+    if (nativeSplashNode != null) {
+      final Map<dynamic, dynamic>? raw = ConfigValidator.expectMap(
+        nativeSplashNode,
+        'tenants.$id.native_splash',
+        errors,
+      );
+      if (raw != null) {
+        nativeSplashOverrides = _deepStringKeyed(raw) as Map<String, dynamic>;
+      }
+    }
+
     // Bail out of building a TenantConfig for this entry if anything above
     // was missing/invalid — errors already recorded, caller throws once all
     // tenants have been walked so a user sees every problem in one pass.
@@ -448,6 +482,7 @@ class WhiteLabelConfig {
       theme: TenantTheme(
         primaryColor: primaryColor,
         secondaryColor: secondaryColor,
+        splashColor: splashColor,
         brandColors: brandColors,
         featureColors: featureColors,
         sectionColors: sectionColors,
@@ -456,6 +491,8 @@ class WhiteLabelConfig {
       environment: TenantEnvironment(apiBaseUrl: apiBaseUrl),
       features: features,
       firebase: firebase,
+      iconsLauncherOverrides: iconsLauncherOverrides,
+      nativeSplashOverrides: nativeSplashOverrides,
     );
   }
 
@@ -549,6 +586,26 @@ class WhiteLabelConfig {
     }
     return TenantVersion(name: name, buildNumber: buildNumber);
   }
+}
+
+/// Recursively converts a parsed-YAML value (`YamlMap`/`YamlList`, whose
+/// map keys arrive as `dynamic`, not `String`) into plain `Map<String, dynamic>`/
+/// `List<dynamic>`/scalar values — so a raw passthrough block (e.g.
+/// `icons_launcher:`/`native_splash:`) can be walked and merged with plain
+/// Dart map/list APIs afterward instead of `YamlMap`'s read-only,
+/// dynamic-keyed ones. Scalars (`String`/`num`/`bool`/`null`) pass through
+/// unchanged.
+dynamic _deepStringKeyed(dynamic value) {
+  if (value is Map) {
+    return {
+      for (final entry in value.entries)
+        entry.key.toString(): _deepStringKeyed(entry.value),
+    };
+  }
+  if (value is List) {
+    return [for (final item in value) _deepStringKeyed(item)];
+  }
+  return value;
 }
 
 /// Thrown by [WhiteLabelConfig.load]/[WhiteLabelConfig.parse]. Carries every validation error

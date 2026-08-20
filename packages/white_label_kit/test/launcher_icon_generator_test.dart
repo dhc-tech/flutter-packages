@@ -102,6 +102,44 @@ void main() {
     expect(content, contains('notification_image: "tenants/acme/icon.png"'));
   });
 
+  test('merges the tenant\'s raw icons_launcher: overrides over the '
+      'auto-derived defaults, without dropping the un-overridden keys in '
+      'the same nested map — every real icons_launcher option is reachable '
+      'from white_label.yaml this way', () {
+    const tenantWithOverrides = TenantConfig(
+      id: 'acme',
+      name: 'Acme',
+      android: AndroidTenantConfig(
+        applicationId: 'com.example.acme',
+        appName: 'Acme',
+      ),
+      ios: IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme'),
+      assets: TenantAssets(logo: 'tenants/acme/logo.png'),
+      iconsLauncherOverrides: {
+        'platforms': {
+          'android': {'adaptive_background_color': '#ffffff'},
+        },
+        'min_sdk_android': 21,
+      },
+    );
+    File(p.join(projectRoot.path, 'tenants/acme/logo.png'))
+      ..createSync(recursive: true)
+      ..writeAsBytesSync([1, 2, 3]);
+
+    generateLauncherIcon(tenantWithOverrides, projectRoot: projectRoot.path);
+
+    final String content = File(
+      p.join(projectRoot.path, 'icons_launcher-acme.yaml'),
+    ).readAsStringSync();
+    // The override itself made it in.
+    expect(content, contains('adaptive_background_color: "#ffffff"'));
+    expect(content, contains('min_sdk_android: 21'));
+    // The auto-derived keys in the SAME nested map (platforms.android)
+    // survived the merge — this is the "merge, don't replace" contract.
+    expect(content, contains('enable: true'));
+    expect(content, contains('notification_image: "tenants/acme/logo.png"'));
+  });
+
   test('reports an error (not a crash) when an icon source exists but '
       'icons_launcher cannot actually run', () {
     File(p.join(projectRoot.path, 'tenants/acme/logo.png'))

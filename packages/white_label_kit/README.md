@@ -31,21 +31,31 @@ Managing multiple flavors or white-label client apps in Flutter usually means:
 
 ## 🚀 Getting Started
 
-### 1. Add Dev Dependency
-Add `white_label_kit` to your Flutter project's `dev_dependencies`:
+### 1. Add Dependency
+Add `white_label_kit` to your Flutter project's `dependencies` — **not**
+`dev_dependencies`:
 
 ```bash
-flutter pub add --dev white_label_kit
+flutter pub add white_label_kit
 ```
 
 Or manually in `pubspec.yaml`:
 
 ```yaml
-dev_dependencies:
-  white_label_kit: ^0.0.2
+dependencies:
+  white_label_kit: ^0.0.4
 ```
 
-> **Note:** `white_label_kit` generates self-contained, typed code (`lib/white_label.g.dart`) and manages native Gradle/Xcode files at build time, keeping your production app binary lightweight with zero runtime overhead.
+> **Why a regular dependency, not dev-only:** `lib/white_label.g.dart` (the
+> generated file — see step 3) imports `WhiteLabelRuntime`/`WhiteLabelTheme`
+> from this package and is compiled directly into your app, read by your
+> own runtime code (`whiteLabelRuntime.environment.apiBaseUrl`, theme
+> colors, feature flags, etc.). It is not purely a build-time codegen tool
+> the way `build_runner` is — putting it under `dev_dependencies` would
+> still happen to compile for a leaf app, but is the wrong semantic
+> declaration for a package your shipped binary actually reads from at
+> runtime, and would break if this package's code ever needed to reach
+> another package that's only resolved via `dependencies`.
 
 ### 2. Initialize Configuration
 Generate a starter `white_label.yaml` in your project root:
@@ -243,12 +253,6 @@ void main() {
 ## 🤝 Contributing
 
 Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/dhc-tech/flutter-packages/issues).
-
----
-
-## 👤 Author
-
-Maintained by **DHC Tech**.
 
 ---
 

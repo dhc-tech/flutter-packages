@@ -6,27 +6,21 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import '../config/tenant_config.dart';
+import 'yaml_merge.dart';
+
 /// Result of [generateNativeSplash] for one tenant — see its doc comment
 /// for exactly what each field means and when it's populated.
-///
-/// Launcher icon generation used to live alongside this (as
-/// `IconSplashResult`/`generateIconsAndSplash`) but has moved to its own
-/// [LauncherIconGenerator]-style function, [generateLauncherIcon] — icons
-/// are now auto-derived from a tenant's own `assets.icon`/`assets.logo` in
-/// `white_label.yaml` (via `flutter_launcher_icons`), no separate
-/// hand-authored config file needed. Splash still requires one, since
-/// there is no equivalent tenant-declared "splash" field this generator
-/// can safely default from without risking an unwanted, wrongly-colored
-/// splash screen.
 class NativeSplashResult {
   const NativeSplashResult({
     required this.ran,
     required this.launchScreenRegistered,
     this.error,
+    this.skippedReason,
   });
 
-  /// `true` if `flutter_native_splash-<tenant>.yaml` existed and
-  /// `flutter_native_splash:create` ran successfully for this tenant.
+  /// `true` if `flutter_native_splash:create` ran successfully for this
+  /// tenant.
   final bool ran;
 
   /// `true` if [ran] and a host-provided `tool/register_launch_screen.rb`
@@ -37,24 +31,29 @@ class NativeSplashResult {
   /// absence is expected on most consumers, not a failure.
   final bool launchScreenRegistered;
 
-  /// Non-null only if `flutter_native_splash-<tenant>.yaml` existed but
+  /// Non-null only if an image source was found but
   /// `flutter_native_splash:create` exited non-zero.
   final String? error;
+
+  /// Non-null only when [ran] is `false` and there was no [error] — i.e.
+  /// the tenant simply has no image source on disk yet, not a failure.
+  final String? skippedReason;
 
   bool get hasError => error != null;
 }
 
-/// Runs `flutter_native_splash:create --flavor <tenantId>` for [tenantId]
-/// — **only if** its own per-tenant config file
-/// (`flutter_native_splash-<tenantId>.yaml`) already exists at
-/// [projectRoot]. `flutter_native_splash` is not a dependency of this
-/// package, and is not required: a tenant/consumer that hasn't created
-/// this config file is assumed not to be using it, and is silently
-/// skipped — never treated as an error, never forces a dependency a
-/// consumer doesn't want. (Unlike [generateLauncherIcon], this can't be
-/// auto-derived from a plain declared asset path — a splash screen also
-/// needs a background color choice, which this package has no safe
-/// tenant-declared default for.)
+/// Auto-generates `flutter_native_splash-<tenant.id>.yaml` from the
+/// tenant's own declared config — [TenantConfig.assets]' `splash`, falling
+/// back to `icon` then `logo` if no dedicated splash image was declared,
+/// and [TenantConfig.theme]'s `splashColor` as the background color,
+/// falling back to `primaryColor`, then white (`#ffffff`), if neither was
+/// declared — and runs `flutter_native_splash:create --flavor <tenant.id>`
+/// for it. Like [generateLauncherIcon], there is nothing else for a
+/// consumer to set up: `white_label.yaml` alone is enough — including for
+/// a tenant whose splash color needs to differ from its brand
+/// `primaryColor` (declare `theme.splash_color` explicitly; see
+/// [TenantTheme.splashColor]'s doc comment for why that's a separate
+/// field, not just always `primaryColor`).
 ///
 /// If the splash step ran and a `tool/register_launch_screen.rb` script
 /// exists at [projectRoot] (a host-app-provided script — this package does
@@ -63,29 +62,97 @@ class NativeSplashResult {
 /// it in the Xcode project's Resources build phase, so without this it
 /// silently never ships.
 ///
-/// **Never throws.** A missing config file is a silent skip (not an
-/// error); a command that fails to run (e.g. the package isn't actually a
-/// dev dependency of the host app) is reported via
+/// The generated yaml file is overwritten every call — like
+/// `lib/white_label.g.dart`, it's a build artifact of `white_label.yaml`,
+/// never meant to be hand-edited. A tenant that wants a different splash
+/// image than its icon/logo should declare `assets.splash` explicitly
+/// rather than relying on the fallback.
+///
+/// A tenant can opt out entirely with `features: { native_splash: false }`
+/// in `white_label.yaml` — e.g. one that already has its own hand-crafted
+/// native splash setup and wants this package to leave it alone.
+///
+/// **Never throws.** No image source on disk yet is a silent skip
+/// ([NativeSplashResult.skippedReason], not an error). A
+/// `flutter_native_splash:create` run that fails to execute (e.g. the
+/// package isn't actually resolved for the host app, or `--flavor` naming
+/// conflicts with something in the project) is reported via
 /// [NativeSplashResult.error] instead of propagated, so one tenant's
-/// optional splash step can never abort a `configure`/`add-tenant` run for
-/// every other tenant. Callers should surface [NativeSplashResult.hasError]
-/// as a warning, not fail the overall command on it.
+/// splash step can never abort a `configure`/`build` run for every other
+/// tenant. Callers should surface [NativeSplashResult.hasError] as a
+/// warning, not fail the overall command on it.
 NativeSplashResult generateNativeSplash(
-  String tenantId, {
+  TenantConfig tenant, {
   required String projectRoot,
 }) {
-  final splashConfig = File(
-    p.join(projectRoot, 'flutter_native_splash-$tenantId.yaml'),
-  );
-  if (!splashConfig.existsSync()) {
-    return const NativeSplashResult(ran: false, launchScreenRegistered: false);
+  // Opt-out: `features: { native_splash: false }` in white_label.yaml for
+  // this tenant. Since a usable image source always exists (assets.logo
+  // is required), this is the only way to disable native splash
+  // generation for a tenant that doesn't want it — e.g. a tenant that
+  // already has its own hand-crafted native splash setup and wants this
+  // package to leave it alone.
+  if (tenant.features['native_splash'] == false) {
+    return const NativeSplashResult(
+      ran: false,
+      launchScreenRegistered: false,
+      skippedReason: 'disabled via features.native_splash: false',
+    );
   }
+
+  // TenantConfig.assets.logo is required (always present), so this can
+  // never actually be null — splash, then icon, are preferred when
+  // declared (a dedicated splash image usually looks better full-bleed
+  // than a square icon, which in turn is usually cleaner than a wordmark
+  // logo).
+  final String imagePath =
+      tenant.assets.splash ?? tenant.assets.icon ?? tenant.assets.logo;
+
+  final imageFile = File(p.join(projectRoot, imagePath));
+  if (!imageFile.existsSync()) {
+    return NativeSplashResult(
+      ran: false,
+      launchScreenRegistered: false,
+      skippedReason: 'declared splash/icon/logo "$imagePath" not found on disk',
+    );
+  }
+
+  final String color =
+      tenant.theme.splashColor ?? tenant.theme.primaryColor ?? '#ffffff';
+
+  final Map<String, dynamic> baseConfig = {
+    'color': color,
+    'image': imagePath,
+    'android_12': {'color': color, 'image': imagePath},
+  };
+  // Merge the tenant's raw `native_splash:` block (if declared) over the
+  // auto-derived defaults above — see TenantConfig.nativeSplashOverrides'
+  // doc comment. This is how every option the real `flutter_native_splash`
+  // package supports (`color_dark`, `fullscreen`, `android_gravity`,
+  // per-platform image/color overrides, …) stays reachable straight from
+  // `white_label.yaml`.
+  final Map<String, dynamic> config = deepMergeMaps(
+    baseConfig,
+    tenant.nativeSplashOverrides,
+  );
+
+  final configFile = File(
+    p.join(projectRoot, 'flutter_native_splash-${tenant.id}.yaml'),
+  );
+  configFile.writeAsStringSync(
+    '# GENERATED by white_label_kit — DO NOT EDIT BY HAND.\n'
+    '# Derived from tenant "${tenant.id}"\'s assets.splash (or assets.icon'
+    ' / assets.logo), theme.splashColor/primaryColor, and its'
+    ' native_splash: block in white_label.yaml. To change this tenant\'s'
+    ' splash image/color, update those in white_label.yaml and re-run'
+    ' `configure`/`build`, not this file.\n'
+    '${mapToYaml({'flutter_native_splash': config})}',
+  );
 
   final ProcessResult result = Process.runSync('dart', [
     'run',
     'flutter_native_splash:create',
     '--flavor',
-    tenantId,
+    tenant.id,
   ], workingDirectory: projectRoot);
 
   if (result.exitCode != 0) {
@@ -106,7 +173,7 @@ NativeSplashResult generateNativeSplash(
   if (registerScript.existsSync()) {
     final ProcessResult registerResult = Process.runSync('ruby', [
       registerScript.path,
-      tenantId,
+      tenant.id,
     ], workingDirectory: projectRoot);
     launchScreenRegistered = registerResult.exitCode == 0;
   }
