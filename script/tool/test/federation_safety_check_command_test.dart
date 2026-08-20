@@ -43,9 +43,9 @@ void main() {
   test('skips non-plugin packages', () async {
     final RepositoryPackage package = createFakePackage('foo', packagesDir);
 
-    final String changedFileOutput = <File>[package.libDirectory.childFile('foo.dart')]
-        .map((File file) => file.path)
-        .join('\n');
+    final String changedFileOutput = <File>[
+      package.libDirectory.childFile('foo.dart'),
+    ].map((File file) => file.path).join('\n');
     gitProcessRunner.mockProcessesForExecutable['git-diff'] = <FakeProcessInfo>[
       FakeProcessInfo(MockProcess(stdout: changedFileOutput)),
     ];
@@ -67,9 +67,9 @@ void main() {
   test('skips unfederated plugins', () async {
     final RepositoryPackage package = createFakePlugin('foo', packagesDir);
 
-    final String changedFileOutput = <File>[package.libDirectory.childFile('foo.dart')]
-        .map((File file) => file.path)
-        .join('\n');
+    final String changedFileOutput = <File>[
+      package.libDirectory.childFile('foo.dart'),
+    ].map((File file) => file.path).join('\n');
     gitProcessRunner.mockProcessesForExecutable['git-diff'] = <FakeProcessInfo>[
       FakeProcessInfo(MockProcess(stdout: changedFileOutput)),
     ];
@@ -95,9 +95,9 @@ void main() {
       pluginGroupDir,
     );
 
-    final String changedFileOutput = <File>[platformInterface.libDirectory.childFile('foo.dart')]
-        .map((File file) => file.path)
-        .join('\n');
+    final String changedFileOutput = <File>[
+      platformInterface.libDirectory.childFile('foo.dart'),
+    ].map((File file) => file.path).join('\n');
     gitProcessRunner.mockProcessesForExecutable['git-diff'] = <FakeProcessInfo>[
       FakeProcessInfo(MockProcess(stdout: changedFileOutput)),
     ];

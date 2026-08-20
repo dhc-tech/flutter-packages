@@ -20,18 +20,19 @@ void main() {
     gitDirCommands = <List<String>?>[];
     gitDiffResponse = '';
     gitDir = MockGitDir();
-    when(gitDir.runCommand(any, throwOnError: anyNamed('throwOnError')))
-        .thenAnswer((Invocation invocation) {
-          final arguments = invocation.positionalArguments[0]! as List<String>;
-          gitDirCommands.add(arguments);
-          String? gitStdOut;
-          if (arguments[0] == 'diff') {
-            gitStdOut = gitDiffResponse;
-          } else if (arguments[0] == 'merge-base') {
-            gitStdOut = mergeBaseResponse;
-          }
-          return Future<ProcessResult>.value(ProcessResult(0, 0, gitStdOut ?? '', ''));
-        });
+    when(gitDir.runCommand(any, throwOnError: anyNamed('throwOnError'))).thenAnswer((
+      Invocation invocation,
+    ) {
+      final arguments = invocation.positionalArguments[0]! as List<String>;
+      gitDirCommands.add(arguments);
+      String? gitStdOut;
+      if (arguments[0] == 'diff') {
+        gitStdOut = gitDiffResponse;
+      } else if (arguments[0] == 'merge-base') {
+        gitStdOut = mergeBaseResponse;
+      }
+      return Future<ProcessResult>.value(ProcessResult(0, 0, gitStdOut ?? '', ''));
+    });
   });
 
   test('No git diff should result no files changed', () async {
@@ -117,8 +118,9 @@ void main() {
   });
 
   test('throws ProcessException when git diff fails', () async {
-    when(gitDir.runCommand(argThat(contains('diff')), throwOnError: anyNamed('throwOnError')))
-        .thenThrow(const ProcessException('git', <String>['diff'], 'Git diff failed'));
+    when(
+      gitDir.runCommand(argThat(contains('diff')), throwOnError: anyNamed('throwOnError')),
+    ).thenThrow(const ProcessException('git', <String>['diff'], 'Git diff failed'));
 
     final finder = GitVersionFinder(gitDir, baseSha: 'some base sha');
     expect(() => finder.getChangedFiles(), throwsA(isA<ProcessException>()));

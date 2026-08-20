@@ -464,37 +464,39 @@ void main() {
       });
     });
 
-    test('--machine: Log JSON with status:no-publish and correct human message, if there are no packages need to be published. ', () async {
-      const httpResponseA = <String, dynamic>{
-        'name': 'a',
-        'versions': <String>['0.0.1', '0.1.0'],
-      };
+    test(
+      '--machine: Log JSON with status:no-publish and correct human message, if there are no packages need to be published. ',
+      () async {
+        const httpResponseA = <String, dynamic>{
+          'name': 'a',
+          'versions': <String>['0.0.1', '0.1.0'],
+        };
 
-      const httpResponseB = <String, dynamic>{
-        'name': 'b',
-        'versions': <String>['0.0.1', '0.1.0', '0.2.0'],
-      };
+        const httpResponseB = <String, dynamic>{
+          'name': 'b',
+          'versions': <String>['0.0.1', '0.1.0', '0.2.0'],
+        };
 
-      final mockClient = MockClient((http.Request request) async {
-        if (request.url.pathSegments.last == 'no_publish_a.json') {
-          return http.Response(json.encode(httpResponseA), 200);
-        } else if (request.url.pathSegments.last == 'no_publish_b.json') {
-          return http.Response(json.encode(httpResponseB), 200);
-        }
-        return http.Response('', 500);
-      });
+        final mockClient = MockClient((http.Request request) async {
+          if (request.url.pathSegments.last == 'no_publish_a.json') {
+            return http.Response(json.encode(httpResponseA), 200);
+          } else if (request.url.pathSegments.last == 'no_publish_b.json') {
+            return http.Response(json.encode(httpResponseB), 200);
+          }
+          return http.Response('', 500);
+        });
 
-      runner = configureRunner(httpClient: mockClient);
+        runner = configureRunner(httpClient: mockClient);
 
-      createFakePlugin('no_publish_a', packagesDir, version: '0.1.0');
-      createFakePlugin('no_publish_b', packagesDir, version: '0.2.0');
+        createFakePlugin('no_publish_a', packagesDir, version: '0.1.0');
+        createFakePlugin('no_publish_b', packagesDir, version: '0.2.0');
 
-      final List<String> output = await runCapturingPrint(runner, <String>[
-        'publish-check',
-        '--machine',
-      ]);
+        final List<String> output = await runCapturingPrint(runner, <String>[
+          'publish-check',
+          '--machine',
+        ]);
 
-      expect(output.first, r'''
+        expect(output.first, r'''
 {
   "status": "no-publish",
   "humanMessage": [
@@ -515,39 +517,42 @@ void main() {
     "No issues found!"
   ]
 }''');
-    });
+      },
+    );
 
-    test('--machine: Log JSON with status:needs-publish and correct human message, if there is at least 1 plugin needs to be published.', () async {
-      const httpResponseA = <String, dynamic>{
-        'name': 'a',
-        'versions': <String>['0.0.1', '0.1.0'],
-      };
+    test(
+      '--machine: Log JSON with status:needs-publish and correct human message, if there is at least 1 plugin needs to be published.',
+      () async {
+        const httpResponseA = <String, dynamic>{
+          'name': 'a',
+          'versions': <String>['0.0.1', '0.1.0'],
+        };
 
-      const httpResponseB = <String, dynamic>{
-        'name': 'b',
-        'versions': <String>['0.0.1', '0.1.0'],
-      };
+        const httpResponseB = <String, dynamic>{
+          'name': 'b',
+          'versions': <String>['0.0.1', '0.1.0'],
+        };
 
-      final mockClient = MockClient((http.Request request) async {
-        if (request.url.pathSegments.last == 'no_publish_a.json') {
-          return http.Response(json.encode(httpResponseA), 200);
-        } else if (request.url.pathSegments.last == 'no_publish_b.json') {
-          return http.Response(json.encode(httpResponseB), 200);
-        }
-        return http.Response('', 500);
-      });
+        final mockClient = MockClient((http.Request request) async {
+          if (request.url.pathSegments.last == 'no_publish_a.json') {
+            return http.Response(json.encode(httpResponseA), 200);
+          } else if (request.url.pathSegments.last == 'no_publish_b.json') {
+            return http.Response(json.encode(httpResponseB), 200);
+          }
+          return http.Response('', 500);
+        });
 
-      runner = configureRunner(httpClient: mockClient);
+        runner = configureRunner(httpClient: mockClient);
 
-      createFakePlugin('no_publish_a', packagesDir, version: '0.1.0');
-      createFakePlugin('no_publish_b', packagesDir, version: '0.2.0');
+        createFakePlugin('no_publish_a', packagesDir, version: '0.1.0');
+        createFakePlugin('no_publish_b', packagesDir, version: '0.2.0');
 
-      final List<String> output = await runCapturingPrint(runner, <String>[
-        'publish-check',
-        '--machine',
-      ]);
+        final List<String> output = await runCapturingPrint(runner, <String>[
+          'publish-check',
+          '--machine',
+        ]);
 
-      expect(output.first, r'''
+        expect(output.first, r'''
 {
   "status": "needs-publish",
   "humanMessage": [
@@ -568,7 +573,8 @@ void main() {
     "No issues found!"
   ]
 }''');
-    });
+      },
+    );
 
     test('--machine: Log correct JSON, if there is at least 1 plugin contains error.', () async {
       const httpResponseA = <String, dynamic>{

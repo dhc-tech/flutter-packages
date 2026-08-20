@@ -74,8 +74,9 @@ void main() {
     // with the group folder itself.
     test('does not elide group name for app-facing packages', () async {
       expect(
-        RepositoryPackage(packagesDir.childDirectory('a_plugin').childDirectory('a_plugin'))
-            .displayName,
+        RepositoryPackage(
+          packagesDir.childDirectory('a_plugin').childDirectory('a_plugin'),
+        ).displayName,
         'a_plugin/a_plugin',
       );
     });

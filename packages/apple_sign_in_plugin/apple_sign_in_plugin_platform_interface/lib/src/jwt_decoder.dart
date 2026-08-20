@@ -25,13 +25,11 @@ class JwtDecoder {
       throw const FormatException('Invalid token');
     }
     try {
-      final String payloadBase64 =
-          splitToken[1]; // Payload is always the index 1
+      final String payloadBase64 = splitToken[1]; // Payload is always the index 1
       // Base64 should be multiple of 4. Normalize the payload before decode it
       final String normalizedPayload = base64.normalize(payloadBase64);
       // Decode payload, the result is a String
-      final String payloadString =
-          utf8.decode(base64.decode(normalizedPayload));
+      final String payloadString = utf8.decode(base64.decode(normalizedPayload));
       // Parse the String to a Map<String, dynamic>
       final decodedPayload = jsonDecode(payloadString) as Map<String, dynamic>;
 

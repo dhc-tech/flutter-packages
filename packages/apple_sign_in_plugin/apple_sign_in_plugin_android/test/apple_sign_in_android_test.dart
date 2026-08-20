@@ -17,8 +17,7 @@ import 'package:flutter_test/flutter_test.dart';
 // ignore_for_file: invalid_use_of_visible_for_testing_member
 
 String _fakeIdToken(String sub, [String? email]) {
-  String b64(Map<String, dynamic> m) =>
-      base64Url.encode(utf8.encode(jsonEncode(m)));
+  String b64(Map<String, dynamic> m) => base64Url.encode(utf8.encode(jsonEncode(m)));
   final header = b64({'alg': 'RS256', 'kid': 'testkey'});
   final payloadMap = <String, dynamic>{
     'sub': sub,

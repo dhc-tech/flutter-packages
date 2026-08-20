@@ -10,8 +10,7 @@ import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_pla
 
 import 'src/apple_sign_in_linux_impl.dart';
 
-export 'src/apple_sign_in_linux_impl.dart'
-    show AppleSignInDesktopConfig, AppleSignInLinuxImpl;
+export 'src/apple_sign_in_linux_impl.dart' show AppleSignInDesktopConfig, AppleSignInLinuxImpl;
 
 /// The Linux implementation of `apple_sign_in_plugin`.
 class AppleSignInPluginLinux {

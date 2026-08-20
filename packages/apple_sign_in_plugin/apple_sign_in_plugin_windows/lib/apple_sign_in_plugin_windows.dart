@@ -10,8 +10,7 @@ import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_pla
 
 import 'src/apple_sign_in_windows_impl.dart';
 
-export 'src/apple_sign_in_windows_impl.dart'
-    show AppleSignInDesktopConfig, AppleSignInWindowsImpl;
+export 'src/apple_sign_in_windows_impl.dart' show AppleSignInDesktopConfig, AppleSignInWindowsImpl;
 
 /// The Windows implementation of `apple_sign_in_plugin`.
 class AppleSignInPluginWindows {

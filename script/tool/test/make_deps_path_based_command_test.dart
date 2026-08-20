@@ -472,9 +472,9 @@ ${overrides.map((String dep) => '  $dep:\n    path: $path').join('\n')}
     test('no-ops for no published changes', () async {
       final RepositoryPackage package = createFakePackage('foo', packagesDir);
 
-      final String changedFileOutput = <File>[package.pubspecFile]
-          .map((File file) => file.path)
-          .join('\n');
+      final String changedFileOutput = <File>[
+        package.pubspecFile,
+      ].map((File file) => file.path).join('\n');
       gitProcessRunner.mockProcessesForExecutable['git-diff'] = <FakeProcessInfo>[
         FakeProcessInfo(MockProcess(stdout: changedFileOutput)),
       ];
