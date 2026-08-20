@@ -50,6 +50,9 @@ IconSplashGenerateResult? maybeGenerateLauncherIcon(
     p.join(projectRoot, 'icons_launcher-${tenant.id}.yaml'),
   );
   if (!configFile.existsSync()) {
+    // TenantConfig.assets.logo is required (non-nullable) — the compiler
+    // itself proves iconPath can never be null (and so never end up as the
+    // literal string "null" here), not just convention.
     final String iconPath = tenant.assets.icon ?? tenant.assets.logo;
     configFile.writeAsStringSync('''
 icons_launcher:
@@ -113,6 +116,8 @@ IconSplashGenerateResult? maybeGenerateNativeSplash(
     p.join(projectRoot, 'flutter_native_splash-${tenant.id}.yaml'),
   );
   if (!configFile.existsSync()) {
+    // Same non-nullable-logo guarantee as maybeGenerateLauncherIcon — this
+    // can never resolve to the literal string "null".
     final String imagePath =
         tenant.assets.splash ?? tenant.assets.icon ?? tenant.assets.logo;
     final String color = tenant.theme.primaryColor ?? '#ffffff';
