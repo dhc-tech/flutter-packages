@@ -37,6 +37,29 @@ Platform implementation authors should implement `AppleSignInPlatform`
 implementations at compile time) and register it as
 `AppleSignInPlatform.instance` from their own package's `registerWith()`.
 
+## Backend Boundary
+
+Everything in this package runs entirely on-device. In particular,
+[`JwtDecoder`](lib/src/jwt_decoder.dart) only *reads* the claims inside an
+Apple identity token (JWT) — it never checks the token's cryptographic
+signature. That decoded output (and the `email` it feeds into
+`AppleAuthIdentity.email` as a fallback) must be treated as **untrusted**
+until a server you control has verified it.
+
+- ❌ **Do not** use `JwtDecoder` output, or `AppleCredential`/`AppleAuthSession`
+  fields derived from it, as proof of identity for anything security-sensitive.
+- ✅ **Do** send the credential's `identityToken` and `authorizationCode` to
+  your backend, and verify the token there against Apple's public keys
+  (`https://appleid.apple.com/auth/keys`) before trusting any claim in it.
+- The `AppleBackendAdapter` interface in this package exists specifically
+  to model that boundary: platform packages call into it for operations
+  (like true token revocation) that Apple only allows a server to perform.
+
+See the top-level
+[`apple_sign_in_plugin` README's "Do I Need a Backend?"](https://pub.dev/packages/apple_sign_in_plugin#do-i-need-a-backend)
+section for the full picture, including backend recipes for PHP, Laravel,
+Node.js, Express, and NestJS.
+
 ## 👤 Author
 
 Maintained by **DHC Tech**.
