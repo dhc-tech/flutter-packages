@@ -80,6 +80,30 @@ Sync all native Gradle flavors, Xcode schemes, and IDE run configurations:
 dart run white_label_kit:configure
 ```
 
+### 5. Launcher Icons & Native Splash (per tenant)
+
+`white_label_kit` does **not** generate launcher icons or the native
+splash screen itself — that stays the job of two well-established,
+purpose-built packages, run once per tenant alongside `configure`:
+
+```bash
+# Launcher icon (+ Android notification icon) for this tenant's flavor:
+dart run icons_launcher:create --flavor acme
+
+# Native splash screen for this tenant's flavor:
+dart run flutter_native_splash:create --flavor acme
+```
+
+Each needs its own tenant-suffixed config file at the project root —
+`icons_launcher-acme.yaml` / `flutter_native_splash-acme.yaml` — same
+naming convention `white_label.yaml` itself uses. See
+[`icons_launcher`](https://pub.dev/packages/icons_launcher) and
+[`flutter_native_splash`](https://pub.dev/packages/flutter_native_splash)
+on pub.dev for their full config reference (adaptive icon
+background/foreground, dark-mode variants, `fullscreen`, per-platform
+overrides, and everything else either package supports — all of it is
+theirs to configure directly, not re-modeled by this package).
+
 ---
 
 ## 🖥️ Running & Building Your App
@@ -173,25 +197,33 @@ white_label:
   tenants:
     acme:
       name: "Acme App"
-      version: "1.0.0+1"
+      version:
+        name: "1.0.0"
+        build_number: 1
 
       android:
         application_id: "com.example.acme"
         app_name: "Acme App"
+        # version:                # optional — overrides the shared
+        #   name: "1.0.0"         # `version:` above for Android only, if
+        #   build_number: 1       # this platform's release cadence diverges
 
       ios:
         bundle_id: "com.example.acme"
         app_name: "Acme App"
+        # version: { ... }        # same override shape as android.version
 
       theme:
         primary_color: "#1E88E5"
         secondary_color: "#FFC107"
-        background_color: "#FFFFFF"
-        surface_color: "#F5F5F5"
+        # brand_colors: { logo_accent: "#FF0000" }    # optional, arbitrary
+        # feature_colors: { courses: "#00FF00" }      # keyed hex-color maps
+        # section_colors: { header: "#0000FF" }       # for apps whose UI
+        # gradient_colors: { start: "#111111" }       # needs more than one
+        #                                              # primary/secondary
 
       environment:
         api_base_url: "https://api.example.com"
-        sentry_dsn: "https://example@sentry.io/123"
 
       features:
         enable_push_notifications: true
@@ -199,6 +231,8 @@ white_label:
 
       assets:
         logo: "tenants/acme/logo.png"
+        # icon: "tenants/acme/icon.png"       # optional
+        # splash: "tenants/acme/splash.png"   # optional
 
       firebase:
         google_services_json: "tenants/acme/firebase/google-services.json"
@@ -211,23 +245,26 @@ white_label:
 
 Access your active tenant's branding, API endpoints, and feature flags anywhere in your Dart code:
 
+`dart run white_label_kit:generate` compiles the *current build's* tenant
+into `lib/white_label.g.dart` as a single `whiteLabelRuntime` constant (a
+[`WhiteLabelRuntime`](lib/src/runtime/white_label_runtime.dart)) — never a
+map of every tenant, so no other tenant's data is ever compiled into a
+build that isn't theirs:
+
 ```dart
 import 'package:flutter/material.dart';
-import 'package:white_label_kit/white_label_kit.dart';
 import 'white_label.g.dart';
 
 void main() {
-  final runtime = whiteLabelRuntime;
+  print('Tenant ID: ${whiteLabelRuntime.tenantId}');
+  print('App Name: ${whiteLabelRuntime.tenantName}');
+  print('API URL: ${whiteLabelRuntime.environment.apiBaseUrl}');
+  print('Primary Color: ${whiteLabelRuntime.theme.primaryColorHex}');
 
-  print('Tenant ID: ${runtime.id}');
-  print('App Name: ${runtime.name}');
-  print('API URL: ${runtime.apiBaseUrl}');
-  print('Primary Color: ${runtime.primaryColor}');
-
-  final hasPush = runtime.featureEnabled('enable_push_notifications');
+  final hasPush = whiteLabelRuntime.isFeatureEnabled('enable_push_notifications');
   print('Push Notifications: $hasPush');
 
-  runApp(MyApp(runtime: runtime));
+  runApp(const MyApp());
 }
 ```
 
@@ -242,7 +279,7 @@ void main() {
 | `dart run white_label_kit:configure` | Automatically patches Android Gradle, iOS Xcode schemes, and IDE configurations |
 | `dart run white_label_kit:add-tenant <id> "<Name>" <pkg>` | Adds a new tenant and creates its asset directory |
 | `dart run white_label_kit:update-tenant <id> [options]` | Updates tenant configuration fields |
-| `dart run white_label_kit:remove-tenant <id>` | Removes tenant from YAML, deletes asset folder, and removes native schemes |
+| `dart run white_label_kit:remove-tenant <id> [--keep-assets]` | Removes the tenant's entry from `white_label.yaml`, deletes its `tenants/<id>/` asset folder (unless `--keep-assets`), and cleans up its generated Android Gradle flavor, iOS Xcode build configs/scheme, and IDE run configurations |
 | `dart run white_label_kit:generate [--tenant <id>]` | Generates `lib/white_label.g.dart` |
 | `dart run white_label_kit:validate` | Validates `white_label.yaml` syntax and asset paths |
 | `dart run white_label_kit:list` | Lists all declared tenants and the default tenant |
