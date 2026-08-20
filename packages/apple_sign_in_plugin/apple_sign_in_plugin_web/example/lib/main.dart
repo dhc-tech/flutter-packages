@@ -3,10 +3,20 @@
 // found in the LICENSE file.
 
 import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
+import 'package:apple_sign_in_plugin_web/apple_sign_in_plugin_web.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 void main() {
+  // Web has no native Apple Sign-In API either — it goes through Apple's
+  // official Sign in with Apple JS SDK, which needs your Apple Services ID
+  // and redirect URI set before signIn() can be called. There is no
+  // callback scheme on web (the redirect is a plain HTTPS URL).
+  AppleSignInPlatform.instance = AppleSignInWebImpl()
+    ..config = const AppleSignInWebConfig(
+      serviceId: 'com.example.app.service',
+      redirectUri: 'https://example.com/callbacks/apple',
+    );
   runApp(const MyApp());
 }
 
@@ -239,15 +249,26 @@ class _SignInPageState extends State<SignInPage> {
   }
 }
 
-/// Returns a short, fixed-length preview of [secret] that never reveals the
-/// full value, regardless of how short it is.
+// This example intentionally duplicates its UI/logic across each
+// platform package's own example app (see the other apple_sign_in_plugin_*
+// example/lib/main.dart files) rather than sharing a common package —
+// each platform example is meant to be independently runnable, matching
+// Flutter's own federated-plugin example convention.
+/// Returns a short, masked preview of [secret] that never reveals the full
+/// value — not even a single character of it — regardless of how short it
+/// is.
 String _maskedPreview(String secret) {
   if (secret.isEmpty) {
     return '';
   }
-  if (secret.length <= 4) {
-    return '${secret[0]}…';
+  const previewLength = 8;
+  // Secrets short enough that showing any of their characters (plus an
+  // ellipsis) could reveal, or nearly reveal, the whole value are fully
+  // masked instead.
+  if (secret.length <= 8) {
+    return '•' * previewLength;
   }
-  final String start = secret.substring(0, 4);
-  return secret.length > 8 ? '$start…${secret.substring(secret.length - 4)}' : '$start…';
+  final String start = secret.substring(0, 2);
+  final String end = secret.substring(secret.length - 2);
+  return '$start…$end';
 }

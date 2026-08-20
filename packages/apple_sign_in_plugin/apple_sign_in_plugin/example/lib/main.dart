@@ -264,17 +264,21 @@ class _SignInPageState extends State<SignInPage> {
   }
 }
 
-/// Returns a short, fixed-length preview of [secret] that never reveals the
-/// full value, regardless of how short it is.
+/// Returns a short, masked preview of [secret] that never reveals the full
+/// value — not even a single character of it — regardless of how short it
+/// is.
 String _maskedPreview(String secret) {
   if (secret.isEmpty) {
     return '';
   }
-  if (secret.length <= 4) {
-    return '${secret[0]}…';
+  const int previewLength = 8;
+  // Secrets short enough that showing any of their characters (plus an
+  // ellipsis) could reveal, or nearly reveal, the whole value are fully
+  // masked instead.
+  if (secret.length <= 8) {
+    return '•' * previewLength;
   }
-  final String start = secret.substring(0, 4);
-  return secret.length > 8
-      ? '$start…${secret.substring(secret.length - 4)}'
-      : '$start…';
+  final start = secret.substring(0, 2);
+  final end = secret.substring(secret.length - 2);
+  return '$start…$end';
 }
