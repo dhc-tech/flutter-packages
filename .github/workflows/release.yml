@@ -43,7 +43,7 @@ jobs:
       uses: lewagon/wait-on-check-action@96d9100b431964d10e0136aff8b9ccb92470505e
       with:
         ref: ${{ github.sha }}
-        check-name: 'Linux ci_yaml packages roller'
+        check-name: 'validate'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         wait-interval: 30 # seconds
         allowed-conclusions: success,neutral
