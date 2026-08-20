@@ -292,10 +292,11 @@ class AppleSignIn {
 
 /// Backwards compatibility alias pointing to [AppleSignIn.instance].
 class AppleSignInPlugin {
-  /// Calls [AppleSignIn.instance.isAvailable].
+  /// Calls [AppleSignIn.isAvailable] on [AppleSignIn.instance].
   static Future<bool> isAvailable() => AppleSignIn.instance.isAvailable();
 
-  /// Calls [AppleSignIn.instance.signIn] and returns the underlying [AppleCredential].
+  /// Calls [AppleSignIn.signIn] on [AppleSignIn.instance] and returns the
+  /// underlying [AppleCredential].
   static Future<AppleCredential> signIn({
     required Set<AppleAuthorizationScope> scopes,
     String? nonce,
@@ -309,12 +310,12 @@ class AppleSignInPlugin {
     return session.rawCredential;
   }
 
-  /// Calls [AppleSignIn.instance.getCredentialState].
+  /// Calls [AppleSignIn.getCredentialState] on [AppleSignIn.instance].
   static Future<AppleCredentialState> getCredentialState(
     String userIdentifier,
   ) =>
       AppleSignIn.instance.getCredentialState(userIdentifier);
 
-  /// Calls [AppleSignIn.instance.onCredentialRevoked].
+  /// Calls [AppleSignIn.onCredentialRevoked] on [AppleSignIn.instance].
   static Stream<void> get onCredentialRevoked => AppleSignIn.instance.onCredentialRevoked;
 }

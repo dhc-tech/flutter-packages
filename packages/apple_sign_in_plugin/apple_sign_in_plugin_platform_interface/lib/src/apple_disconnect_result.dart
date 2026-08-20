@@ -8,7 +8,7 @@
 
 import 'package:flutter/foundation.dart';
 
-/// The status resulting from an [AppleSignIn.disconnect] operation.
+/// The status resulting from an `AppleSignIn.disconnect` operation.
 enum AppleDisconnectStatus {
   /// The Apple token was programmatically revoked via the backend `/auth/revoke` API.
   revoked,
@@ -32,7 +32,7 @@ enum AppleDisconnectStatus {
   failed,
 }
 
-/// The result of an [AppleSignIn.disconnect] operation.
+/// The result of an `AppleSignIn.disconnect` operation.
 @immutable
 class AppleDisconnectResult {
   /// Creates an [AppleDisconnectResult].
