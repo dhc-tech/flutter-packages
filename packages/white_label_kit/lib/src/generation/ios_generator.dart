@@ -19,20 +19,25 @@ import '../config/tenant_config.dart';
 ///
 /// 1. **Xcode build configurations** — `Debug-<tenant>`/`Release-<tenant>`/
 ///    `Profile-<tenant>` are added to the project and to the `Runner`
-///    target, each a duplicate of the corresponding base configuration with
-///    `PRODUCT_BUNDLE_IDENTIFIER` set to [TenantConfig.ios]'s `bundleId` and
-///    `APP_DISPLAY_NAME` set to [TenantConfig.ios]'s `appName` — a stock
-///    `flutter create` project's `Info.plist` already reads
+///    target, each a duplicate of the corresponding base configuration
+///    with: `PRODUCT_BUNDLE_IDENTIFIER` set to [TenantConfig.ios]'s
+///    `bundleId`; `APP_DISPLAY_NAME` set to [TenantConfig.ios]'s `appName`
+///    — a stock `flutter create` project's `Info.plist` already reads
 ///    `CFBundleDisplayName`/`CFBundleName` from `$(APP_DISPLAY_NAME)`, so
 ///    setting this build setting is all a consuming app needs to do for the
 ///    home-screen app name to be correct per flavor (no `Info.plist` edit
-///    required). Both settings are applied to the project root object and
+///    required); and `ASSETCATALOG_COMPILER_APPICON_NAME` set to
+///    `<tenant.id>AppIcon` — the asset catalog name
+///    [generateLauncherIcon] (via `icons_launcher`) creates for
+///    this tenant, kept in sync here rather than relying on that tool's
+///    own flavor wiring (see [generateLauncherIcon]'s doc comment for why).
+///    All three settings are applied to the project root object and
 ///    the `Runner` target only — never to other native
 ///    targets. Every other native target (e.g. `RunnerTests`) just needs
 ///    matching configuration *names* to exist — no branding — so Xcode/`xcodebuild` never
 ///    see an inconsistent configuration set across
-///    targets. This is a generic, from-scratch equivalent that edits `PRODUCT_BUNDLE_IDENTIFIER`/
-///    `APP_DISPLAY_NAME` directly as build settings because a stock `flutter create` project
+///    targets. This is a generic, from-scratch equivalent that edits these
+///    settings directly as build settings because a stock `flutter create` project
 ///    has no per-flavor `.xcconfig` scaffolding to point at).
 ///
 ///    Done via a small Ruby script (shipped here as a string, not a
@@ -210,13 +215,14 @@ abort "Runner target not found in #{xcodeproj_path}" unless runner_target
 
 # Finds (or creates) build configuration `new_name` in `config_list`, cloned
 # from `base_name` the first time it's created. Always re-syncs
-# PRODUCT_BUNDLE_IDENTIFIER/APP_DISPLAY_NAME (when given) on every call,
-# whether the configuration is new or already existed — so re-running this
-# script after a tenant's bundle id/app name changes actually applies the
-# change instead of being a no-op past the first run. Never appends a
-# second configuration with the same name: `build_configurations <<` only
-# ever runs on the branch where none was found.
-def sync_config(config_list, base_name, new_name, bundle_id, app_name = nil)
+# PRODUCT_BUNDLE_IDENTIFIER/APP_DISPLAY_NAME/ASSETCATALOG_COMPILER_APPICON_NAME
+# (when given) on every call, whether the configuration is new or already
+# existed — so re-running this script after a tenant's bundle id/app name
+# changes actually applies the change instead of being a no-op past the
+# first run. Never appends a second configuration with the same name:
+# `build_configurations <<` only ever runs on the branch where none was
+# found.
+def sync_config(config_list, base_name, new_name, bundle_id, app_name = nil, icon_name = nil)
   config = config_list.build_configurations.find { |c| c.name == new_name }
   if config.nil?
     base = config_list.build_configurations.find { |c| c.name == base_name }
@@ -234,16 +240,28 @@ def sync_config(config_list, base_name, new_name, bundle_id, app_name = nil)
   # Info.plist edit needed. Without this, a tenant build shows "Runner" on
   # the home screen instead of its real brand name.
   config.build_settings['APP_DISPLAY_NAME'] = app_name if app_name && !app_name.empty?
+  # "<tenant_id>AppIcon" matches the asset catalog name `icons_launcher`
+  # creates for a flavor config file named `icons_launcher-<tenant_id>.yaml`
+  # (see generateLauncherIcon, and icons_launcher's own flavor_helper.dart)
+  # — set here as a literal build setting rather than relying on that
+  # tool's own flavor wiring, which patches xcconfig-referenced configs by
+  # text and never reaches a project (like this one) with no per-flavor
+  # `.xcconfig` `baseConfigurationReference`. Safe to set even before the
+  # icon has actually been generated yet — an unset/missing asset catalog
+  # is a build warning, not a hard failure, so this can't break a build
+  # that hasn't run the icon generator yet.
+  config.build_settings['ASSETCATALOG_COMPILER_APPICON_NAME'] = icon_name if icon_name
   config
 end
 
 # Project + Runner target get the real branding (PRODUCT_BUNDLE_IDENTIFIER,
-# APP_DISPLAY_NAME).
+# APP_DISPLAY_NAME, ASSETCATALOG_COMPILER_APPICON_NAME).
+icon_name = "#{tenant_id}AppIcon"
 [project.root_object, runner_target].each do |scope|
   list = scope.build_configuration_list
-  sync_config(list, 'Debug', "Debug-#{tenant_id}", bundle_id, app_name)
-  sync_config(list, 'Release', "Release-#{tenant_id}", bundle_id, app_name)
-  sync_config(list, 'Profile', "Profile-#{tenant_id}", bundle_id, app_name)
+  sync_config(list, 'Debug', "Debug-#{tenant_id}", bundle_id, app_name, icon_name)
+  sync_config(list, 'Release', "Release-#{tenant_id}", bundle_id, app_name, icon_name)
+  sync_config(list, 'Profile', "Profile-#{tenant_id}", bundle_id, app_name, icon_name)
 end
 
 # Every other native target (e.g. RunnerTests) just needs matching

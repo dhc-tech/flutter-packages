@@ -41,6 +41,7 @@ export 'src/generation/dart_config_generator.dart';
 export 'src/generation/icon_splash_generator.dart';
 export 'src/generation/ide_generator.dart';
 export 'src/generation/ios_generator.dart';
+export 'src/generation/launcher_icon_generator.dart';
 export 'src/generation/tenant_stager.dart';
 export 'src/interactive_menu.dart';
 export 'src/runtime/white_label_runtime.dart';
