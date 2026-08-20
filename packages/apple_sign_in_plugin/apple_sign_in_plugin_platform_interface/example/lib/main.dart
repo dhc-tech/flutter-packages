@@ -75,8 +75,8 @@ class _SignInPageState extends State<SignInPage> {
   Future<void> _signIn() async {
     setState(() => _isLoading = true);
     try {
-      final AppleCredential credential = await AppleSignInPlatform.instance
-          .signIn(scopes: <AppleAuthorizationScope>{
+      final AppleCredential credential =
+          await AppleSignInPlatform.instance.signIn(scopes: <AppleAuthorizationScope>{
         AppleAuthorizationScope.email,
         AppleAuthorizationScope.fullName,
       });
