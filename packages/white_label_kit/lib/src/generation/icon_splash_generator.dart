@@ -111,7 +111,12 @@ icons_launcher:
 /// `flutter_native_splash` to its own `pubspec.yaml` for this to actually
 /// run — `dart run flutter_native_splash:create` fails to resolve
 /// otherwise, reported the same way as any other failure (via
-/// [IconSplashGenerateResult.error]), not a special case.
+/// [IconSplashGenerateResult.error]), not a special case. A native splash
+/// screen is a Flutter-app concept in the first place, so this function is
+/// only meaningful when [projectRoot] is a Flutter app — calling it from a
+/// pure-Dart CLI/tooling context will just fail the same way (no `ios`/
+/// `android` platform directories for `flutter_native_splash` to target),
+/// not silently no-op.
 ///
 /// The auto-created config uses `assets.splash` (falling back to
 /// `assets.icon`, then `assets.logo`) as the image and
