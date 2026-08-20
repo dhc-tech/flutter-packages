@@ -88,13 +88,11 @@ two well-established, purpose-built packages —
 [`flutter_native_splash`](https://pub.dev/packages/flutter_native_splash)
 — not re-modeled by `white_label_kit` itself.
 
-`icons_launcher` is a real dependency of this package (it's pure Dart, no
-Flutter SDK needed to resolve), so `dart run icons_launcher:create`
-resolves for your app with nothing added to your own `pubspec.yaml`.
-`flutter_native_splash` **can't** be a dependency of this package the same
-way — it requires the Flutter SDK itself to resolve, which would make
-`white_label_kit` impossible to `dart pub publish` if it depended on it
-directly. **Add `flutter_native_splash` to your own app's `pubspec.yaml`**
+`icons_launcher` is a real dependency of this package, so `dart run
+icons_launcher:create` resolves for your app with nothing added to your
+own `pubspec.yaml`. `flutter_native_splash` **can't** be a dependency of
+this package the same way (see `maybeGenerateNativeSplash`'s doc comment
+for why). **Add `flutter_native_splash` to your own app's `pubspec.yaml`**
 (`flutter pub add flutter_native_splash`) if you want the splash
 generation below — icon generation needs no such step.
 
