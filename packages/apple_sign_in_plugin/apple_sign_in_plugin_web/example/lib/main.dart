@@ -41,7 +41,8 @@ class MyApp extends StatelessWidget {
 /// Page demonstrating the Apple Sign-In flow.
 ///
 /// This app does not perform its own token exchange or storage — those are
-/// backend responsibilities (see the package README's "Backend Boundary"
+/// backend responsibilities (see the
+/// ["Backend Boundary"](https://pub.dev/packages/apple_sign_in_plugin_platform_interface#backend-boundary)
 /// section). It only demonstrates requesting a credential from Apple and
 /// displaying what was returned.
 class SignInPage extends StatefulWidget {

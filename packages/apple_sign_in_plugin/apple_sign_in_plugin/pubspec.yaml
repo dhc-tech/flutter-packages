@@ -25,12 +25,12 @@ flutter:
         default_package: apple_sign_in_plugin_linux
 
 dependencies:
-  apple_sign_in_plugin_android: ^0.0.1
-  apple_sign_in_plugin_darwin: ^0.0.1
-  apple_sign_in_plugin_linux: ^0.0.1
-  apple_sign_in_plugin_platform_interface: ^0.0.1
-  apple_sign_in_plugin_web: ^0.0.1
-  apple_sign_in_plugin_windows: ^0.0.1
+  apple_sign_in_plugin_android: ^0.0.1-dev.0
+  apple_sign_in_plugin_darwin: ^0.0.1-dev.1
+  apple_sign_in_plugin_linux: ^0.0.1-dev.0
+  apple_sign_in_plugin_platform_interface: ^0.0.1-dev.1
+  apple_sign_in_plugin_web: ^0.0.1-dev.0
+  apple_sign_in_plugin_windows: ^0.0.1-dev.0
   flutter:
     sdk: flutter
 

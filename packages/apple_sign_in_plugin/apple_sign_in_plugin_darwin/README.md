@@ -17,6 +17,17 @@ normally. This package will be automatically included in your app when you
 depend on `apple_sign_in_plugin`, so you likely do not need to add
 it to your own `pubspec.yaml`.
 
+## Backend Boundary
+
+This package only talks to Apple's on-device `AuthenticationServices`
+framework — it never contacts a server. The identity token and
+authorization code it returns must still be verified server-side before
+you trust them for anything security-sensitive. See
+[`apple_sign_in_plugin_platform_interface`'s "Backend Boundary" section](https://pub.dev/packages/apple_sign_in_plugin_platform_interface#backend-boundary)
+for details, and the top-level
+[`apple_sign_in_plugin` README's "Do I Need a Backend?"](https://pub.dev/packages/apple_sign_in_plugin#-do-i-need-a-backend)
+section for backend recipes (PHP, Laravel, Node.js, Express, NestJS).
+
 ## 👤 Author
 
 Maintained by **DHC Tech**.

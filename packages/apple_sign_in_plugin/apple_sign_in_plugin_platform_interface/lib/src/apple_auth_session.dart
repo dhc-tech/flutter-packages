@@ -21,8 +21,9 @@ import 'jwt_decoder.dart';
 /// email directly.
 ///
 /// This never verifies the token's signature — it must not be treated as
-/// a substitute for backend-side identity verification (see the package
-/// README's "Backend Boundary" section) — it is purely a best-effort
+/// a substitute for backend-side identity verification (see the
+/// ["Backend Boundary"](https://pub.dev/packages/apple_sign_in_plugin_platform_interface#backend-boundary)
+/// section of the package README) — it is purely a best-effort
 /// convenience so [AppleAuthIdentity.email] is populated whenever Apple
 /// provided the claim by either means. Returns `null` on any decode
 /// failure rather than throwing, since a malformed/missing email claim

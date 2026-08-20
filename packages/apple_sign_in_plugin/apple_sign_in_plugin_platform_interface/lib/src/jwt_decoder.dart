@@ -9,9 +9,10 @@ import 'dart:convert';
 ///
 /// **This does not verify the token's signature.** It must never be used
 /// as a substitute for backend-side identity verification — see the
-/// package README's "Backend Boundary" section. Treat any claim read
-/// through this class as untrusted until your backend has verified it
-/// against Apple's public keys.
+/// package README's
+/// ["Backend Boundary"](https://pub.dev/packages/apple_sign_in_plugin_platform_interface#backend-boundary)
+/// section. Treat any claim read through this class as untrusted until
+/// your backend has verified it against Apple's public keys.
 class JwtDecoder {
   /// Decode a string JWT token into a `Map<String, dynamic>`
   /// containing the decoded JSON payload.
