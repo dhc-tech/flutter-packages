@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 // Regression tests proving optional per-tenant Firebase config files
 // (`google-services.json` / `GoogleService-Info.plist`) get the exact same
 // isolation guarantees as regular tenant assets — see TenantStager's class

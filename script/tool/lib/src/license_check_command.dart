@@ -90,10 +90,14 @@ final List<RegExp> _thirdPartyLicenseBlockRegexes = <RegExp>[
   ),
 ];
 
-// The exact format of the BSD license that our license files should contain.
+// The exact format of the MIT license that our license files should contain.
 // Slight variants are not accepted because they may prevent consolidation in
 // tools that assemble all licenses used in distributed applications.
-// standardized.
+//
+// This repo has two valid LICENSE texts: the original Flutter BSD license
+// (root LICENSE, and script/tool which is forked verbatim from
+// flutter/packages) and this repo's own MIT license (every package's own
+// LICENSE file, under packages/).
 const String _fullBsdLicenseText = '''
 Copyright 2013 The Flutter Authors
 
@@ -120,6 +124,30 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+''';
+
+const String _fullMitLicenseText = '''
+MIT License
+
+Copyright (c) 2026 DHC Tech
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ''';
 
 /// Validates that code files have copyright and license blocks.
@@ -210,10 +238,20 @@ class LicenseCheckCommand extends PackageCommand {
     printSuccess('All files passed validation!');
   }
 
-  // Creates the expected copyright+license block for first-party code.
-  String _generateLicenseBlock(String comment, {String prefix = '', String suffix = ''}) {
+  // Creates the expected copyright+license block for code forked verbatim
+  // from flutter/packages (e.g. script/tool), which keeps its original
+  // attribution.
+  String _generateFlutterLicenseBlock(String comment, {String prefix = '', String suffix = ''}) {
     return '$prefix${comment}Copyright 2013 The Flutter Authors\n'
         '${comment}Use of this source code is governed by a BSD-style license that can be\n'
+        '${comment}found in the LICENSE file.$suffix\n';
+  }
+
+  // Creates the expected copyright+license block for this repo's own code
+  // under packages/.
+  String _generateLicenseBlock(String comment, {String prefix = '', String suffix = ''}) {
+    return '$prefix${comment}Copyright 2026 DHC Tech\n'
+        '${comment}Use of this source code is governed by an MIT-style license that can be\n'
         '${comment}found in the LICENSE file.$suffix\n';
   }
 
@@ -225,10 +263,15 @@ class LicenseCheckCommand extends PackageCommand {
 
     // Most code file types in the repository use '//' comments.
     final String defaultFirstPartyLicenseBlock = _generateLicenseBlock('// ');
+    final String defaultFlutterLicenseBlock = _generateFlutterLicenseBlock('// ');
     // A few file types have a different comment structure.
     final firstPartyLicenseBlockByExtension = <String, String>{
       '.sh': _generateLicenseBlock('# '),
       '.html': _generateLicenseBlock('', prefix: '<!-- ', suffix: ' -->'),
+    };
+    final flutterLicenseBlockByExtension = <String, String>{
+      '.sh': _generateFlutterLicenseBlock('# '),
+      '.html': _generateFlutterLicenseBlock('', prefix: '<!-- ', suffix: ' -->'),
     };
 
     for (final file in codeFiles) {
@@ -258,15 +301,21 @@ class LicenseCheckCommand extends PackageCommand {
       final String firstPartyLicense =
           firstPartyLicenseBlockByExtension[p.extension(file.path)] ??
           defaultFirstPartyLicenseBlock;
+      final String flutterLicense =
+          flutterLicenseBlockByExtension[p.extension(file.path)] ?? defaultFlutterLicenseBlock;
       if (_isThirdParty(file)) {
         // Third-party directories allow either known third-party licenses, our
         // the first-party license, as there may be local additions.
         if (!_thirdPartyLicenseBlockRegexes.any((RegExp regex) => regex.hasMatch(content)) &&
-            !content.contains(firstPartyLicense)) {
+            !content.contains(firstPartyLicense) &&
+            !content.contains(flutterLicense)) {
           unrecognizedThirdPartyFiles.add(file);
         }
       } else {
-        if (!content.contains(firstPartyLicense)) {
+        // Accept either this repo's own (DHC Tech) header, or the original
+        // Flutter Authors header for code forked verbatim from
+        // flutter/packages (e.g. script/tool).
+        if (!content.contains(firstPartyLicense) && !content.contains(flutterLicense)) {
           incorrectFirstPartyFiles.add(file);
         }
       }
@@ -292,7 +341,7 @@ class LicenseCheckCommand extends PackageCommand {
       // On Windows, git may auto-convert line endings on checkout; this should
       // still pass since they will be converted back on commit.
       final String contents = file.readAsStringSync().replaceAll('\r\n', '\n');
-      if (!contents.contains(_fullBsdLicenseText)) {
+      if (!contents.contains(_fullBsdLicenseText) && !contents.contains(_fullMitLicenseText)) {
         incorrectLicenseFiles.add(file);
       }
     }

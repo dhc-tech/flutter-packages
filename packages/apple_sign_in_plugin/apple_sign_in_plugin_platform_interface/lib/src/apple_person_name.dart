@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 import 'package:flutter/foundation.dart' show immutable;
 
 /// A structured representation of the name Apple returns for a user.

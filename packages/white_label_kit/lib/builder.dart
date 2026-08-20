@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 /// OPTIONAL, advanced alternative to `dart run white_label_kit:generate`
 /// (see `bin/generate.dart` — that's the primary, recommended path, the
 /// same way `flutter_native_splash:create`/`icons_launcher:create` work:

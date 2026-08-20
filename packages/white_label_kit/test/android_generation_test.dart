@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 // Unit coverage for generateAndroidFlavor's Gradle-file manipulation. A
 // real Gradle build inside a `dart test` run would be slow/flaky (it needs
 // the Android SDK, network access for the first Gradle download, and takes
