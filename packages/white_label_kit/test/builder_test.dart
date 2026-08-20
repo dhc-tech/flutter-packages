@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 // Covers WhiteLabelBuilder's generated-constant integration for
 // WhiteLabelRuntime (construction path (b) — see white_label_runtime.dart's
 // dartdoc and builder.dart's WhiteLabelBuilder dartdoc).

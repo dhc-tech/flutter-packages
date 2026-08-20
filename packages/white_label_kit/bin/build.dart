@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 // `dart run white_label_kit:build --tenant <id>` — thin wrapper, see
 // init.dart / white_label.dart. (The `white_label build` subcommand form
 // still exists too and has host-app-vs-generic routing logic; this

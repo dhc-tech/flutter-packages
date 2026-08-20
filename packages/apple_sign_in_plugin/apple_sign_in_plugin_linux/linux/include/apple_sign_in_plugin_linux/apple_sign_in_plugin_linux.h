@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 #ifndef FLUTTER_PLUGIN_APPLE_SIGN_IN_PLUGIN_LINUX_H_
 #define FLUTTER_PLUGIN_APPLE_SIGN_IN_PLUGIN_LINUX_H_
 

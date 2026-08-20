@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 // Regression tests for the 3 real bugs an adversarial audit found and this
 // package was then fixed against — see TenantStager's class doc for the
 // three guarantees these tests each map to.

@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 // Exercises the real `add-tenant` CLI subcommand as a subprocess against a
 // throwaway temp project — this is the "no manual YAML editing, no manual
 // mkdir" guarantee, so it's tested end-to-end as a real process, not just
