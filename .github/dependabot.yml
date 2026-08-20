@@ -12,6 +12,8 @@ updates:
         patterns: [ "*" ]
     labels:
       - "autosubmit"
+      - "infra: dependencies"
+      - "infra: workflows"
     # Updating patch versions for "github-actions" is too chatty.
     ignore:
       - dependency-name: "*"
