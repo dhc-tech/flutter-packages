@@ -170,7 +170,7 @@ appear in the built app.
 whatever else you put in `custom:`) for the SAME tenant/brand — it is
 not a second tenant. Icon, theme, bundle id, and app name all stay
 whatever the tenant already declares; only `environment` changes. See
-[Configuration File](#️-configuration-file-white_labelyaml) below for the
+[Configuration File](#configuration-file-white_labelyaml) below for the
 YAML shape.
 
 `staging`/`production` below are just this README's example names — the
