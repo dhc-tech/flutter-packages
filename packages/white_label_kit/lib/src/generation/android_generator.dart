@@ -216,8 +216,7 @@ String _flavorEntryBlock(TenantConfig tenant) {
             applicationId = "$applicationId"
             resValue("string", "app_name", "$appName")
         }
-'''
-      .substring(1);
+''';
 }
 
 String _escapeKotlinString(String value) =>

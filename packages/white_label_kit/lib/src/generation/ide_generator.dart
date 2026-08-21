@@ -355,8 +355,7 @@ class IdeGenerator {
     <method v="2" />
   </configuration>
 </component>
-'''
-        .substring(1);
+''';
   }
 
   static String _intellijShellRunConfigXml({
@@ -380,7 +379,6 @@ class IdeGenerator {
     <method v="2" />
   </configuration>
 </component>
-'''
-        .substring(1);
+''';
   }
 }

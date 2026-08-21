@@ -350,6 +350,7 @@ class WhiteLabelConfig {
     }
 
     String? apiBaseUrl;
+    var customEnv = const <String, String>{};
     final dynamic envNode = map['environment'];
     if (envNode != null) {
       final Map<dynamic, dynamic>? env = ConfigValidator.expectMap(
@@ -364,6 +365,52 @@ class WhiteLabelConfig {
           errors.add('Tenant "$id": ${r.message}');
         }
       }
+      customEnv = _parseStringMap(
+        env,
+        'custom',
+        'tenants.$id.environment.custom',
+        errors,
+      );
+    }
+
+    // Named environment overrides (`environments: { staging: {...},
+    // production: {...} }`) — same shape/validation as the single
+    // `environment:` block above, just keyed by environment name. Optional:
+    // a tenant that only ever needs one environment omits this entirely and
+    // TenantConfig.resolveEnvironment(null) returns `environment` as before.
+    final environments = <String, TenantEnvironment>{};
+    final dynamic environmentsNode = map['environments'];
+    if (environmentsNode != null) {
+      final Map<dynamic, dynamic>? envsMap = ConfigValidator.expectMap(
+        environmentsNode,
+        'tenants.$id.environments',
+        errors,
+      );
+      envsMap?.forEach((envKey, envValue) {
+        final String envName = envKey.toString();
+        final Map<dynamic, dynamic>? env = ConfigValidator.expectMap(
+          envValue,
+          'tenants.$id.environments.$envName',
+          errors,
+        );
+        final String? envApiBaseUrl = env?['api_base_url']?.toString();
+        if (envApiBaseUrl != null) {
+          final ValidationResult r = ConfigValidator.url(envApiBaseUrl);
+          if (r is Invalid) {
+            errors.add('Tenant "$id": ${r.message}');
+          }
+        }
+        final Map<String, String> envCustom = _parseStringMap(
+          env,
+          'custom',
+          'tenants.$id.environments.$envName.custom',
+          errors,
+        );
+        environments[envName] = TenantEnvironment(
+          apiBaseUrl: envApiBaseUrl,
+          custom: envCustom,
+        );
+      });
     }
 
     final dynamic featuresNode = map['features'];
@@ -453,7 +500,8 @@ class WhiteLabelConfig {
         sectionColors: sectionColors,
         gradientColors: gradientColors,
       ),
-      environment: TenantEnvironment(apiBaseUrl: apiBaseUrl),
+      environment: TenantEnvironment(apiBaseUrl: apiBaseUrl, custom: customEnv),
+      environments: environments,
       features: features,
       firebase: firebase,
     );
@@ -500,6 +548,31 @@ class WhiteLabelConfig {
       }
     });
     return result;
+  }
+
+  /// Parses an arbitrary string-keyed, string-valued map field (e.g.
+  /// `custom:` under `environment:`/`environments.<name>:`) — same
+  /// optional/never-null-return contract as [_parseColorMap], but without
+  /// the color-hex validation (any string value is accepted).
+  static Map<String, String> _parseStringMap(
+    Map<dynamic, dynamic>? parent,
+    String key,
+    String path,
+    List<String> errors,
+  ) {
+    final dynamic node = parent?[key];
+    if (node == null) {
+      return const {};
+    }
+    final Map<dynamic, dynamic>? map = ConfigValidator.expectMap(
+      node,
+      path,
+      errors,
+    );
+    if (map == null) {
+      return const {};
+    }
+    return {for (final entry in map.entries) entry.key.toString(): entry.value.toString()};
   }
 
   static TenantVersion? _parseVersion(

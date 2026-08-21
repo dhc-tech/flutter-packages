@@ -18,6 +18,7 @@ class TenantConfig {
     this.version = const TenantVersion(name: '1.0.0', buildNumber: 1),
     this.theme = const TenantTheme(),
     this.environment = const TenantEnvironment(),
+    this.environments = const {},
     this.features = const {},
     this.firebase,
   });
@@ -51,8 +52,19 @@ class TenantConfig {
   /// This tenant's color/theming overrides.
   final TenantTheme theme;
 
-  /// This tenant's public runtime environment configuration.
+  /// This tenant's default/fallback public runtime environment
+  /// configuration — used as-is when no `--env` is passed to `generate`/
+  /// `configure`/`build`, and as the base a named entry in [environments]
+  /// overrides.
   final TenantEnvironment environment;
+
+  /// Named environment overrides declared under `environments:` in
+  /// `white_label.yaml` (e.g. `staging`, `production`) — same tenant
+  /// (brand, icon, bundle id, theme all stay the same), different runtime
+  /// config per deploy target. Empty by default: a tenant that never
+  /// declares `environments:` behaves exactly as before this field
+  /// existed, always using [environment]. See [resolveEnvironment].
+  final Map<String, TenantEnvironment> environments;
 
   /// Arbitrary boolean feature toggles. Deliberately `bool`-only (not
   /// arbitrary JSON) — richer per-tenant runtime content belongs in
@@ -76,6 +88,35 @@ class TenantConfig {
 
   /// The version to use for this tenant's iOS build — see [androidVersion].
   TenantVersion get iosVersion => ios.version ?? version;
+
+  /// Resolves the [TenantEnvironment] to actually use for this tenant.
+  ///
+  /// `envName == null` (no `--env` passed) returns [environment] — the
+  /// default/fallback, unchanged behavior for a tenant that never declared
+  /// `environments:` at all.
+  ///
+  /// A non-null [envName] looks it up in [environments] and returns that
+  /// override. Throws [ArgumentError] if this tenant has no such named
+  /// environment declared — deliberately not a silent fallback to
+  /// [environment], since building "staging" and silently getting
+  /// production's API URL is exactly the class of mistake this exists to
+  /// prevent.
+  TenantEnvironment resolveEnvironment([String? envName]) {
+    if (envName == null) {
+      return environment;
+    }
+    final TenantEnvironment? override = environments[envName];
+    if (override == null) {
+      final String declared = environments.keys.isEmpty
+          ? '(none declared)'
+          : environments.keys.join(', ');
+      throw ArgumentError(
+        'Tenant "$id" has no environment named "$envName" — declared: '
+        '$declared.',
+      );
+    }
+    return override;
+  }
 }
 
 /// Android-specific tenant configuration (application ID, app name, and an
@@ -236,8 +277,19 @@ class TenantTheme {
 /// unzips the APK/IPA, same as any other Flutter asset.
 class TenantEnvironment {
   /// Creates a tenant's public runtime environment configuration.
-  const TenantEnvironment({this.apiBaseUrl});
+  const TenantEnvironment({this.apiBaseUrl, this.custom = const {}});
 
   /// Must be a valid absolute URL — see [ConfigValidator.url].
   final String? apiBaseUrl;
+
+  /// Arbitrary extra string key-values for whatever else a build needs per
+  /// environment (a CDN URL, an analytics/Sentry DSN, a feature-specific
+  /// endpoint, ...) that doesn't deserve its own named field —
+  /// `api_base_url` stays a first-class field (it's near-universal and gets
+  /// real URL validation); everything else goes here instead of forcing a
+  /// `TenantEnvironment` field addition + a `dart_config_generator.dart`
+  /// change for every new per-environment value a consumer wants. String
+  /// values only, same deliberate constraint as [TenantConfig.features]
+  /// (see its doc comment) — not arbitrary nested JSON.
+  final Map<String, String> custom;
 }

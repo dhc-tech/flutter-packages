@@ -63,6 +63,19 @@ void main() {
     expect(debugContent, contains('name="Acme Student (debug)"'));
     expect(debugContent, contains('value="acme"'));
     expect(debugContent, contains('--dart-define=TENANT_ID=acme'));
+    // Regression check: a prior version's `.substring(1)` on the raw
+    // template string stripped the leading `<` instead of a (nonexistent)
+    // leading newline — Dart triple-quoted strings don't include one —
+    // silently producing invalid XML that Android Studio/IntelliJ can't
+    // parse, so the run configuration never appeared in the Run menu at
+    // all (no error either — the IDE just ignores an unparseable file).
+    expect(debugContent, startsWith('<component'));
+
+    final buildApkRun = File(
+      p.join(tempDir.path, '.run', 'acme_build_apk.run.xml'),
+    );
+    expect(buildApkRun.existsSync(), isTrue);
+    expect(buildApkRun.readAsStringSync(), startsWith('<component'));
   });
 
   test('removes VS Code launch.json and Android Studio .run configs', () {
