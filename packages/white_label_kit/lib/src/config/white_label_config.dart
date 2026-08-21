@@ -551,9 +551,12 @@ class WhiteLabelConfig {
   }
 
   /// Parses an arbitrary string-keyed, string-valued map field (e.g.
-  /// `custom:` under `environment:`/`environments.<name>:`) — same
-  /// optional/never-null-return contract as [_parseColorMap], but without
-  /// the color-hex validation (any string value is accepted).
+  /// `custom:` under `environment:`/`environments.<name>:`).
+  ///
+  /// Same optional/never-null-return contract as [_parseColorMap], but
+  /// requires both keys and values to be `String`. Any entry with a
+  /// non-string key or value is rejected and recorded as an error, rather
+  /// than being silently stringified.
   static Map<String, String> _parseStringMap(
     Map<dynamic, dynamic>? parent,
     String key,
@@ -572,10 +575,25 @@ class WhiteLabelConfig {
     if (map == null) {
       return const {};
     }
-    return {
-      for (final entry in map.entries)
-        entry.key.toString(): entry.value.toString(),
-    };
+    final result = <String, String>{};
+    map.forEach((dynamic rawKey, dynamic rawValue) {
+      if (rawKey is! String) {
+        errors.add(
+          '$path: expected all keys in "$key" to be String, '
+          'but found ${rawKey.runtimeType}.',
+        );
+        return;
+      }
+      if (rawValue is! String) {
+        errors.add(
+          '$path.$rawKey: expected value in "$key" to be String, '
+          'but found ${rawValue.runtimeType}.',
+        );
+        return;
+      }
+      result[rawKey] = rawValue;
+    });
+    return result;
   }
 
   static TenantVersion? _parseVersion(

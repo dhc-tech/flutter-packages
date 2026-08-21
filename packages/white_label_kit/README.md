@@ -406,7 +406,7 @@ automatically, and needs two things added to your own project's
 targets:
   $default:
     sources:
-      - white_label.yaml   # lives at the project root, outside build_runner's
+      - white_label.yaml   # lives at the project root, outside build_runner's default input set
       - lib/**             # default lib/** scan — add it explicitly
 builders:
   white_label_kit:white_label_generator:
