@@ -212,10 +212,7 @@ flutter_native_splash:
     // The generate step itself succeeded — only surface the registration
     // problem as a non-fatal warning, don't turn `ran: true` into a
     // reported failure over it.
-    return IconSplashGenerateResult(
-      ran: true,
-      error: registerError,
-    );
+    return IconSplashGenerateResult(ran: true, error: registerError);
   }
   return const IconSplashGenerateResult(ran: true);
 }
@@ -303,12 +300,18 @@ if [xcodeproj_path, storyboard_rel_path].any? { |a| a.nil? || a.empty? }
 end
 
 project = Xcodeproj::Project.open(xcodeproj_path)
-runner_target = project.targets.find { |t| t.name == 'Runner' }
-abort "Runner target not found in #{xcodeproj_path}" unless runner_target
+# Found by product type, not the literal name "Runner" — see the matching
+# comment in ios_generator.dart's _xcodeprojRubyScript for why.
+runner_target = project.targets.find { |t| t.product_type == 'com.apple.product-type.application' } ||
+                project.targets.find { |t| t.name == 'Runner' }
+abort "No application target found in #{xcodeproj_path}" unless runner_target
 
 already_registered = project.files.any? { |f| f.path.to_s == storyboard_rel_path }
 unless already_registered
-  runner_group = project.main_group['Runner']
+  # The main group is conventionally named after the target — falls back
+  # to the project's own main group if a consumer renamed the group
+  # independently of the target (rare, but never worse than before).
+  runner_group = project.main_group[runner_target.name] || project.main_group
   file_ref = runner_group.new_file(storyboard_rel_path)
   runner_target.resources_build_phase.add_file_reference(file_ref)
   project.save

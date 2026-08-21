@@ -572,7 +572,10 @@ class WhiteLabelConfig {
     if (map == null) {
       return const {};
     }
-    return {for (final entry in map.entries) entry.key.toString(): entry.value.toString()};
+    return {
+      for (final entry in map.entries)
+        entry.key.toString(): entry.value.toString(),
+    };
   }
 
   static TenantVersion? _parseVersion(

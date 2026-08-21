@@ -205,8 +205,15 @@ end
 
 project = Xcodeproj::Project.open(xcodeproj_path)
 
-runner_target = project.targets.find { |t| t.name == 'Runner' }
-abort "Runner target not found in #{xcodeproj_path}" unless runner_target
+# Found by product type (the app target, whatever it's named), not by the
+# literal name "Runner" — a consumer that renamed their Xcode target away
+# from Flutter's stock default is still detected correctly. Falls back to
+# the literal name only if no application-type target exists at all (an
+# unusual/malformed project), so this never regresses on a project the
+# old, name-only lookup would have found.
+runner_target = project.targets.find { |t| t.product_type == 'com.apple.product-type.application' } ||
+                project.targets.find { |t| t.name == 'Runner' }
+abort "No application target found in #{xcodeproj_path}" unless runner_target
 
 # Finds (or creates) build configuration `new_name` in `config_list`, cloned
 # from `base_name` the first time it's created. Always re-syncs

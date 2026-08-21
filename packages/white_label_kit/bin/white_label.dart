@@ -296,7 +296,8 @@ int _doctor() {
   final bool anyTenantWantsSplashGenerate = config.tenants.values.any(
     (tenant) => tenant.features['splash_generate'] == true,
   );
-  if (anyTenantWantsSplashGenerate && !_hasHostDependency('flutter_native_splash')) {
+  if (anyTenantWantsSplashGenerate &&
+      !_hasHostDependency('flutter_native_splash')) {
     stdout.writeln(
       "⚠️  A tenant has features.splash_generate: true, but this app's "
       "pubspec.yaml doesn't list flutter_native_splash as a dependency — "
@@ -486,7 +487,9 @@ int _generate(List<String> args) {
         configPath = args[++i];
       case '--env':
         if (i + 1 >= args.length) {
-          stderr.writeln('❌ --env requires a value (e.g. staging, production).');
+          stderr.writeln(
+            '❌ --env requires a value (e.g. staging, production).',
+          );
           return 1;
         }
         envName = args[++i];
@@ -1062,7 +1065,9 @@ Future<int> _genericBuild(List<String> args) async {
         mode = args[++i];
       case '--env':
         if (i + 1 >= args.length) {
-          stderr.writeln('❌ --env requires a value (e.g. staging, production).');
+          stderr.writeln(
+            '❌ --env requires a value (e.g. staging, production).',
+          );
           return 1;
         }
         envName = args[++i];
@@ -1435,7 +1440,9 @@ Future<int> _run(List<String> args) async {
         tenantId = args[++i];
       case '--env':
         if (i + 1 >= args.length) {
-          stderr.writeln('❌ --env requires a value (e.g. staging, production).');
+          stderr.writeln(
+            '❌ --env requires a value (e.g. staging, production).',
+          );
           return 1;
         }
         envName = args[++i];
@@ -1566,7 +1573,9 @@ Future<int> _configureTenants(List<String> args) async {
         skipGenerate = true;
       case '--env':
         if (i + 1 >= args.length) {
-          stderr.writeln('❌ --env requires a value (e.g. staging, production).');
+          stderr.writeln(
+            '❌ --env requires a value (e.g. staging, production).',
+          );
           return 1;
         }
         envName = args[++i];
@@ -1743,7 +1752,9 @@ Future<int> _configureTenants(List<String> args) async {
   // `default_tenant` only in that no-explicit-tenant case.
   if (!skipGenerate && !dryRun) {
     final String generateForTenant = tenantId ?? config.defaultTenant;
-    final String envSuffix = envName == null ? '' : ' (environment: "$envName")';
+    final String envSuffix = envName == null
+        ? ''
+        : ' (environment: "$envName")';
     stdout.writeln(
       '🔄 Regenerating lib/white_label.g.dart '
       'for tenant "$generateForTenant"$envSuffix...',

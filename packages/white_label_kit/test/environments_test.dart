@@ -25,40 +25,39 @@ void main() {
 
   tearDown(() => projectRoot.deleteSync(recursive: true));
 
-  test(
-    'a tenant with no environments: block resolves to environment for '
-    'null AND throws for a named env (nothing declared to pick from)',
-    () {
-      _writeTenant(projectRoot, id: 'acme');
-      _writeConfig(projectRoot, '''
+  test('a tenant with no environments: block resolves to environment for '
+      'null AND throws for a named env (nothing declared to pick from)', () {
+    _writeTenant(projectRoot, id: 'acme');
+    _writeConfig(projectRoot, '''
 white_label:
   tenants:
 ${_tenantYaml('acme', apiBaseUrl: 'https://api.example.com')}
 ''');
-      final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
-      final TenantConfig acme = config['acme'];
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
+    final TenantConfig acme = config['acme'];
 
-      expect(acme.resolveEnvironment().apiBaseUrl, 'https://api.example.com');
-      expect(acme.resolveEnvironment(null).apiBaseUrl, 'https://api.example.com');
-      expect(
-        () => acme.resolveEnvironment('staging'),
-        throwsA(
-          isA<ArgumentError>().having(
-            (e) => e.message,
-            'message',
-            allOf(contains('acme'), contains('staging'), contains('none declared')),
+    expect(acme.resolveEnvironment().apiBaseUrl, 'https://api.example.com');
+    expect(acme.resolveEnvironment(null).apiBaseUrl, 'https://api.example.com');
+    expect(
+      () => acme.resolveEnvironment('staging'),
+      throwsA(
+        isA<ArgumentError>().having(
+          (e) => e.message,
+          'message',
+          allOf(
+            contains('acme'),
+            contains('staging'),
+            contains('none declared'),
           ),
         ),
-      );
-    },
-  );
+      ),
+    );
+  });
 
-  test(
-    'environments: staging/production override api_base_url and custom '
-    'independently of the default environment: block',
-    () {
-      _writeTenant(projectRoot, id: 'acme');
-      _writeConfig(projectRoot, '''
+  test('environments: staging/production override api_base_url and custom '
+      'independently of the default environment: block', () {
+    _writeTenant(projectRoot, id: 'acme');
+    _writeConfig(projectRoot, '''
 white_label:
   tenants:
     acme:
@@ -83,36 +82,31 @@ white_label:
         production:
           api_base_url: "https://prod-api.example.com"
 ''');
-      final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
-      final TenantConfig acme = config['acme'];
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
+    final TenantConfig acme = config['acme'];
 
-      expect(acme.resolveEnvironment().apiBaseUrl, 'https://api.example.com');
-      expect(
-        acme.resolveEnvironment().custom['sentry_dsn'],
-        'https://default-sentry.example.com',
-      );
+    expect(acme.resolveEnvironment().apiBaseUrl, 'https://api.example.com');
+    expect(
+      acme.resolveEnvironment().custom['sentry_dsn'],
+      'https://default-sentry.example.com',
+    );
 
-      final TenantEnvironment staging = acme.resolveEnvironment('staging');
-      expect(staging.apiBaseUrl, 'https://staging-api.example.com');
-      expect(staging.custom['sentry_dsn'], 'https://staging-sentry.example.com');
+    final TenantEnvironment staging = acme.resolveEnvironment('staging');
+    expect(staging.apiBaseUrl, 'https://staging-api.example.com');
+    expect(staging.custom['sentry_dsn'], 'https://staging-sentry.example.com');
 
-      final TenantEnvironment production = acme.resolveEnvironment(
-        'production',
-      );
-      expect(production.apiBaseUrl, 'https://prod-api.example.com');
-      // production didn't declare its own custom: -- empty, NOT inherited
-      // from the default environment: block. Each named environment is a
-      // fully independent override, not a partial patch.
-      expect(production.custom, isEmpty);
-    },
-  );
+    final TenantEnvironment production = acme.resolveEnvironment('production');
+    expect(production.apiBaseUrl, 'https://prod-api.example.com');
+    // production didn't declare its own custom: -- empty, NOT inherited
+    // from the default environment: block. Each named environment is a
+    // fully independent override, not a partial patch.
+    expect(production.custom, isEmpty);
+  });
 
-  test(
-    'an invalid api_base_url inside environments.<name> is a validation '
-    'error, same as the top-level environment: block',
-    () {
-      _writeTenant(projectRoot, id: 'acme');
-      _writeConfig(projectRoot, '''
+  test('an invalid api_base_url inside environments.<name> is a validation '
+      'error, same as the top-level environment: block', () {
+    _writeTenant(projectRoot, id: 'acme');
+    _writeConfig(projectRoot, '''
 white_label:
   tenants:
     acme:
@@ -129,19 +123,16 @@ white_label:
         staging:
           api_base_url: "not-a-url"
 ''');
-      expect(
-        () => WhiteLabelConfig.load(projectRoot.path),
-        throwsA(isA<WhiteLabelConfigException>()),
-      );
-    },
-  );
+    expect(
+      () => WhiteLabelConfig.load(projectRoot.path),
+      throwsA(isA<WhiteLabelConfigException>()),
+    );
+  });
 
-  test(
-    'generateWhiteLabelSource bakes the resolved --env environment, not '
-    'the default, and records the environment name',
-    () {
-      _writeTenant(projectRoot, id: 'acme');
-      _writeConfig(projectRoot, '''
+  test('generateWhiteLabelSource bakes the resolved --env environment, not '
+      'the default, and records the environment name', () {
+    _writeTenant(projectRoot, id: 'acme');
+    _writeConfig(projectRoot, '''
 white_label:
   tenants:
     acme:
@@ -162,28 +153,27 @@ white_label:
           custom:
             sentry_dsn: "https://staging-sentry.example.com"
 ''');
-      final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
+    final WhiteLabelConfig config = WhiteLabelConfig.load(projectRoot.path);
 
-      final String defaultSource = generateWhiteLabelSource(config, 'acme');
-      expect(defaultSource, contains("apiBaseUrl: 'https://api.example.com'"));
-      expect(defaultSource, contains("whiteLabelEnvironmentName = '';"));
+    final String defaultSource = generateWhiteLabelSource(config, 'acme');
+    expect(defaultSource, contains("apiBaseUrl: 'https://api.example.com'"));
+    expect(defaultSource, contains("whiteLabelEnvironmentName = '';"));
 
-      final String stagingSource = generateWhiteLabelSource(
-        config,
-        'acme',
-        envName: 'staging',
-      );
-      expect(
-        stagingSource,
-        contains("apiBaseUrl: 'https://staging-api.example.com'"),
-      );
-      expect(
-        stagingSource,
-        contains("sentry_dsn': 'https://staging-sentry.example.com'"),
-      );
-      expect(stagingSource, contains("whiteLabelEnvironmentName = 'staging';"));
-    },
-  );
+    final String stagingSource = generateWhiteLabelSource(
+      config,
+      'acme',
+      envName: 'staging',
+    );
+    expect(
+      stagingSource,
+      contains("apiBaseUrl: 'https://staging-api.example.com'"),
+    );
+    expect(
+      stagingSource,
+      contains("sentry_dsn': 'https://staging-sentry.example.com'"),
+    );
+    expect(stagingSource, contains("whiteLabelEnvironmentName = 'staging';"));
+  });
 
   test(
     'generateWhiteLabelSource throws ArgumentError for an undeclared --env',

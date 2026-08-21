@@ -194,92 +194,73 @@ void main() {
       },
     );
 
-    test(
-      'registers a generated LaunchScreen<tenant>.storyboard into the '
-      "Runner target's Resources build phase, idempotently",
-      () {
-        if (!rubyAvailable) {
-          markTestSkipped('ruby/xcodeproj gem not available in this environment');
-          return;
-        }
+    test('registers a generated LaunchScreen<tenant>.storyboard into the '
+        "Runner target's Resources build phase, idempotently", () {
+      if (!rubyAvailable) {
+        markTestSkipped('ruby/xcodeproj gem not available in this environment');
+        return;
+      }
 
-        final fixtureIosDir = Directory(
-          p.join(Directory.current.path, 'test', 'fixtures', 'ios'),
-        );
-        if (!fixtureIosDir.existsSync()) {
-          markTestSkipped('test fixtures/ios not found');
-          return;
-        }
-        _copyDirectory(
-          fixtureIosDir,
-          Directory(p.join(projectRoot.path, 'ios')),
-        );
+      final fixtureIosDir = Directory(
+        p.join(Directory.current.path, 'test', 'fixtures', 'ios'),
+      );
+      if (!fixtureIosDir.existsSync()) {
+        markTestSkipped('test fixtures/ios not found');
+        return;
+      }
+      _copyDirectory(fixtureIosDir, Directory(p.join(projectRoot.path, 'ios')));
 
-        // Simulate what `flutter_native_splash:create --flavor acme` would
-        // have written to disk (the file this function looks for), without
-        // actually depending on/running that package in this test.
-        final storyboard = File(
-          p.join(
-            projectRoot.path,
-            'ios',
-            'Runner',
-            'Base.lproj',
-            'LaunchScreenAcme.storyboard',
-          ),
-        )..createSync(recursive: true);
-        storyboard.writeAsStringSync('<?xml version="1.0"?><document/>');
+      // Simulate what `flutter_native_splash:create --flavor acme` would
+      // have written to disk (the file this function looks for), without
+      // actually depending on/running that package in this test.
+      final storyboard = File(
+        p.join(
+          projectRoot.path,
+          'ios',
+          'Runner',
+          'Base.lproj',
+          'LaunchScreenAcme.storyboard',
+        ),
+      )..createSync(recursive: true);
+      storyboard.writeAsStringSync('<?xml version="1.0"?><document/>');
 
-        // First call: actually registers it.
-        final result = registerLaunchScreenStoryboard(
-          'acme',
-          projectRoot: projectRoot.path,
-        );
-        expect(result, isNull);
+      // First call: actually registers it.
+      final result = registerLaunchScreenStoryboard(
+        'acme',
+        projectRoot: projectRoot.path,
+      );
+      expect(result, isNull);
 
-        final String pbxproj = File(
-          p.join(
-            projectRoot.path,
-            'ios',
-            'Runner.xcodeproj',
-            'project.pbxproj',
-          ),
-        ).readAsStringSync();
-        expect(pbxproj, contains('LaunchScreenAcme.storyboard'));
+      final String pbxproj = File(
+        p.join(projectRoot.path, 'ios', 'Runner.xcodeproj', 'project.pbxproj'),
+      ).readAsStringSync();
+      expect(pbxproj, contains('LaunchScreenAcme.storyboard'));
 
-        // Second call: idempotent, no duplicate file reference.
-        final secondResult = registerLaunchScreenStoryboard(
-          'acme',
-          projectRoot: projectRoot.path,
-        );
-        expect(secondResult, isNull);
+      // Second call: idempotent, no duplicate file reference.
+      final secondResult = registerLaunchScreenStoryboard(
+        'acme',
+        projectRoot: projectRoot.path,
+      );
+      expect(secondResult, isNull);
 
-        final String pbxprojAfter = File(
-          p.join(
-            projectRoot.path,
-            'ios',
-            'Runner.xcodeproj',
-            'project.pbxproj',
-          ),
-        ).readAsStringSync();
-        final int occurrences = RegExp('LaunchScreenAcme\\.storyboard')
-            .allMatches(pbxprojAfter)
-            .length;
-        final int occurrencesFirst = RegExp('LaunchScreenAcme\\.storyboard')
-            .allMatches(pbxproj)
-            .length;
-        expect(occurrences, occurrencesFirst);
-      },
-    );
+      final String pbxprojAfter = File(
+        p.join(projectRoot.path, 'ios', 'Runner.xcodeproj', 'project.pbxproj'),
+      ).readAsStringSync();
+      final int occurrences = RegExp('LaunchScreenAcme\\.storyboard')
+          .allMatches(pbxprojAfter)
+          .length;
+      final int occurrencesFirst = RegExp('LaunchScreenAcme\\.storyboard')
+          .allMatches(pbxproj)
+          .length;
+      expect(occurrences, occurrencesFirst);
+    });
   });
 }
 
 void _copyDirectory(Directory source, Directory destination) {
   destination.createSync(recursive: true);
   for (final entity in source.listSync(recursive: false)) {
-    final String newPath = p.join(
-      destination.path,
-      p.basename(entity.path),
-    );
+    final String newPath = p.join(destination.path, p.basename(entity.path));
     if (entity is Directory) {
       _copyDirectory(entity, Directory(newPath));
     } else if (entity is File) {
