@@ -306,13 +306,15 @@ runner_target = project.targets.find { |t| t.product_type == 'com.apple.product-
                 project.targets.find { |t| t.name == 'Runner' }
 abort "No application target found in #{xcodeproj_path}" unless runner_target
 
-already_registered = project.files.any? { |f| f.path.to_s == storyboard_rel_path }
-unless already_registered
+existing_file_ref = project.files.find { |f| f.path.to_s == storyboard_rel_path }
+already_in_resources = existing_file_ref != nil &&
+  runner_target.resources_build_phase.files.any? { |bf| bf.file_ref == existing_file_ref }
+unless already_in_resources
   # The main group is conventionally named after the target — falls back
   # to the project's own main group if a consumer renamed the group
   # independently of the target (rare, but never worse than before).
   runner_group = project.main_group[runner_target.name] || project.main_group
-  file_ref = runner_group.new_file(storyboard_rel_path)
+  file_ref = existing_file_ref || runner_group.new_file(storyboard_rel_path)
   runner_target.resources_build_phase.add_file_reference(file_ref)
   project.save
 end

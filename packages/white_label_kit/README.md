@@ -145,8 +145,8 @@ command alone silently produces a splash screen that never ships. When
 `splash_generate: true` triggers a successful `flutter_native_splash:create`
 run, `white_label_kit` registers that storyboard into `Runner.xcodeproj`'s
 Resources build phase for you right after (idempotent — safe to re-run,
-best-effort — a missing `ruby`/`xcodeproj` gem is reported as a warning on
-the result, never a crash).
+best-effort — a missing `ruby`/`xcodeproj` gem is reported as a warning in
+the output, never a crash).
 
 **Manual (full control) — skip the flags:** hand-author
 `icons_launcher-acme.yaml` / `flutter_native_splash-acme.yaml` yourself
@@ -322,7 +322,7 @@ white_label:
         api_base_url: "https://api.example.com"  # `--env` isn't passed
         # custom:                              # optional, arbitrary string
         #   sentry_dsn: "https://..."           # key-values for anything else
-        #   cdn_url: "https://cdn.example.com"  # a build needs at runtime
+        #   cdn_url: "https://cdn.example.com"  # the build needs at runtime
 
       environments:                # optional — NAMED overrides of the
         staging:                   # `environment:` block above, selected

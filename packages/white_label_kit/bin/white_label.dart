@@ -238,7 +238,8 @@ int _validate() {
 /// declares (a stale/missing generated file is a common real mistake — ran
 /// `generate` once, then added/renamed tenants and forgot to re-run it).
 /// Whether the host app's own `pubspec.yaml` (cwd, not this package's)
-/// lists [packageName] under `dependencies:` or `dev_dependencies:`. Used
+/// lists [packageName] under `dependencies:`, `dev_dependencies:`, or
+/// `dependency_overrides:`. Used
 /// by `doctor` to catch the `splash_generate` opt-in gap ahead of time —
 /// [maybeGenerateNativeSplash] can only report the missing dependency as
 /// an error after it has already tried and failed to shell out to
@@ -258,7 +259,11 @@ bool _hasHostDependency(String packageName) {
     if (doc is! Map) {
       return false;
     }
-    for (final key in ['dependencies', 'dev_dependencies']) {
+    for (final key in [
+      'dependencies',
+      'dev_dependencies',
+      'dependency_overrides',
+    ]) {
       final dynamic section = doc[key];
       if (section is Map && section.containsKey(packageName)) {
         return true;
