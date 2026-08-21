@@ -155,25 +155,6 @@ Future<void> runCli(List<String> args) async {
     exit(await _genericBuild(args.skip(1).toList()));
   }
 
-  if (command == 'auto-onboard') {
-    final Map<String, String> config = _loadConfig();
-    final List<String> rest = args.skip(1).toList();
-    final String? tenantId = rest.isNotEmpty ? rest.first : config['tenant_id'];
-    if (tenantId == null) {
-      stderr.writeln(
-        '❌ auto-onboard needs a tenant id (arg or tenant_id: in $_defaultConfigFile)\n',
-      );
-      _printUsage();
-      exit(1);
-    }
-    final bool ok = autoOnboardTenant(
-      tenantId,
-      root: Directory.current,
-      dryRun: rest.contains('--dry-run'),
-    );
-    exit(ok ? 0 : 1);
-  }
-
   if (command == 'configure') {
     exit(await _configureTenants(args.skip(1).toList()));
   }
@@ -256,6 +237,44 @@ int _validate() {
 /// exists and looks like it was generated for a tenant this config still
 /// declares (a stale/missing generated file is a common real mistake — ran
 /// `generate` once, then added/renamed tenants and forgot to re-run it).
+/// Whether the host app's own `pubspec.yaml` (cwd, not this package's)
+/// lists [packageName] under `dependencies:`, `dev_dependencies:`, or
+/// `dependency_overrides:`. Used
+/// by `doctor` to catch the `splash_generate` opt-in gap ahead of time —
+/// [maybeGenerateNativeSplash] can only report the missing dependency as
+/// an error after it has already tried and failed to shell out to
+/// `flutter_native_splash:create`; this surfaces the same fact earlier,
+/// before a generate/configure run gets that far. Best-effort only: a
+/// missing/malformed pubspec.yaml is treated as "not found" (`false`),
+/// same as the dependency truly being absent — `doctor` already reports
+/// other pubspec problems elsewhere, this check doesn't need to duplicate
+/// that.
+bool _hasHostDependency(String packageName) {
+  final pubspecFile = File('pubspec.yaml');
+  if (!pubspecFile.existsSync()) {
+    return false;
+  }
+  try {
+    final dynamic doc = loadYaml(pubspecFile.readAsStringSync());
+    if (doc is! Map) {
+      return false;
+    }
+    for (final key in [
+      'dependencies',
+      'dev_dependencies',
+      'dependency_overrides',
+    ]) {
+      final dynamic section = doc[key];
+      if (section is Map && section.containsKey(packageName)) {
+        return true;
+      }
+    }
+    return false;
+  } catch (_) {
+    return false;
+  }
+}
+
 int _doctor() {
   final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
   if (config == null) {
@@ -277,6 +296,21 @@ int _doctor() {
         healthy = false;
       }
     }
+  }
+
+  final bool anyTenantWantsSplashGenerate = config.tenants.values.any(
+    (tenant) => tenant.features['splash_generate'] == true,
+  );
+  if (anyTenantWantsSplashGenerate &&
+      !_hasHostDependency('flutter_native_splash')) {
+    stdout.writeln(
+      "⚠️  A tenant has features.splash_generate: true, but this app's "
+      "pubspec.yaml doesn't list flutter_native_splash as a dependency — "
+      'run `flutter pub add flutter_native_splash` first, or '
+      '`dart run white_label_kit:generate`/`:configure` will fail to '
+      'generate its splash screen.',
+    );
+    healthy = false;
   }
 
   final generated = File('lib/white_label.g.dart');
@@ -440,6 +474,7 @@ int _init(List<String> args) {
 int _generate(List<String> args) {
   String? tenantId;
   String? configPath;
+  String? envName;
 
   for (var i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -455,6 +490,14 @@ int _generate(List<String> args) {
           return 1;
         }
         configPath = args[++i];
+      case '--env':
+        if (i + 1 >= args.length) {
+          stderr.writeln(
+            '❌ --env requires a value (e.g. staging, production).',
+          );
+          return 1;
+        }
+        envName = args[++i];
       default:
         stderr.writeln('❌ Unknown flag for `generate`: ${args[i]}');
         return 1;
@@ -495,10 +538,21 @@ int _generate(List<String> args) {
     return 1;
   }
 
-  writeGeneratedFile(Directory.current.path, config, resolvedTenantId);
+  try {
+    writeGeneratedFile(
+      Directory.current.path,
+      config,
+      resolvedTenantId,
+      envName: envName,
+    );
+  } on ArgumentError catch (e) {
+    stderr.writeln('❌ ${e.message}');
+    return 1;
+  }
+  final String envSuffix = envName == null ? '' : ' (environment: "$envName")';
   stdout.writeln(
-    '✅ Generated lib/white_label.g.dart for tenant "$resolvedTenantId" '
-    '(from ${p.relative(configFile.path)}).',
+    '✅ Generated lib/white_label.g.dart for tenant "$resolvedTenantId"'
+    '$envSuffix (from ${p.relative(configFile.path)}).',
   );
   return 0;
 }
@@ -992,6 +1046,7 @@ Future<int> _genericBuild(List<String> args) async {
   var verbose = false;
   var clean = false;
   var stageOnly = false;
+  String? envName;
 
   for (var i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -1013,6 +1068,14 @@ Future<int> _genericBuild(List<String> args) async {
           return 1;
         }
         mode = args[++i];
+      case '--env':
+        if (i + 1 >= args.length) {
+          stderr.writeln(
+            '❌ --env requires a value (e.g. staging, production).',
+          );
+          return 1;
+        }
+        envName = args[++i];
       case '--dry-run':
         dryRun = true;
       case '--verbose':
@@ -1076,6 +1139,9 @@ Future<int> _genericBuild(List<String> args) async {
   stdout.writeln('Building tenant: ${tenant.id} (${tenant.name})');
   stdout.writeln('Platform: $platform');
   stdout.writeln('Mode: $mode');
+  if (envName != null) {
+    stdout.writeln('Environment: $envName');
+  }
   if (verbose) {
     stdout.writeln('  Android application id: ${tenant.android.applicationId}');
     stdout.writeln('  iOS bundle id: ${tenant.ios.bundleId}');
@@ -1087,6 +1153,28 @@ Future<int> _genericBuild(List<String> args) async {
       '(dry run — config resolved and printed above, no staging performed)',
     );
     return 0;
+  }
+
+  // Always (re)generate lib/white_label.g.dart for the tenant/environment
+  // this build is actually for — `build` on its own used to leave it
+  // however a previous `generate`/`configure` run last left it, which
+  // silently ships the WRONG tenant's/environment's baked-in runtime
+  // config (API URL, theme, feature flags) if that doesn't happen to match
+  // what was just resolved above. There's no separate step to remember.
+  try {
+    writeGeneratedFile(
+      Directory.current.path,
+      config,
+      tenant.id,
+      envName: envName,
+    );
+    stdout.writeln(
+      'Regenerated lib/white_label.g.dart for tenant "${tenant.id}"'
+      '${envName == null ? '' : ' (environment: "$envName")'}.',
+    );
+  } on ArgumentError catch (e) {
+    stderr.writeln('❌ ${e.message}');
+    return 1;
   }
 
   try {
@@ -1177,6 +1265,18 @@ Future<int> _genericBuild(List<String> args) async {
       '--build-number',
       '${androidVersion.buildNumber}',
       if (mode == 'release') '--release' else '--debug',
+      // Release builds are obfuscated by default (see
+      // https://docs.flutter.dev/deployment/obfuscate) — a debuggable
+      // release binary that ends up on a device/store is a real, easy
+      // mistake to make when this flag has to be remembered and typed by
+      // hand every time. Symbol maps land under a per-tenant/platform
+      // path so `flutter symbolize` still works for one specific build's
+      // crash reports without files from other tenants/platforms mixed
+      // in the same folder.
+      if (mode == 'release') ...[
+        '--obfuscate',
+        '--split-debug-info=${p.join(projectRoot, 'build', 'outputs', 'symbols', tenant.id, 'android')}',
+      ],
     ];
 
     stdout.writeln('➜ flutter ${androidArgs.join(' ')}');
@@ -1266,6 +1366,12 @@ Future<int> _genericBuild(List<String> args) async {
           // Signing: no-codesign for debug / CI; release signing is the
           // developer's responsibility — this package never touches certs.
           if (mode != 'release') '--no-codesign',
+          // Same obfuscation-by-default rationale as the Android build
+          // above — see https://docs.flutter.dev/deployment/obfuscate.
+          if (mode == 'release') ...[
+            '--obfuscate',
+            '--split-debug-info=${p.join(projectRoot, 'build', 'outputs', 'symbols', tenant.id, 'ios')}',
+          ],
         ];
 
         stdout.writeln('➜ flutter ${iosArgs.join(' ')}');
@@ -1324,9 +1430,10 @@ String? _findBuiltArtifact({
 
 /// Resolves and stages a tenant in debug mode.
 ///
-/// Usage: `run [--tenant <id>]`
+/// Usage: `run [--tenant <id>] [--env <name>]`
 Future<int> _run(List<String> args) async {
   String? tenantId;
+  String? envName;
 
   for (var i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -1336,6 +1443,14 @@ Future<int> _run(List<String> args) async {
           return 1;
         }
         tenantId = args[++i];
+      case '--env':
+        if (i + 1 >= args.length) {
+          stderr.writeln(
+            '❌ --env requires a value (e.g. staging, production).',
+          );
+          return 1;
+        }
+        envName = args[++i];
       default:
         stderr.writeln('❌ Unknown flag for `run`: ${args[i]}');
         return 1;
@@ -1361,8 +1476,31 @@ Future<int> _run(List<String> args) async {
   }
 
   stdout.writeln(
-    'Would launch `flutter run` for tenant: ${tenant.id} (${tenant.name})',
+    'Would launch `flutter run` for tenant: ${tenant.id} (${tenant.name})'
+    '${envName == null ? '' : ' [environment: $envName]'}',
   );
+
+  // Same "always regenerate for what was actually resolved" fix as
+  // `build` — see its comment above `writeGeneratedFile` for why this
+  // can't be skipped even for a debug `run`.
+  try {
+    writeGeneratedFile(
+      Directory.current.path,
+      config,
+      tenant.id,
+      envName: envName,
+    );
+    stdout.writeln(
+      'Regenerated lib/white_label.g.dart for tenant "${tenant.id}"'
+      '${envName == null ? '' : ' (environment: "$envName")'}.',
+    );
+  } on ArgumentError catch (e) {
+    stderr.writeln('❌ ${e.message}');
+    if (tenantId != null) {
+      stager.clean(tenantId);
+    }
+    return 1;
+  }
 
   try {
     final String stagedPath = stager.stage(tenant);
@@ -1400,8 +1538,15 @@ Future<int> _run(List<String> args) async {
 ///  2. [generateIosConfig] — idempotent Xcode build configurations + scheme
 ///     in `ios/Runner.xcodeproj` (skipped silently when no xcodeproj exists;
 ///     requires Ruby + the `xcodeproj` gem).
-///  3. Regenerates `lib/white_label.g.dart` for `default_tenant` — same as
-///     `dart run white_label_kit:generate` with no flags.
+///  3. Regenerates `lib/white_label.g.dart` for the tenant `--tenant`
+///     resolved to (or `default_tenant` when `--tenant` wasn't passed —
+///     `configure` with no flags loops every declared tenant for steps
+///     1-2, but only ONE tenant's Dart runtime config can ever be baked
+///     into `lib/white_label.g.dart` at a time, so this step always picks
+///     one: the explicit `--tenant` if given, `default_tenant` otherwise).
+///     `--env <name>` is forwarded to this step the same way `--tenant`
+///     is — same as `dart run white_label_kit:generate --tenant id --env
+///     name`.
 ///
 /// All steps are fully idempotent: running `configure` a second time
 /// over an already-configured project is always a no-op (or a re-sync that
@@ -1411,6 +1556,7 @@ Future<int> _configureTenants(List<String> args) async {
   var platform = 'all';
   var dryRun = false;
   var skipGenerate = false;
+  String? envName;
 
   for (var i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -1430,6 +1576,14 @@ Future<int> _configureTenants(List<String> args) async {
         dryRun = true;
       case '--skip-generate':
         skipGenerate = true;
+      case '--env':
+        if (i + 1 >= args.length) {
+          stderr.writeln(
+            '❌ --env requires a value (e.g. staging, production).',
+          );
+          return 1;
+        }
+        envName = args[++i];
       case '--verbose':
         // Accepted for compatibility
         break;
@@ -1594,12 +1748,27 @@ Future<int> _configureTenants(List<String> args) async {
   }
 
   // ── Dart generate ────────────────────────────────────────────────────────
+  // Only ONE tenant's config can ever be baked into lib/white_label.g.dart
+  // (see dart_config_generator.dart's tenant-isolation note) — pick the
+  // tenant `--tenant` actually resolved to above, not always
+  // `default_tenant`. Loop still ran android/iOS/icon/splash generation for
+  // every declared tenant when no --tenant was given; this last step just
+  // can't do the same for the Dart runtime config, so it defaults to
+  // `default_tenant` only in that no-explicit-tenant case.
   if (!skipGenerate && !dryRun) {
+    final String generateForTenant = tenantId ?? config.defaultTenant;
+    final String envSuffix = envName == null
+        ? ''
+        : ' (environment: "$envName")';
     stdout.writeln(
       '🔄 Regenerating lib/white_label.g.dart '
-      'for tenant "${config.defaultTenant}"...',
+      'for tenant "$generateForTenant"$envSuffix...',
     );
-    final int generateExitCode = _generate(['--tenant', config.defaultTenant]);
+    final generateArgs = ['--tenant', generateForTenant];
+    if (envName != null) {
+      generateArgs.addAll(['--env', envName]);
+    }
+    final int generateExitCode = _generate(generateArgs);
     if (generateExitCode != 0) {
       stderr.writeln('❌ Failed to regenerate lib/white_label.g.dart');
       overallSuccess = false;
@@ -1729,13 +1898,6 @@ LEGACY COMMANDS (wrapped for backward compatibility):
                                                 same command name, routed
                                                 by which files exist in the
                                                 current directory.)
-  auto-onboard [id] [--dry-run]                Chain add + Xcode wiring +
-                                                scheme clone + icons + splash
-                                                for a tenant that only has
-                                                tenant.yaml + logo.png so far.
-                                                Standalone for now — not
-                                                called from `build` yet.
-                                                Exit 1 on any step failure.
 
 GENERIC white_label.yaml COMMANDS (repo-agnostic — no dependency on this
 repo's tenants/ + tool/ folder layout; see lib/src/config, lib/src/generation):
@@ -1851,6 +2013,16 @@ repo's tenants/ + tool/ folder layout; see lib/src/config, lib/src/generation):
                                                 --build-number) is read from
                                                 white_label.yaml — pubspec
                                                 version is not touched.
+                                                --mode release also always
+                                                adds --obfuscate
+                                                --split-debug-info=build/
+                                                outputs/symbols/<tenant>/
+                                                <platform> (see
+                                                https://docs.flutter.dev/
+                                                deployment/obfuscate) —
+                                                not optional, so a release
+                                                build is never accidentally
+                                                shipped un-obfuscated.
                                                 --tenant <id>  Which tenant
                                                   to build (default: the
                                                   configured default).
@@ -1915,7 +2087,6 @@ Examples:
   dart run white_label_kit:white_label add acmecorp "Acme Corp" com.example.acmecorp
   dart run white_label_kit:white_label doctor acme
   dart run white_label_kit:build acme --platform android --mode release
-  dart run white_label_kit:white_label auto-onboard acmecorp
 
   # Generic white_label.yaml layer — zero-touch (any Flutter project)
   dart run white_label_kit:init --example

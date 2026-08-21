@@ -15,10 +15,17 @@
 /// (`lib/src/generation/dart_config_generator.dart`) — pick whichever fits
 /// your project, they produce identical output.
 ///
-/// Registered via `build.yaml`'s `white_label_generator` entry
-/// (`auto_apply: dependents` — any app that depends on this package and has
-/// `build_runner` as a dev_dependency gets this applied automatically, the
-/// same way adding `freezed_annotation` auto-applies the `freezed` builder).
+/// Registered via `build.yaml`'s `white_label_generator` entry —
+/// `auto_apply: none`, so a consumer must explicitly enable it in their own
+/// `build.yaml` (alongside the `sources:` override mentioned above). This
+/// is deliberately NOT auto-applied the way `freezed_annotation` auto-
+/// applies `freezed`: a consumer without the `sources:` override would
+/// have this builder activate anyway, never find its unreachable
+/// `white_label.yaml` input, and still have `build_runner` treat
+/// `lib/white_label.g.dart` as an output it owns — deleting the real file
+/// `dart run white_label_kit:generate`/`:configure` had already written,
+/// on the very next `build_runner build`. See `build.yaml`'s comment for
+/// this exact, previously-observed incident.
 library;
 
 import 'dart:async';

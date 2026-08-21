@@ -62,9 +62,18 @@ class WhiteLabelRuntime {
   /// construction path (a): for apps/tools that load `white_label.yaml`
   /// themselves at build/dev time rather than relying on the
   /// `build_runner`-generated constants.
-  factory WhiteLabelRuntime.fromConfig(TenantConfig config) {
+  ///
+  /// [envName] selects a named entry from [TenantConfig.environments]
+  /// (`staging`, `production`, ...) instead of [TenantConfig.environment] —
+  /// see [TenantConfig.resolveEnvironment], which this delegates to
+  /// (including its "throws if [envName] isn't declared" behavior, rather
+  /// than silently falling back to the default environment).
+  factory WhiteLabelRuntime.fromConfig(TenantConfig config, {String? envName}) {
     final TenantVersion androidVersion = config.androidVersion;
     final TenantVersion iosVersion = config.iosVersion;
+    final TenantEnvironment resolvedEnvironment = config.resolveEnvironment(
+      envName,
+    );
     return WhiteLabelRuntime(
       tenantId: config.id,
       tenantName: config.name,
@@ -77,7 +86,8 @@ class WhiteLabelRuntime {
         gradientColors: config.theme.gradientColors,
       ),
       environment: WhiteLabelEnvironment(
-        apiBaseUrl: config.environment.apiBaseUrl,
+        apiBaseUrl: resolvedEnvironment.apiBaseUrl,
+        custom: Map.unmodifiable(resolvedEnvironment.custom),
       ),
       features: Map.unmodifiable(config.features),
       android: WhiteLabelAndroidInfo(
@@ -188,13 +198,18 @@ class WhiteLabelTheme {
 /// here.
 class WhiteLabelEnvironment {
   /// Builds a [WhiteLabelEnvironment] from its resolved fields.
-  const WhiteLabelEnvironment({this.apiBaseUrl});
+  const WhiteLabelEnvironment({this.apiBaseUrl, this.custom = const {}});
 
   /// The tenant's API base URL, if configured.
   final String? apiBaseUrl;
 
+  /// Resolved `custom:` string key-values for this environment — see
+  /// [TenantEnvironment.custom].
+  final Map<String, String> custom;
+
   @override
-  String toString() => 'WhiteLabelEnvironment(apiBaseUrl: $apiBaseUrl)';
+  String toString() =>
+      'WhiteLabelEnvironment(apiBaseUrl: $apiBaseUrl, custom: $custom)';
 }
 
 /// A resolved `name+buildNumber` version pair — see `TenantVersion`.

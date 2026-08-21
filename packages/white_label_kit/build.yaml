@@ -3,6 +3,22 @@ builders:
     import: "package:white_label_kit/builder.dart"
     builder_factories: ["whiteLabelBuilder"]
     build_extensions: {"white_label.yaml": ["lib/white_label.g.dart"]}
-    auto_apply: dependents
+    # NOT auto_apply: dependents. This builder's declared input
+    # (`white_label.yaml`) sits at the project ROOT, outside build_runner's
+    # default `lib/**` source scan (see builder.dart's doc comment — a
+    # `build.yaml` `sources:` override is required for it to ever find that
+    # input at all). `auto_apply: dependents` used to activate this builder
+    # in EVERY consumer that has both this package and `build_runner` as
+    # dependencies, regardless of whether they added that `sources:`
+    # override — for a consumer that hadn't, build_runner could never
+    # regenerate `lib/white_label.g.dart` (its declared input was
+    # unreachable) but still tracked it as an output IT owns, and deleted
+    # the real, already-correct file written by `dart run
+    # white_label_kit:generate`/`:configure` on the next `build_runner
+    # build` — a real, observed incident, not a hypothetical. `auto_apply:
+    # none` requires a consumer to explicitly enable this builder in their
+    # own `build.yaml` (alongside the `sources:` override they already
+    # need) — see README's "Optional: build_runner integration" note.
+    auto_apply: none
     build_to: source
     required_inputs: []

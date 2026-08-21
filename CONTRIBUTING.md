@@ -1,3 +1,17 @@
+## Local setup: git hooks
+
+Run once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+This enables a pre-commit hook that runs `dart format` and `dart pub
+publish --dry-run` on any package you've touched — the same two checks
+CI's `validate` job runs — so a formatting or publish-blocking issue is
+caught locally before you push, not after. Skip it for a single commit
+with `git commit --no-verify` if you're certain it's a false positive.
+
 ## Welcome
 
 For an introduction to contributing to Flutter, see [our contributor

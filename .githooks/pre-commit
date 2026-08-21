@@ -1,0 +1,49 @@
+#!/bin/sh
+# Pre-commit hook for flutter-packages monorepo.
+#
+# For every package under packages/ that has staged changes:
+#   1. Auto-format (dart format .) and re-stage the result — a commit
+#      never lands with formatting CI would reject.
+#   2. dart pub publish --dry-run — the same "validate" check CI runs,
+#      so a publish-blocking issue (unformatted files, missing files,
+#      pubspec problems) is caught locally before push, not after.
+#
+# Install once per clone:
+#   git config core.hooksPath .githooks
+
+set -e
+
+CHANGED_PACKAGES=$(git diff --cached --name-only --diff-filter=ACMR | \
+  grep '^packages/' | cut -d/ -f1-2 | sort -u)
+
+if [ -z "$CHANGED_PACKAGES" ]; then
+  exit 0
+fi
+
+FAILED=0
+
+for pkg in $CHANGED_PACKAGES; do
+  [ -f "$pkg/pubspec.yaml" ] || continue
+
+  echo "▶ $pkg: dart format"
+  (cd "$pkg" && dart format .) || { FAILED=1; continue; }
+  # Re-stage anything format touched so the commit includes the fixed version.
+  git add "$pkg"
+
+  echo "▶ $pkg: dart pub publish --dry-run"
+  if ! (cd "$pkg" && dart pub publish --dry-run) > /tmp/publish_check_$$.log 2>&1; then
+    echo "❌ $pkg failed 'dart pub publish --dry-run':"
+    cat /tmp/publish_check_$$.log
+    FAILED=1
+  fi
+  rm -f /tmp/publish_check_$$.log
+done
+
+if [ "$FAILED" -ne 0 ]; then
+  echo ""
+  echo "Pre-commit checks failed — fix the issue(s) above, or skip with"
+  echo "'git commit --no-verify' if you're certain this is a false positive."
+  exit 1
+fi
+
+exit 0

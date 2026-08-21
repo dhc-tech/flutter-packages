@@ -1,37 +1,42 @@
+## 0.0.5
+
+* Fixed: generated `.run/*.xml` (Android Studio/IntelliJ run configs) had
+  invalid XML and never showed up in the Run menu — a stray
+  `.substring(1)` was stripping the leading `<`. See README for details.
+* iOS splash storyboards are now auto-registered into Xcode's Resources
+  build phase (previously a manual `ruby` step).
+* `build --mode release` now always adds `--obfuscate
+  --split-debug-info=...` (see [Flutter's obfuscation guide](https://docs.flutter.dev/deployment/obfuscate)).
+* Auto-generated `icons_launcher-<id>.yaml` now includes an adaptive icon
+  (Android 8+) by default.
+* New: named per-tenant `environments:` + `--env` (staging/production/etc.)
+  for `generate`/`configure`/`build`/`run`, with an arbitrary `custom:`
+  key-value map per environment.
+* Fixed: `configure`/`build`/`run` could regenerate `lib/white_label.g.dart`
+  for the wrong tenant, or not at all, in some flows — now always for the
+  tenant/`--env` actually resolved.
+* Fixed: `build.yaml`'s `auto_apply: dependents` could silently delete a
+  consumer's own `lib/white_label.g.dart` via `build_runner` — now
+  `auto_apply: none` (opt-in).
+* `doctor` now flags a missing `flutter_native_splash` dependency ahead of
+  time when `splash_generate` is on.
+* Removed `auto-onboard`/`autoOnboardTenant` — untested, non-functional
+  for any real consumer. Use `add-tenant` + `configure` instead.
+* Added `meta` as a direct dependency (for `@visibleForTesting`).
+
+See README for full usage of anything above.
+
 ## 0.0.4
 
-* `generateIosConfig` now also sets `APP_DISPLAY_NAME` (from
-  `TenantConfig.ios.appName`) on the project root object and the `Runner`
-  target's `Debug-<tenant>`/`Release-<tenant>`/`Profile-<tenant>` build
-  configurations — previously only `PRODUCT_BUNDLE_IDENTIFIER` was set. A
-  stock `flutter create` project's `Info.plist` already reads
-  `CFBundleDisplayName`/`CFBundleName` from `$(APP_DISPLAY_NAME)`, so
-  without this a tenant build's home-screen name silently fell back to
-  "Runner" instead of the tenant's real brand name.
+* `generateIosConfig` now also sets `APP_DISPLAY_NAME` (previously only
+  `PRODUCT_BUNDLE_IDENTIFIER`) — fixes a tenant build's home-screen name
+  falling back to "Runner".
 * Fixed `removeIosConfig` leaving orphaned `XCBuildConfiguration` objects
-  in `project.pbxproj` after removing a tenant — the build configurations
-  were unlinked from every target's `build_configuration_list` but never
-  actually removed from the project's object table, so a
-  remove/re-add cycle for the same tenant id accumulated dead objects over
-  time.
-* New, opt-in: `configure` and the generic `build` command can now
-  auto-generate a tenant's launcher/notification icon
-  (`icons_launcher-<id>.yaml`) and native splash screen
-  (`flutter_native_splash-<id>.yaml`) — declare `features: {
-  icon_generate: true }` / `{ splash_generate: true }` for a tenant and
-  either config file is auto-created (from `assets.icon`/`assets.logo`,
-  or `assets.splash`/`assets.icon`/`assets.logo` + `theme.primary_color`)
-  **only if it doesn't already exist** — a hand-authored file is never
-  touched. Off by default: a tenant that declares neither flag sees no
-  change in behavior. `icons_launcher` is a real `dependency` of this
-  package, so `dart run icons_launcher:create` resolves for a consuming
-  app with nothing added to its own `pubspec.yaml`. `flutter_native_splash`
-  **cannot** be a dependency of this package the same way (see
-  `maybeGenerateNativeSplash`'s doc comment for why) — a consuming app
-  must add it to its own `pubspec.yaml` for splash generation to work;
-  icon generation needs no such step. See the new
-  `maybeGenerateLauncherIcon`/`maybeGenerateNativeSplash` exports
-  (`lib/src/generation/icon_splash_generator.dart`).
+  after removing a tenant.
+* New, opt-in (`features: { icon_generate: true }` / `{ splash_generate:
+  true }`): `configure`/`build` auto-generate a tenant's launcher icon and
+  native splash config, only if the file doesn't already exist. See
+  README for the `flutter_native_splash` dependency note.
 
 ## 0.0.3
 

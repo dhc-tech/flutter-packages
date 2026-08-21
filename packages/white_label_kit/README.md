@@ -2,7 +2,6 @@
 
 [![pub package](https://img.shields.io/pub/v/white_label_kit.svg)](https://pub.dev/packages/white_label_kit)
 [![Dart](https://img.shields.io/badge/Dart-3.13+-blue.svg)](https://dart.dev)
-[![Flutter](https://img.shields.io/badge/Flutter-3.22+-02569B.svg)](https://flutter.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 **The modern, automated flavor & multi-tenant white-label toolkit for Flutter.**
@@ -20,12 +19,15 @@ Managing multiple flavors or white-label client apps in Flutter usually means:
 - Manually configuring IDE debug and build tasks for every new flavor.
 
 **`white_label_kit` automates all of this:**
-- 📄 **Single Source of Truth:** Declare all tenants, bundle IDs, colors, API endpoints, and feature flags in one `white_label.yaml`.
+- 📄 **Single Source of Truth:** Declare all tenants, bundle IDs, colors, API endpoints, environments, and feature flags in one `white_label.yaml`.
 - 🤖 **Native File Automation:** Patches Android Gradle and iOS Xcode schemes automatically with `dart run white_label_kit:configure`.
-- 🛡️ **Asset Isolation:** Guarantees only the active tenant's assets and configs are compiled into the binary.
+- 🎨 **Icon & Splash Automation:** Opt-in per-tenant launcher icon and native splash generation — including the iOS Xcode wiring step most guides forget (see [§5](#5-launcher-icons--native-splash-per-tenant)).
+- 🌐 **Per-Environment Runtime Config:** The same tenant/brand can target `staging`/`production`/anything else via `--env`, without a second tenant (see [§6](#6-staging--production---env)).
+- 🛡️ **Asset Isolation:** Guarantees only the active tenant's assets and configs are compiled into the binary — never every tenant's data baked into every build.
 - ⚡ **Interactive CLI Runner:** Launch `dart run white_label_kit` to easily run or build APK, AAB, and iOS apps without memorizing long commands.
 - 💻 **1-Click IDE Configurations:** Generates ready-to-use Run/Build configurations for **Android Studio**, **IntelliJ**, and **VS Code**.
 - 🔒 **Type-Safe Runtime API:** Access tenant metadata cleanly in your Flutter widgets and services using `WhiteLabelRuntime`.
+- 🩺 **`doctor`:** One command that flags missing assets, stale generated files, and missing peer dependencies (`flutter_native_splash`) before a build fails on them.
 
 ---
 
@@ -43,7 +45,7 @@ Or manually in `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  white_label_kit: ^0.0.4
+  white_label_kit: ^0.0.5
 ```
 
 > **Why a regular dependency, not dev-only:** `lib/white_label.g.dart` (the
@@ -68,10 +70,15 @@ dart run white_label_kit:init
 Add a new brand with a single command:
 
 ```bash
-dart run white_label_kit:add-tenant acme "Acme App" com.example.acme
+dart run white_label_kit:add-tenant acme "Acme App" com.example.acme --logo path/to/acme_logo.png
 ```
 
-This automatically creates the configuration entry in `white_label.yaml` and prepares the asset folder `tenants/acme/`.
+This automatically creates the configuration entry in `white_label.yaml`
+and the asset folder `tenants/acme/`, copying your real logo in if
+`--logo` was given. Omit `--logo` and it writes a placeholder
+`tenants/acme/logo.png` instead — replace that file with the real logo
+before shipping (this is the one step `white_label_kit` genuinely can't
+automate for you: it doesn't know what your brand's logo looks like).
 
 ### 4. Configure Android & iOS Native Files
 Sync all native Gradle flavors, Xcode schemes, and IDE run configurations:
@@ -79,6 +86,10 @@ Sync all native Gradle flavors, Xcode schemes, and IDE run configurations:
 ```bash
 dart run white_label_kit:configure
 ```
+
+Run `dart run white_label_kit:doctor` any time to sanity-check the current
+setup — missing assets, a stale `lib/white_label.g.dart`, a missing
+`flutter_native_splash` dependency if `splash_generate` is on, etc.
 
 ### 5. Launcher Icons & Native Splash (per tenant)
 
@@ -91,10 +102,12 @@ two well-established, purpose-built packages —
 `icons_launcher` is a real dependency of this package, so `dart run
 icons_launcher:create` resolves for your app with nothing added to your
 own `pubspec.yaml`. `flutter_native_splash` **can't** be a dependency of
-this package the same way (see `maybeGenerateNativeSplash`'s doc comment
-for why). **Add `flutter_native_splash` to your own app's `pubspec.yaml`**
-(`flutter pub add flutter_native_splash`) if you want the splash
-generation below — icon generation needs no such step.
+this package the same way (it needs the Flutter SDK to resolve, which
+this package deliberately doesn't — see `maybeGenerateNativeSplash`'s doc
+comment for the full reasoning). **Add `flutter_native_splash` to your
+own app's `pubspec.yaml`** (`flutter pub add flutter_native_splash`) if
+you want the splash generation below — icon generation needs no such
+step.
 
 **Opt-in auto-generation (recommended default):** declare
 `features: { icon_generate: true }` / `{ splash_generate: true }` for a
@@ -114,7 +127,28 @@ tenants:
       splash_generate: true
 ```
 
-**Manual (full control):** skip the flags, hand-author
+Both flags are off by default — a tenant that declares neither sees no
+change in behavior at all.
+
+**The auto-created `icons_launcher-<id>.yaml` includes an adaptive icon**
+(Android 8.0+/API 26) by default — `adaptive_foreground_image` reuses the
+tenant's icon/logo, `adaptive_background_color` uses `theme.primary_color`
+(white if unset). A reasonable automatic default, not a substitute for a
+properly-padded, transparent foreground asset — hand-author the file
+with a dedicated foreground image for a polished result.
+
+**iOS storyboard registration is automatic — for the opt-in flag only.**
+`flutter_native_splash:create` only writes
+`ios/Runner/Base.lproj/LaunchScreen<Tenant>.storyboard` to disk — Xcode
+never bundles a resource it doesn't know about, so a stock run of that
+command alone silently produces a splash screen that never ships. When
+`splash_generate: true` triggers a successful `flutter_native_splash:create`
+run, `white_label_kit` registers that storyboard into `Runner.xcodeproj`'s
+Resources build phase for you right after (idempotent — safe to re-run,
+best-effort — a missing `ruby`/`xcodeproj` gem is reported as a warning in
+the output, never a crash).
+
+**Manual (full control) — skip the flags:** hand-author
 `icons_launcher-acme.yaml` / `flutter_native_splash-acme.yaml` yourself
 using either package's full config reference (adaptive icon
 background/foreground, dark-mode variants, `fullscreen`, per-platform
@@ -125,8 +159,43 @@ dart run icons_launcher:create --flavor acme
 dart run flutter_native_splash:create --flavor acme
 ```
 
-Both flags are off by default — a tenant that declares neither sees no
-change in behavior at all.
+Going this route puts you **outside** the automatic registration above —
+you must still register the storyboard into Xcode yourself
+(`ios/Runner.xcodeproj`'s Resources build phase) before it will actually
+appear in the built app.
+
+### 6. Staging / Production (`--env`)
+
+`environments:` + `--env` switches **runtime config** (API URL and
+whatever else you put in `custom:`) for the SAME tenant/brand — it is
+not a second tenant. Icon, theme, bundle id, and app name all stay
+whatever the tenant already declares; only `environment` changes. See
+[Configuration File](#configuration-file-white_labelyaml) below for the
+YAML shape.
+
+`staging`/`production` below are just this README's example names — the
+key under `environments:` is an **arbitrary string you choose**, not a
+fixed/reserved keyword. Name it whatever matches your own release
+process (`qa`, `uat`, `demo`, `beta`, ...) and pass that exact name to
+`--env`.
+
+```bash
+dart run white_label_kit:generate  --tenant acme --env staging
+dart run white_label_kit:configure --tenant acme --env staging
+dart run white_label_kit:build     --tenant acme --env staging --platform android
+dart run white_label_kit:run       --tenant acme --env staging
+```
+
+Omit `--env` anywhere above and the tenant's default `environment:` block
+is used — fully backward compatible, a `white_label.yaml` that never
+declares `environments:` needs no change. Passing an `--env` name the
+tenant never declared is a hard error (never a silent fallback to the
+default) — you can't accidentally ship "staging" with production's API
+URL baked in.
+
+`build`/`run`/`configure` all (re)generate `lib/white_label.g.dart` for
+whichever tenant/environment they actually resolved to, every time they
+run — there's no separate "don't forget to regenerate" step to remember.
 
 ---
 
@@ -164,7 +233,10 @@ Enter tenant number (default: acme): 0
 ```
 
 ### Option B: Flutter CLI Commands
-You can also run or build directly with standard Flutter commands:
+You can also run or build directly with standard Flutter commands — this
+bypasses `white_label_kit`'s own `build`/`run` (so it does **not**
+regenerate `lib/white_label.g.dart` for you; run `generate`/`configure`
+first if you switched tenant or `--env`):
 
 ```bash
 # Run tenant in debug mode
@@ -246,12 +318,32 @@ white_label:
         # gradient_colors: { start: "#111111" }       # needs more than one
         #                                              # primary/secondary
 
-      environment:
-        api_base_url: "https://api.example.com"
+      environment:                            # the DEFAULT — used whenever
+        api_base_url: "https://api.example.com"  # `--env` isn't passed
+        # custom:                              # optional, arbitrary string
+        #   sentry_dsn: "https://..."           # key-values for anything else
+        #   cdn_url: "https://cdn.example.com"  # the build needs at runtime
+
+      environments:                # optional — NAMED overrides of the
+        staging:                   # `environment:` block above, selected
+          api_base_url: "https://staging-api.example.com"  # via `--env`
+          custom:                                        # (see §6 above).
+            sentry_dsn: "https://staging-sentry.example.com"
+        production:
+          api_base_url: "https://api.example.com"
+      # `staging`/`production` are just names picked for this example —
+      # any key you write under `environments:` becomes a valid `--env`
+      # value (e.g. `qa`, `uat`, `demo` all work equally). A tenant that
+      # never declares `environments:` behaves exactly as before this
+      # existed — the whole block is optional. Each named environment is
+      # an independent override, NOT a patch on top of `environment:` —
+      # declare everything that environment needs.
 
       features:
         enable_push_notifications: true
         enable_downloads: true
+        # icon_generate: true      # see §5 above
+        # splash_generate: true
 
       assets:
         logo: "tenants/acme/logo.png"
@@ -270,7 +362,8 @@ white_label:
 Access your active tenant's branding, API endpoints, and feature flags anywhere in your Dart code:
 
 `dart run white_label_kit:generate` compiles the *current build's* tenant
-into `lib/white_label.g.dart` as a single `whiteLabelRuntime` constant (a
+(and, if `--env` was passed, that specific environment) into
+`lib/white_label.g.dart` as a single `whiteLabelRuntime` constant (a
 [`WhiteLabelRuntime`](lib/src/runtime/white_label_runtime.dart)) — never a
 map of every tenant, so no other tenant's data is ever compiled into a
 build that isn't theirs:
@@ -282,7 +375,9 @@ import 'white_label.g.dart';
 void main() {
   print('Tenant ID: ${whiteLabelRuntime.tenantId}');
   print('App Name: ${whiteLabelRuntime.tenantName}');
+  print('Environment: $whiteLabelEnvironmentName');   // "" if --env wasn't used
   print('API URL: ${whiteLabelRuntime.environment.apiBaseUrl}');
+  print('Sentry DSN: ${whiteLabelRuntime.environment.custom['sentry_dsn']}');
   print('Primary Color: ${whiteLabelRuntime.theme.primaryColorHex}');
 
   final hasPush = whiteLabelRuntime.isFeatureEnabled('enable_push_notifications');
@@ -294,20 +389,104 @@ void main() {
 
 ---
 
+## 🧩 Optional: `build_runner` Integration
+
+You do **not** need `build_runner` for anything above — `generate`/
+`configure`/`build`/`run` are plain, direct CLI commands, the same shape
+as `flutter_native_splash:create`. **If** your app already runs `dart run
+build_runner build` for `freezed`/`json_serializable`/
+`injectable_generator` and you'd like that same command to also
+regenerate `lib/white_label.g.dart`, this package ships an *optional*
+builder for it (`lib/builder.dart`) — but it is **not** enabled
+automatically, and needs two things added to your own project's
+`build.yaml` before it does anything:
+
+```yaml
+# your app's build.yaml
+targets:
+  $default:
+    sources:
+      - white_label.yaml   # lives at the project root, outside build_runner's default input set
+      - lib/**             # default lib/** scan — add it explicitly
+builders:
+  white_label_kit:white_label_generator:
+    enabled: true          # NOT auto-applied — must opt in explicitly
+```
+
+**Why this isn't auto-applied:** without the `sources:` override above,
+`build_runner` would activate the builder but it could never actually find
+its `white_label.yaml` input — while still treating
+`lib/white_label.g.dart` as an output it owns, and deleting it on the next
+`build_runner build` (the file `generate`/`configure` had already written
+correctly gets wiped with no warning). If you don't need `build_runner` to
+regenerate this file, don't add the `build.yaml` block above — `generate`/
+`configure` are unaffected either way.
+
+---
+
 ## 📖 CLI Commands Reference
 
 | Command | Description |
 |---|---|
 | `dart run white_label_kit` | Opens the interactive terminal runner & builder menu |
-| `dart run white_label_kit:init` | Creates a starter `white_label.yaml` file |
-| `dart run white_label_kit:configure` | Automatically patches Android Gradle, iOS Xcode schemes, and IDE configurations |
-| `dart run white_label_kit:add-tenant <id> "<Name>" <pkg>` | Adds a new tenant and creates its asset directory |
+| `dart run white_label_kit:init [--example] [--force] [--path <dir>]` | Creates a starter `white_label.yaml` file |
+| `dart run white_label_kit:add-tenant <id> "<Name>" <bundleId> [--logo <path>] [--default]` | Adds a new tenant and creates its asset directory |
 | `dart run white_label_kit:update-tenant <id> [options]` | Updates tenant configuration fields |
 | `dart run white_label_kit:remove-tenant <id> [--keep-assets]` | Removes the tenant's entry from `white_label.yaml`, deletes its `tenants/<id>/` asset folder (unless `--keep-assets`), and cleans up its generated Android Gradle flavor, iOS Xcode build configs/scheme, and IDE run configurations |
-| `dart run white_label_kit:generate [--tenant <id>]` | Generates `lib/white_label.g.dart` |
+| `dart run white_label_kit:generate [--tenant <id>] [--env <name>] [--config <path>]` | (Re)generates `lib/white_label.g.dart` for one tenant/environment |
+| `dart run white_label_kit:configure [--tenant <id>] [--env <name>] [--platform android\|ios\|all] [--dry-run] [--skip-generate]` | Patches Android Gradle, iOS Xcode, IDE configs, icon/splash (if opted in), and regenerates `lib/white_label.g.dart` |
+| `dart run white_label_kit:build [--tenant <id>] [--env <name>] [--platform android\|android-aab\|ios\|all] [--mode debug\|release] [--dry-run] [--clean] [--stage-only]` | Stages tenant assets, regenerates `lib/white_label.g.dart`, and invokes the real `flutter build`. `--mode release` always adds `--obfuscate --split-debug-info=build/outputs/symbols/<tenant>/<platform>` (see [Flutter's obfuscation guide](https://docs.flutter.dev/deployment/obfuscate)) — not optional, so a release build can't accidentally ship un-obfuscated. |
+| `dart run white_label_kit:run [--tenant <id>] [--env <name>]` | Stages tenant assets and regenerates `lib/white_label.g.dart` for a debug run |
 | `dart run white_label_kit:validate` | Validates `white_label.yaml` syntax and asset paths |
 | `dart run white_label_kit:list` | Lists all declared tenants and the default tenant |
-| `dart run white_label_kit:doctor` | Performs a multi-tenant health check |
+| `dart run white_label_kit:doctor [id] [--all] [--json] [--strict]` | Performs a multi-tenant health check |
+
+---
+
+## 🔒 Security
+
+`white_label.yaml` and everything it generates (`lib/white_label.g.dart`,
+native Gradle/Xcode config) end up **baked into the built binary** — the
+same way any other compiled Flutter asset does. Anyone who unzips a
+shipped APK/IPA can read `whiteLabelRuntime`'s data, including everything
+under `environment.custom`/`environments.*.custom`.
+
+**Never put in `white_label.yaml`:** signing keys/certificates, private
+API secrets, database credentials, or anything else that would matter if
+extracted from the built app. `environment`/`environment.custom` is for
+**public** runtime config only (a base URL, a public DSN meant to be
+client-visible, a CDN URL) — not a place to smuggle a secret in because it
+was convenient. Firebase's `google-services.json`/
+`GoogleService-Info.plist` (via `firebase:`) are the one exception this
+package handles directly, and only because Firebase itself designs those
+files to ship inside the client app.
+
+---
+
+## 🚫 What this does NOT do (yet)
+
+Deliberate scope boundaries, not oversights — flagged here instead of
+silently discovered later:
+
+- **No per-environment theme/icon/splash.** `environments:`/`--env`
+  (§6) only ever changes `environment` (API URL + `custom`). Staging and
+  production of the same tenant are expected to look identical; there is
+  no `environments.staging.theme` or similar. If you need visually
+  distinct staging builds, that's a real gap today, not a documented
+  design choice — open an issue rather than hand-rolling around it.
+- **`environment`/`environments.*.custom` are flat string maps, not
+  arbitrary JSON.** Same deliberate constraint as `features` (bool-only) —
+  richer/nested structured runtime content isn't modeled here.
+- **`ASSETCATALOG_COMPILER_APPICON_NAME` and
+  `LAUNCH_SCREEN_STORYBOARD_NAME`** (the two remaining iOS Xcode keys
+  `icons_launcher`/`flutter_native_splash` themselves don't manage,
+  beyond what `generateIosConfig` sets) are not touched by this package
+  at all — see `maybeGenerateNativeSplash`'s storyboard-registration note
+  in §5 for the one exception (the storyboard file reference).
+- **No CI/CD orchestration.** This package configures native files and
+  generates Dart code; it does not run or generate pipeline definitions
+  (Bitbucket/GitHub Actions/etc.) — wire its CLI commands into whatever
+  CI you already run.
 
 ---
 
