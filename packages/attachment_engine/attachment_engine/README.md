@@ -90,19 +90,20 @@ Full interactive viewer with zoom, swipe, full-screen playback, and action contr
 ```dart
 AttachmentViewer(
   attachment: attachment,
-  onActionComplete: (action) => print('Action completed: $action'),
-);
+)
 ```
 
 ### `AttachmentPreview`
 Lightweight thumbnail/card preview without initializing heavy platform controllers.
 ```dart
-AttachmentPreview(
-  attachment: attachment,
+SizedBox(
   width: 120,
   height: 120,
-  borderRadius: BorderRadius.circular(8),
-);
+  child: ClipRRect(
+    borderRadius: BorderRadius.circular(8),
+    child: AttachmentPreview(attachment: attachment),
+  ),
+)
 ```
 
 ### `AttachmentTile` & `AttachmentList`
@@ -110,8 +111,8 @@ Ready-made list tiles with progress indicator, capability action buttons, and re
 ```dart
 AttachmentList(
   attachments: attachmentList,
-  onAttachmentTap: (attachment) => AttachmentManager.instance.open(attachment),
-);
+  onTapAttachment: (attachment) => AttachmentManager.instance.open(attachment),
+)
 ```
 
 ---
@@ -121,21 +122,17 @@ AttachmentList(
 ```dart
 final manager = AttachmentManager.instance;
 
-// 1. Resolve and open an attachment
-final result = await manager.open(attachment);
+// 1. Resolve and open an attachment for viewing
+final resolved = await manager.open(attachment);
 
-// 2. Share attachment via OS native share sheet
-await manager.share(attachment);
+// 2. Share resolved attachment via OS native share sheet
+await manager.share(resolved.attachment);
 
-// 3. Download and cache with live progress stream
-final progressStream = manager.downloadWithProgress(attachment);
-progressStream.listen((event) {
-  print('Progress: ${event.percentage}% (${event.bytesReceived}/${event.totalBytes})');
-});
+// 3. Open in an external OS-provided application
+await manager.openExternally(resolved.attachment);
 
-// 4. Cache management
-await manager.clearCache();
-final cacheSizeInBytes = await manager.getCacheSize();
+// 4. Invalidate / delete local cache
+await manager.deleteCache(attachment);
 ```
 
 ---
