@@ -16,14 +16,14 @@ permissions:
   contents: read
   issues: write
 
+concurrency:
+  group: issue-triage-${{ github.event.issue.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   triage:
     name: triage
     runs-on: ubuntu-latest
-    if: github.event.issue != null
-    concurrency:
-      group: issue-metadata-${{ github.event.issue.number }}
-      cancel-in-progress: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -43,7 +43,14 @@ jobs:
             const body = issue.body || '';
             const text = `${title}\n${body}`;
 
-            const existingLabels = (issue.labels || []).map((l) => l.name);
+            // Fetch live issue data to avoid stale payload labels on rapid consecutive edits
+            const { data: liveIssue } = await github.rest.issues.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+            });
+
+            const existingLabels = (liveIssue.labels || []).map((l) => typeof l === 'string' ? l : l.name);
             const nextLabels = new Set(existingLabels);
 
             // ---- Package classification (p:*) ----
