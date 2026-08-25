@@ -1,9 +1,9 @@
+// swift-tools-version: 5.9
+// The swift-tools-version declares the minimum version of Swift required to build this package.
+
 // Copyright 2026 DHC Tech
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
-
-// swift-tools-version: 5.9
-// The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
