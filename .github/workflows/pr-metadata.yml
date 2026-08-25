@@ -138,22 +138,18 @@ jobs:
               if (r.user && r.state !== 'COMMENTED') latestReviewByUser.set(r.user.login, r.state);
             }
 
-            // Check Sourcery AI reviews for blocking issues
-            const sourceryReviews = reviews.filter((r) => (r.user?.login || '').includes('sourcery-ai'));
-            const latestSourceryReview = sourceryReviews.length > 0 ? sourceryReviews[sourceryReviews.length - 1] : null;
-            const sourceryHasIssues = latestSourceryReview && (
-              /found \d+ issue/i.test(latestSourceryReview.body || '') ||
-              /blocking findings/i.test(latestSourceryReview.body || '')
-            );
-
-            const hasChangesRequested = [...latestReviewByUser.values()].includes('CHANGES_REQUESTED') || sourceryHasIssues;
-            const hasApproval = [...latestReviewByUser.values()].includes('APPROVED');
-
             const { data: checkRuns } = await github.rest.checks.listForRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
               ref: pr.head.sha,
             });
+
+            // Check Sourcery AI status via its official check run
+            const sourceryRun = checkRuns.check_runs.find((c) => c.name.toLowerCase().includes('sourcery'));
+            const sourceryHasIssues = sourceryRun && sourceryRun.status === 'completed' && sourceryRun.conclusion === 'failure';
+
+            const hasChangesRequested = [...latestReviewByUser.values()].includes('CHANGES_REQUESTED') || sourceryHasIssues;
+            const hasApproval = [...latestReviewByUser.values()].includes('APPROVED');
 
             // Deduplicate and keep only the latest run for each unique check name
             const latestCheckByName = new Map();
@@ -180,6 +176,11 @@ jobs:
 
             for (const s of STATUS_LABELS) removeLabel(s);
             setLabel(status);
+
+            // Automatically remove autosubmit label if changes are requested, CI fails, or PR is blocked
+            if (['status:changes-requested', 'status:ci-failed', 'status:blocked'].includes(status)) {
+              removeLabel('autosubmit');
+            }
 
             // ---- apply label changes ----
             const finalLabels = [...nextLabels].sort();
