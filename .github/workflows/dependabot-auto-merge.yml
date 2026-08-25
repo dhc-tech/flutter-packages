@@ -16,6 +16,7 @@
 name: Dependabot Auto-Merge
 
 on:
+  # zizmor: ignore[dangerous-triggers] Safe here: zero code checkout, author strictly verified as dependabot[bot], and metadata only gates auto-merge
   pull_request_target:
     types: [opened, synchronize, reopened]
 
