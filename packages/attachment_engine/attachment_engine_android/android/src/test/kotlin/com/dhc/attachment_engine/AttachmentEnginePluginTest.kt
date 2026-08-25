@@ -1,9 +1,13 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 package com.dhc.attachment_engine
 
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import org.mockito.Mockito
 import kotlin.test.Test
+import org.mockito.Mockito
 
 /*
  * This demonstrates a simple unit test of the Kotlin portion of this plugin's implementation.
@@ -14,14 +18,14 @@ import kotlin.test.Test
  */
 
 internal class AttachmentEnginePluginTest {
-    @Test
-    fun onMethodCall_getPlatformVersion_returnsExpectedValue() {
-        val plugin = AttachmentEnginePlugin()
+  @Test
+  fun onMethodCall_getPlatformVersion_returnsExpectedValue() {
+    val plugin = AttachmentEnginePlugin()
 
-        val call = MethodCall("getPlatformVersion", null)
-        val mockResult: MethodChannel.Result = Mockito.mock(MethodChannel.Result::class.java)
-        plugin.onMethodCall(call, mockResult)
+    val call = MethodCall("getPlatformVersion", null)
+    val mockResult: MethodChannel.Result = Mockito.mock(MethodChannel.Result::class.java)
+    plugin.onMethodCall(call, mockResult)
 
-        Mockito.verify(mockResult).success("Android " + android.os.Build.VERSION.RELEASE)
-    }
+    Mockito.verify(mockResult).success("Android " + android.os.Build.VERSION.RELEASE)
+  }
 }

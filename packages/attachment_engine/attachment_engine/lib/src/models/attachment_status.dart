@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 /// Lifecycle status of an [Attachment] as it moves through discovery,
 /// resolution, caching, rendering and cleanup.
 enum AttachmentStatus {

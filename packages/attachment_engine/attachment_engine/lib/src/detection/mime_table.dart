@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 /// Hand-written extension -> MIME type lookup table, replacing the
 /// third-party `mime` package. Covers the formats referenced by
 /// [FormatDetector] / the capability spec. Not exhaustive, but sufficient

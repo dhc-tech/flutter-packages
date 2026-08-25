@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 /// Deduplicates concurrent operations that share the same logical key
 /// (e.g. `Attachment.stableIdentity`) so that N simultaneous callers
 /// requesting the same attachment trigger exactly one underlying

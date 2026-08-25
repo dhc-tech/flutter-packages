@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 import 'cache_metadata_store.dart';
 
 /// Retention rules for the attachment cache: a maximum total size with

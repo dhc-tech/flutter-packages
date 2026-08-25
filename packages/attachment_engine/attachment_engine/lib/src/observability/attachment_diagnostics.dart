@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 /// Safe internal logging/telemetry hook. A host app can implement this to
 /// bridge events into Crashlytics, Sentry, or its own analytics.
 ///

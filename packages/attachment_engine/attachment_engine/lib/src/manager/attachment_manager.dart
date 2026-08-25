@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 import '../cache/attachment_cache_manager.dart';
 import '../cache/cache_metadata_store.dart';
 import '../capability/capability_engine.dart';

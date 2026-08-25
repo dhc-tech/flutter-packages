@@ -1,3 +1,7 @@
+// Copyright 2026 DHC Tech
+// Use of this source code is governed by an MIT-style license that can be
+// found in the LICENSE file.
+
 /// Pure-Dart value types shared by [AttachmentEnginePlatform] and its
 /// implementations. None of these types reference `dart:ffi`,
 /// `MethodChannel`, or any other platform-specific transport — that keeps
