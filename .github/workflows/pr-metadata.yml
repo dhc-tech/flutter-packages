@@ -138,10 +138,11 @@ jobs:
               if (r.user && r.state !== 'COMMENTED') latestReviewByUser.set(r.user.login, r.state);
             }
 
-            // Check Sourcery AI reviews for blocking issues
+            // Check Sourcery AI reviews for blocking issues on the current commit
             const sourceryReviews = reviews.filter((r) => (r.user?.login || '').includes('sourcery-ai'));
             const latestSourceryReview = sourceryReviews.length > 0 ? sourceryReviews[sourceryReviews.length - 1] : null;
-            const sourceryHasIssues = latestSourceryReview && (
+            const sourceryReviewIsCurrent = latestSourceryReview && (latestSourceryReview.commit_id === pr.head.sha || !latestSourceryReview.commit_id);
+            const sourceryHasIssues = sourceryReviewIsCurrent && (
               /found \d+ issue/i.test(latestSourceryReview.body || '') ||
               /blocking findings/i.test(latestSourceryReview.body || '')
             );
