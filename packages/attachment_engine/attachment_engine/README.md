@@ -19,7 +19,7 @@ A comprehensive, production-grade federated Flutter engine for handling **every*
 
 | Feature | Android | iOS | macOS | Windows | Linux | Web |
 |---|---|---|---|---|---|---|
-| **PDF Viewing** | ✅ Native PDFKit / Surface | ✅ Native PDFKit | ✅ Native PDFKit | ✅ Embedded PDF | ✅ Native Viewer | ✅ Canvas / Web |
+| **PDF Viewing** | ✅ Native PDF Surface | ✅ Native PDFKit | ✅ Native PDFKit | ❌ Unimplemented | ❌ Unimplemented | ❌ Unimplemented |
 | **Video Playback** | ✅ MediaPlayer / Surface | ✅ AVPlayer | ✅ AVPlayer | ✅ Media Foundation | ✅ GStreamer | ✅ HTML5 Video |
 | **Audio Playback** | ✅ MediaPlayer | ✅ AVAudioPlayer | ✅ AVAudioPlayer | ✅ Media Foundation | ✅ GStreamer | ✅ HTML5 Audio |
 | **Office Documents** | ✅ External Open Fallback | ✅ Native QuickLook | ✅ Native QuickLook | ✅ Native Open | ✅ Native Open | ✅ In-Browser |
@@ -156,7 +156,7 @@ final customConfig = AttachmentEngineConfig(
   ),
 );
 
-await AttachmentManager.initialize(config: customConfig);
+await AttachmentManager.initializeDefault(config: customConfig);
 ```
 
 ---
