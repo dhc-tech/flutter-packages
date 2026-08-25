@@ -4,12 +4,12 @@
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/dhc-tech/flutter-packages/blob/main/LICENSE)
 [![platform](https://img.shields.io/badge/platform-android%20|%20ios%20|%20macos%20|%20windows%20|%20linux%20|%20web-blue.svg)](https://pub.dev/packages/attachment_engine)
 
-A comprehensive, production-grade federated Flutter engine for handling **every** attachment concern in modern mobile, desktop, and web applications:
+A comprehensive federated Flutter engine for handling attachment workflows across mobile, desktop, and web applications:
 
-* 📄 **Multi-Format Rendering**: Native PDF viewer, HTML5/SCORM player, rich text, images, and Office documents.
+* 📄 **Multi-Format Rendering**: Native PDF viewer (Android/iOS/macOS), HTML5/SCORM player, rich text, images, and Office documents.
 * 🎵 **Audio & Video Playback**: Full-screen viewer, inline player, background audio, and HLS streaming support.
 * 💾 **Resilient Cache Engine**: LRU eviction cap, SHA-256 key hashing, background download resume, and network deduplication.
-* 📱 **6-Platform Native Coverage**: Full native performance on **Android, iOS, macOS, Windows, Linux, and Web**.
+* 📱 **Multi-Platform Support**: Production-ready on **Android, iOS, macOS, and Web**; Development Preview on **Windows and Linux**.
 * 🎨 **Ready-to-Use UI Widgets**: `AttachmentViewer`, `AttachmentPreview`, `AttachmentTile`, `AttachmentList`, and `AttachmentGrid`.
 * 🛡️ **Zero-Crash Resilience**: Zip-slip protection, mime-type sniffing, corrupted file detection, and user-friendly error mapping.
 
@@ -17,15 +17,15 @@ A comprehensive, production-grade federated Flutter engine for handling **every*
 
 ## 📱 Platform Support Matrix
 
-| Feature | Android | iOS | macOS | Windows | Linux | Web |
+| Feature | Android | iOS | macOS | Windows (Preview) | Linux (Preview) | Web |
 |---|---|---|---|---|---|---|
 | **PDF Viewing** | ✅ Native PDF Surface | ✅ Native PDFKit | ✅ Native PDFKit | ❌ Unimplemented | ❌ Unimplemented | ❌ Unimplemented |
-| **Video Playback** | ✅ MediaPlayer / Surface | ✅ AVPlayer | ✅ AVPlayer | ✅ Media Foundation | ✅ GStreamer | ✅ HTML5 Video |
-| **Audio Playback** | ✅ MediaPlayer | ✅ AVAudioPlayer | ✅ AVAudioPlayer | ✅ Media Foundation | ✅ GStreamer | ✅ HTML5 Audio |
+| **Video Playback** | ✅ MediaPlayer / Surface | ✅ AVPlayer | ✅ AVPlayer | ⚠️ Media Foundation (Preview) | ⚠️ GStreamer (Preview) | ✅ HTML5 Video |
+| **Audio Playback** | ✅ MediaPlayer | ✅ AVAudioPlayer | ✅ AVAudioPlayer | ⚠️ Media Foundation (Preview) | ⚠️ GStreamer (Preview) | ✅ HTML5 Audio |
 | **Office Documents** | ✅ External Open Fallback | ✅ Native QuickLook | ✅ Native QuickLook | ✅ Native Open | ✅ Native Open | ✅ In-Browser |
 | **HTML / SCORM / H5P** | ✅ WebView | ✅ WKWebView | ✅ WKWebView | ✅ WebView | ✅ Web Surface | ✅ iframe / DOM |
-| **File Download** | ✅ Native / Resumable | ✅ NSURLSession | ✅ NSURLSession | ✅ Background IO | ✅ Background IO | ✅ Fetch + OPFS |
-| **System Share** | ✅ Android Sharesheet | ✅ UIActivityViewController | ✅ NSSharingService | ✅ Share Interop | ✅ FreeDesktop | ✅ Web Share API |
+| **File Download** | ✅ Native / Resumable | ✅ NSURLSession | ✅ NSURLSession | ✅ Background IO (dart:io) | ✅ Background IO (dart:io) | ✅ Fetch + OPFS |
+| **System Share** | ✅ Android Sharesheet | ✅ UIActivityViewController | ✅ NSSharingService | ⚠️ Share Interop (Preview) | ❌ Unimplemented | ✅ Web Share API |
 
 ---
 

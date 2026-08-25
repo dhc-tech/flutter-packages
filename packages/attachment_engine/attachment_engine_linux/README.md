@@ -7,11 +7,18 @@ The official Linux implementation of [`attachment_engine`](https://pub.dev/packa
 
 This package is endorsed by `attachment_engine` and is pulled in automatically for Linux desktop applications.
 
-## Architecture
+## Status
 
-* **File Operations**: FreeDesktop MIME integration and native path resolution.
-* **Download Engine**: Multi-stream background downloader via `dart:io`.
-* **External Launchers**: FreeDesktop OpenURI integration.
+**Development Preview**:
+* **Pure Dart (Verified)**:
+  * **Paths**: `path_provider` support for application and cache directories.
+  * **Open Externally**: `url_launcher` / FreeDesktop OpenURI integration.
+  * **Download**: Resumable multi-stream background downloader via `dart:io`.
+* **Native C (Preview)**:
+  * **Media Playback**: GStreamer `playbin` and `gtksink` GTK overlay.
+* **Platform Limitations & Unimplemented**:
+  * **Share**: Linux has no universal desktop environment-agnostic share portal; throws `UnimplementedError`.
+  * **PDF & WebView**: Native embedded surfaces are currently unimplemented.
 
 ## Usage
 
