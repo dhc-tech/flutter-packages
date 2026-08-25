@@ -20,8 +20,9 @@ jobs:
   release:
     name: release
     permissions:
-      # Release needs to push a tag back to the repo.
+      # Release needs to push a tag back to the repo and read validate checks.
       contents: write
+      checks: read
     runs-on: ubuntu-latest
     steps:
     # Checks out a copy of the repo.
@@ -38,14 +39,33 @@ jobs:
 
     # Wait for this SHA's 'validate' check to finish successfully before publishing
     - name: Wait for validate check
-      uses: lewagon/wait-on-check-action@369769072fe522a3a8a85c03c96af1e5242a1994 # v1.9.1
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v8.0.0
       with:
-        ref: ${{ github.sha }}
-        check-name: 'validate'
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        wait-interval: 15
-        allowed-conclusions: success,neutral
-        verbose: false
+        script: |
+          const targetSha = '${{ github.sha }}';
+          core.info(`Waiting for validate check to complete on ${targetSha}...`);
+
+          for (let i = 0; i < 30; i++) {
+            const { data } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: targetSha,
+              check_name: 'validate',
+            });
+            const validateCheck = data.check_runs.find((c) => c.name === 'validate');
+            if (validateCheck && validateCheck.status === 'completed') {
+              if (validateCheck.conclusion === 'success') {
+                core.info('Validate check passed successfully!');
+                return;
+              } else {
+                core.setFailed(`Validate check finished with conclusion: ${validateCheck.conclusion}`);
+                return;
+              }
+            }
+            core.info(`Validate check status: ${validateCheck ? validateCheck.status : 'pending/queued'}, waiting 15s...`);
+            await new Promise((r) => setTimeout(r, 15000));
+          }
+          core.setFailed('Timed out waiting for validate check to complete');
 
     - name: run release
       run: |
