@@ -16,6 +16,7 @@
 name: Dependabot Auto-Merge
 
 on:
+  # zizmor: ignore[dangerous-triggers] Safe here: workflow has zero checkout steps and only evaluates dependabot metadata
   pull_request_target:
     types: [opened, synchronize, reopened]
 
