@@ -345,16 +345,20 @@ abstract class PackageCommand extends Command<void> {
   ///
   /// By default, packages excluded via --exclude will not be in the stream, but
   /// they can be included by passing false for [filterExcluded].
+  /// Comparator used to sort packages in [getTargetPackages] prior to sharding.
+  /// Subclasses can override this to ensure packages are ordered (e.g. by
+  /// dependency tier) before shard partitions are computed.
+  int comparePackages(PackageEnumerationEntry p1, PackageEnumerationEntry p2) {
+    return p1.package.path.compareTo(p2.package.path);
+  }
+
   Stream<PackageEnumerationEntry> getTargetPackages({bool filterExcluded = true}) async* {
     // To avoid assuming consistency of `Directory.list` across command
     // invocations, we collect and sort the package folders before sharding.
     // This is considered an implementation detail which is why the API still
     // uses streams.
     final List<PackageEnumerationEntry> allPackages = await _getAllPackages().toList();
-    allPackages.sort(
-      (PackageEnumerationEntry p1, PackageEnumerationEntry p2) =>
-          p1.package.path.compareTo(p2.package.path),
-    );
+    allPackages.sort(comparePackages);
     final int shardSize =
         allPackages.length ~/ shardCount + (allPackages.length % shardCount == 0 ? 0 : 1);
     final int start = min(shardIndex * shardSize, allPackages.length);

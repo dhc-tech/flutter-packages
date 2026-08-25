@@ -205,6 +205,16 @@ class PublishCommand extends PackageLoopingCommand {
   }
 
   @override
+  int comparePackages(PackageEnumerationEntry p1, PackageEnumerationEntry p2) {
+    final int pA = _publishPriority(p1.package.directory.basename);
+    final int pB = _publishPriority(p2.package.directory.basename);
+    if (pA != pB) {
+      return pA.compareTo(pB);
+    }
+    return p1.package.path.compareTo(p2.package.path);
+  }
+
+  @override
   Stream<PackageEnumerationEntry> getPackagesToProcess() async* {
     final String batchReleaseBranchName = getStringArg(_batchReleaseBranchOption);
     final packagesToProcess = <PackageEnumerationEntry>[];
