@@ -36,29 +36,14 @@ jobs:
       run: dart pub get
       working-directory: ${{ github.workspace }}/script/tool
 
-    # Wait for this SHA's 'validate' check to register, then for every check
-    # on the SHA to finish, using the Marketplace lewagon/wait-on-check-action
-    # (actively maintained). Previously this pointed at 'Linux ci_yaml
-    # packages roller', a check name that only exists in flutter/packages'
-    # own Cocoon/LUCI infrastructure and never runs on this fork — pointed at
-    # this repo's own 'validate' check instead.
-    - name: Wait for test check-in
+    # Wait for this SHA's 'validate' check to finish successfully before publishing
+    - name: Wait for validate check
       uses: lewagon/wait-on-check-action@369769072fe522a3a8a85c03c96af1e5242a1994 # v1.9.1
       with:
         ref: ${{ github.sha }}
         check-name: 'validate'
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        wait-interval: 30
-        allowed-conclusions: success,neutral
-        verbose: false
-
-    - name: Wait on all tests
-      uses: lewagon/wait-on-check-action@369769072fe522a3a8a85c03c96af1e5242a1994 # v1.9.1
-      with:
-        ref: ${{ github.sha }}
-        running-workflow-name: 'release'
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
-        wait-interval: 60
+        wait-interval: 15
         allowed-conclusions: success,neutral
         verbose: false
 
