@@ -8,6 +8,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     groups:
       all-github-actions:
         patterns: [ "*" ]
@@ -24,6 +26,8 @@ updates:
     directory: "/packages/white_label_kit"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     labels:
       - "p: white_label_kit"
       - "infra: dependencies"
@@ -32,6 +36,8 @@ updates:
     directory: "/packages/dig_cli"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     labels:
       - "p: dig_cli"
       - "infra: dependencies"
@@ -40,6 +46,8 @@ updates:
     directory: "/packages/apple_sign_in_plugin/apple_sign_in_plugin"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     labels:
       - "p: apple_sign_in_plugin"
       - "infra: dependencies"
@@ -48,6 +56,8 @@ updates:
     directory: "/packages/apple_sign_in_plugin/apple_sign_in_plugin_platform_interface"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     labels:
       - "p: apple_sign_in_plugin"
       - "infra: dependencies"
@@ -56,6 +66,8 @@ updates:
     directory: "/script/tool"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     labels:
       - "infra: dependencies"
       - "infra: workflows"
