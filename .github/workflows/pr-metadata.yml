@@ -28,7 +28,7 @@ name: PR Metadata
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, edited, ready_for_review, converted_to_draft]
+    types: [opened, reopened, synchronize, edited, ready_for_review, converted_to_draft, labeled, unlabeled]
   pull_request_review:
     types: [submitted, dismissed]
   check_suite:
@@ -137,7 +137,16 @@ jobs:
             for (const r of reviews) {
               if (r.user && r.state !== 'COMMENTED') latestReviewByUser.set(r.user.login, r.state);
             }
-            const hasChangesRequested = [...latestReviewByUser.values()].includes('CHANGES_REQUESTED');
+
+            // Check Sourcery AI reviews for blocking issues
+            const sourceryReviews = reviews.filter((r) => (r.user?.login || '').includes('sourcery-ai'));
+            const latestSourceryReview = sourceryReviews.length > 0 ? sourceryReviews[sourceryReviews.length - 1] : null;
+            const sourceryHasIssues = latestSourceryReview && (
+              /found \d+ issue/i.test(latestSourceryReview.body || '') ||
+              /blocking findings/i.test(latestSourceryReview.body || '')
+            );
+
+            const hasChangesRequested = [...latestReviewByUser.values()].includes('CHANGES_REQUESTED') || sourceryHasIssues;
             const hasApproval = [...latestReviewByUser.values()].includes('APPROVED');
 
             const { data: checkRuns } = await github.rest.checks.listForRef({
@@ -145,9 +154,19 @@ jobs:
               repo: context.repo.repo,
               ref: pr.head.sha,
             });
-            const relevantRuns = checkRuns.check_runs.filter((c) => c.name !== 'classify');
+
+            // Deduplicate and keep only the latest run for each unique check name
+            const latestCheckByName = new Map();
+            for (const c of checkRuns.check_runs) {
+              if (c.name === 'classify' || c.name === 'PR Metadata / classify') continue;
+              const prev = latestCheckByName.get(c.name);
+              if (!prev || new Date(c.started_at || 0) > new Date(prev.started_at || 0)) {
+                latestCheckByName.set(c.name, c);
+              }
+            }
+            const relevantRuns = [...latestCheckByName.values()];
             const anyFailed = relevantRuns.some((c) =>
-              ['failure', 'cancelled', 'timed_out'].includes(c.conclusion),
+              c.status === 'completed' && ['failure', 'timed_out'].includes(c.conclusion),
             );
             const anyPending = relevantRuns.some((c) => c.status !== 'completed');
 
@@ -173,19 +192,50 @@ jobs:
               });
             }
 
-            // ---- native auto-merge for non-dependency PRs once ready ----
-            if (status === 'status:ready' && !isDependencyPr && !pr.auto_merge) {
-              try {
-                await github.graphql(
-                  `mutation($id: ID!) {
-                    enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: SQUASH }) {
-                      clientMutationId
+            // ---- native auto-merge for PRs with autosubmit or when ready ----
+            const hasAutosubmit = nextLabels.has('autosubmit');
+            if (status === 'status:ready' && !isDependencyPr) {
+              if (hasAutosubmit) {
+                try {
+                  // Direct squash-merge if approved and all checks passed
+                  await github.rest.pulls.merge({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: prNumber,
+                    merge_method: 'squash',
+                  });
+                  core.info(`Automatically squash-merged #${prNumber} via autosubmit label.`);
+                } catch (mergeErr) {
+                  core.info(`Direct merge not yet completed, enabling GraphQL auto-merge: ${mergeErr.message}`);
+                  if (!pr.auto_merge) {
+                    try {
+                      await github.graphql(
+                        `mutation($id: ID!) {
+                          enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: SQUASH }) {
+                            clientMutationId
+                          }
+                        }`,
+                        { id: pr.node_id },
+                      );
+                      core.info(`Enabled native auto-merge for #${prNumber}.`);
+                    } catch (err) {
+                      core.warning(`Could not enable auto-merge for #${prNumber}: ${err.message}`);
                     }
-                  }`,
-                  { id: pr.node_id },
-                );
-                core.info(`Enabled native auto-merge for #${prNumber}.`);
-              } catch (err) {
-                core.warning(`Could not enable auto-merge for #${prNumber}: ${err.message}`);
+                  }
+                }
+              } else if (!pr.auto_merge) {
+                try {
+                  await github.graphql(
+                    `mutation($id: ID!) {
+                      enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: SQUASH }) {
+                        clientMutationId
+                      }
+                    }`,
+                    { id: pr.node_id },
+                  );
+                  core.info(`Enabled native auto-merge for #${prNumber}.`);
+                } catch (err) {
+                  core.warning(`Could not enable auto-merge for #${prNumber}: ${err.message}`);
+                }
               }
             }

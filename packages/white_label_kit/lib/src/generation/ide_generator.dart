@@ -18,26 +18,74 @@ class IdeGenerator {
   /// static methods.
   const IdeGenerator();
 
-  /// Generates or updates IDE configurations for [tenant] in [projectRoot].
-  static void generate(TenantConfig tenant, {required String projectRoot}) {
-    generateVsCodeConfig(tenant, projectRoot: projectRoot);
-    generateVsCodeTasks(tenant, projectRoot: projectRoot);
-    generateIntelliJConfigs(tenant, projectRoot: projectRoot);
+  /// Generates or updates IDE configurations for [tenant].
+  ///
+  /// [projectRoot] is the root directory of the Flutter application.
+  /// [ideRoot] is the directory where `.vscode` and `.run` configurations
+  /// will be written. Defaults to [projectRoot] if omitted.
+  /// [configPath] is the optional path to a custom `white_label.yaml` file.
+  static void generate(
+    TenantConfig tenant, {
+    required String projectRoot,
+    String? ideRoot,
+    String? configPath,
+  }) {
+    final String effectiveIdeRoot = ideRoot ?? projectRoot;
+    generateVsCodeConfig(
+      tenant,
+      projectRoot: projectRoot,
+      ideRoot: effectiveIdeRoot,
+    );
+    generateVsCodeTasks(
+      tenant,
+      projectRoot: projectRoot,
+      ideRoot: effectiveIdeRoot,
+      configPath: configPath,
+    );
+    generateIntelliJConfigs(
+      tenant,
+      projectRoot: projectRoot,
+      ideRoot: effectiveIdeRoot,
+      configPath: configPath,
+    );
   }
 
-  /// Removes IDE configurations for [tenantId] from [projectRoot].
-  static void remove(String tenantId, {required String projectRoot}) {
-    removeVsCodeConfig(tenantId, projectRoot: projectRoot);
-    removeVsCodeTasks(tenantId, projectRoot: projectRoot);
-    removeIntelliJConfigs(tenantId, projectRoot: projectRoot);
+  /// Removes IDE configurations for [tenantId].
+  ///
+  /// [projectRoot] is the root directory of the Flutter application.
+  /// [ideRoot] is the directory where `.vscode` and `.run` configurations
+  /// are stored. Defaults to [projectRoot] if omitted.
+  static void remove(
+    String tenantId, {
+    required String projectRoot,
+    String? ideRoot,
+  }) {
+    final String effectiveIdeRoot = ideRoot ?? projectRoot;
+    removeVsCodeConfig(
+      tenantId,
+      projectRoot: projectRoot,
+      ideRoot: effectiveIdeRoot,
+    );
+    removeVsCodeTasks(
+      tenantId,
+      projectRoot: projectRoot,
+      ideRoot: effectiveIdeRoot,
+    );
+    removeIntelliJConfigs(
+      tenantId,
+      projectRoot: projectRoot,
+      ideRoot: effectiveIdeRoot,
+    );
   }
 
-  /// Generates VS Code configurations in `<projectRoot>/.vscode/launch.json`.
+  /// Generates VS Code configurations in `<ideRoot>/.vscode/launch.json`.
   static void generateVsCodeConfig(
     TenantConfig tenant, {
     required String projectRoot,
+    String? ideRoot,
   }) {
-    final vscodeDir = Directory(p.join(projectRoot, '.vscode'));
+    final String effectiveIdeRoot = ideRoot ?? projectRoot;
+    final vscodeDir = Directory(p.join(effectiveIdeRoot, '.vscode'));
     if (!vscodeDir.existsSync()) {
       vscodeDir.createSync(recursive: true);
     }
@@ -84,12 +132,17 @@ class IdeGenerator {
       {'suffix': '(release)', 'mode': 'release'},
     ];
 
+    final String relProj = p.relative(projectRoot, from: effectiveIdeRoot);
+    final String programPath = (relProj == '.' || relProj.isEmpty)
+        ? 'lib/main.dart'
+        : p.posix.joinAll([...p.split(relProj), 'lib', 'main.dart']);
+
     for (final mode in modes) {
       final config = <String, dynamic>{
         'name': '${tenant.name} ${mode['suffix']}',
         'request': 'launch',
         'type': 'dart',
-        'program': 'lib/main.dart',
+        'program': programPath,
         if (mode['mode'] != 'debug') 'flutterMode': mode['mode'],
         'args': <String>[
           '--flavor',
@@ -105,12 +158,15 @@ class IdeGenerator {
     launchFile.writeAsStringSync('${encoder.convert(data)}\n');
   }
 
-  /// Generates VS Code 1-click build tasks in `<projectRoot>/.vscode/tasks.json`.
+  /// Generates VS Code 1-click build tasks in `<ideRoot>/.vscode/tasks.json`.
   static void generateVsCodeTasks(
     TenantConfig tenant, {
     required String projectRoot,
+    String? ideRoot,
+    String? configPath,
   }) {
-    final vscodeDir = Directory(p.join(projectRoot, '.vscode'));
+    final String effectiveIdeRoot = ideRoot ?? projectRoot;
+    final vscodeDir = Directory(p.join(effectiveIdeRoot, '.vscode'));
     if (!vscodeDir.existsSync()) {
       vscodeDir.createSync(recursive: true);
     }
@@ -141,11 +197,32 @@ class IdeGenerator {
           label.contains('(${tenant.id})');
     });
 
+    final String relProj = p.relative(projectRoot, from: effectiveIdeRoot);
+    final bool isMonorepo = relProj != '.' && relProj.isNotEmpty;
+    final String relProjPosix = isMonorepo
+        ? p.posix.joinAll(p.split(relProj))
+        : '';
+    final String relIdeFromProj = isMonorepo
+        ? p.posix.joinAll(
+            p.split(p.relative(effectiveIdeRoot, from: projectRoot)),
+          )
+        : '.';
+
+    final String shellEscapedRelProj = relProjPosix.replaceAll("'", r"'\''");
+    final String shellEscapedRelIde = relIdeFromProj.replaceAll("'", r"'\''");
+    final String configFlag = configPath != null
+        ? " --config '${configPath.replaceAll("'", r"'\''")}'"
+        : '';
+
+    final String cdPrefix = isMonorepo ? "cd '$shellEscapedRelProj' && " : '';
+    final String generateCmd =
+        'dart run white_label_kit:generate --tenant ${tenant.id}$configFlag';
+
     tasks.add({
       'label': '🚀 Build Release APK (${tenant.name})',
       'type': 'shell',
       'command':
-          'dart run white_label_kit:generate --tenant ${tenant.id} && flutter build apk --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
+          '$cdPrefix$generateCmd && flutter build apk --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
       'group': {'kind': 'build', 'isDefault': true},
       'problemMatcher': <String>[],
     });
@@ -154,7 +231,7 @@ class IdeGenerator {
       'label': '📦 Build Release AppBundle (${tenant.name})',
       'type': 'shell',
       'command':
-          'dart run white_label_kit:generate --tenant ${tenant.id} && flutter build appbundle --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
+          '$cdPrefix$generateCmd && flutter build appbundle --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
       'group': 'build',
       'problemMatcher': <String>[],
     });
@@ -163,20 +240,23 @@ class IdeGenerator {
       'label': '🍎 Build Release iOS (${tenant.name})',
       'type': 'shell',
       'command':
-          'dart run white_label_kit:generate --tenant ${tenant.id} && flutter build ios --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
+          '$cdPrefix$generateCmd && flutter build ios --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
       'group': 'build',
       'problemMatcher': <String>[],
     });
 
     // Ensure general configure task exists
-    if (!tasks.any((t) => t['label'] == '🔧 Configure White-Label')) {
-      tasks.add({
-        'label': '🔧 Configure White-Label',
-        'type': 'shell',
-        'command': 'dart run white_label_kit:configure',
-        'problemMatcher': <String>[],
-      });
-    }
+    final String configureCmd = isMonorepo
+        ? "cd '$shellEscapedRelProj' && dart run white_label_kit:configure --ide-root '$shellEscapedRelIde'$configFlag"
+        : 'dart run white_label_kit:configure$configFlag';
+
+    tasks.removeWhere((t) => t['label'] == '🔧 Configure White-Label');
+    tasks.add({
+      'label': '🔧 Configure White-Label',
+      'type': 'shell',
+      'command': configureCmd,
+      'problemMatcher': <String>[],
+    });
 
     data['tasks'] = tasks;
     const encoder = JsonEncoder.withIndent('  ');
@@ -187,8 +267,10 @@ class IdeGenerator {
   static void removeVsCodeConfig(
     String tenantId, {
     required String projectRoot,
+    String? ideRoot,
   }) {
-    final launchFile = File(p.join(projectRoot, '.vscode', 'launch.json'));
+    final String effectiveIdeRoot = ideRoot ?? projectRoot;
+    final launchFile = File(p.join(effectiveIdeRoot, '.vscode', 'launch.json'));
     if (!launchFile.existsSync()) {
       return;
     }
@@ -224,8 +306,10 @@ class IdeGenerator {
   static void removeVsCodeTasks(
     String tenantId, {
     required String projectRoot,
+    String? ideRoot,
   }) {
-    final tasksFile = File(p.join(projectRoot, '.vscode', 'tasks.json'));
+    final String effectiveIdeRoot = ideRoot ?? projectRoot;
+    final tasksFile = File(p.join(effectiveIdeRoot, '.vscode', 'tasks.json'));
     if (!tasksFile.existsSync()) {
       return;
     }
@@ -252,20 +336,42 @@ class IdeGenerator {
     } catch (_) {}
   }
 
-  /// Generates Android Studio / IntelliJ IDEA run configs in `<projectRoot>/.run/`.
+  /// Generates Android Studio / IntelliJ IDEA run configs in `<ideRoot>/.run/`.
   static void generateIntelliJConfigs(
     TenantConfig tenant, {
     required String projectRoot,
+    String? ideRoot,
+    String? configPath,
   }) {
-    final runDir = Directory(p.join(projectRoot, '.run'));
+    final String effectiveIdeRoot = ideRoot ?? projectRoot;
+    final runDir = Directory(p.join(effectiveIdeRoot, '.run'));
     if (!runDir.existsSync()) {
       runDir.createSync(recursive: true);
     }
+
+    final String relProj = p.relative(projectRoot, from: effectiveIdeRoot);
+    final bool isMonorepo = relProj != '.' && relProj.isNotEmpty;
+    final String relProjPosix = isMonorepo
+        ? p.posix.joinAll(p.split(relProj))
+        : '';
+
+    final String configFlag = configPath != null
+        ? " --config '${configPath.replaceAll("'", r"'\''")}'"
+        : '';
+
+    final String filePath = isMonorepo
+        ? '\$PROJECT_DIR\$/$relProjPosix/lib/main.dart'
+        : '\$PROJECT_DIR\$/lib/main.dart';
+
+    final String scriptWorkingDir = isMonorepo
+        ? '\$PROJECT_DIR\$/$relProjPosix'
+        : '\$PROJECT_DIR\$';
 
     // 1. Flutter Debug Run
     final String debugXml = _intellijFlutterRunConfigXml(
       name: '${tenant.name} (debug)',
       flavor: tenant.id,
+      filePath: filePath,
     );
     File(p.join(runDir.path, '${tenant.id}_debug.run.xml'))
         .writeAsStringSync(debugXml);
@@ -274,6 +380,7 @@ class IdeGenerator {
     final String releaseXml = _intellijFlutterRunConfigXml(
       name: '${tenant.name} (release)',
       flavor: tenant.id,
+      filePath: filePath,
       extraArgs: '--release',
     );
     File(p.join(runDir.path, '${tenant.id}_release.run.xml'))
@@ -283,7 +390,8 @@ class IdeGenerator {
     final String buildApkXml = _intellijShellRunConfigXml(
       name: '🚀 Build APK (${tenant.name})',
       script:
-          'dart run white_label_kit:generate --tenant ${tenant.id} && flutter build apk --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
+          'dart run white_label_kit:generate --tenant ${tenant.id}$configFlag && flutter build apk --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
+      workingDirectory: scriptWorkingDir,
     );
     File(p.join(runDir.path, '${tenant.id}_build_apk.run.xml'))
         .writeAsStringSync(buildApkXml);
@@ -292,7 +400,8 @@ class IdeGenerator {
     final String buildAabXml = _intellijShellRunConfigXml(
       name: '📦 Build AppBundle (${tenant.name})',
       script:
-          'dart run white_label_kit:generate --tenant ${tenant.id} && flutter build appbundle --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
+          'dart run white_label_kit:generate --tenant ${tenant.id}$configFlag && flutter build appbundle --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
+      workingDirectory: scriptWorkingDir,
     );
     File(p.join(runDir.path, '${tenant.id}_build_appbundle.run.xml'))
         .writeAsStringSync(buildAabXml);
@@ -301,15 +410,28 @@ class IdeGenerator {
     final String buildIosXml = _intellijShellRunConfigXml(
       name: '🍎 Build iOS (${tenant.name})',
       script:
-          'dart run white_label_kit:generate --tenant ${tenant.id} && flutter build ios --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
+          'dart run white_label_kit:generate --tenant ${tenant.id}$configFlag && flutter build ios --release --flavor ${tenant.id} --dart-define=TENANT_ID=${tenant.id}',
+      workingDirectory: scriptWorkingDir,
     );
     File(p.join(runDir.path, '${tenant.id}_build_ios.run.xml'))
         .writeAsStringSync(buildIosXml);
 
     // 6. Configure White-Label
+    final String relIdeFromProj = isMonorepo
+        ? p.posix.joinAll(
+            p.split(p.relative(effectiveIdeRoot, from: projectRoot)),
+          )
+        : '.';
+    final String shellEscapedRelIde = relIdeFromProj.replaceAll("'", r"'\''");
+
+    final String configureScript = isMonorepo
+        ? "dart run white_label_kit:configure --ide-root '$shellEscapedRelIde'$configFlag"
+        : 'dart run white_label_kit:configure$configFlag';
+
     final String configureXml = _intellijShellRunConfigXml(
       name: '🔧 Configure White-Label',
-      script: 'dart run white_label_kit:configure',
+      script: configureScript,
+      workingDirectory: scriptWorkingDir,
     );
     File(p.join(runDir.path, 'configure_white_label.run.xml'))
         .writeAsStringSync(configureXml);
@@ -319,8 +441,10 @@ class IdeGenerator {
   static void removeIntelliJConfigs(
     String tenantId, {
     required String projectRoot,
+    String? ideRoot,
   }) {
-    final runDir = Directory(p.join(projectRoot, '.run'));
+    final String effectiveIdeRoot = ideRoot ?? projectRoot;
+    final runDir = Directory(p.join(effectiveIdeRoot, '.run'));
     if (!runDir.existsSync()) {
       return;
     }
@@ -338,6 +462,7 @@ class IdeGenerator {
   static String _intellijFlutterRunConfigXml({
     required String name,
     required String flavor,
+    String filePath = r'$PROJECT_DIR$/lib/main.dart',
     String? extraArgs,
   }) {
     final String args = [
@@ -349,7 +474,7 @@ class IdeGenerator {
 <component name="ProjectRunConfigurationManager">
   <!-- Generated by white_label_kit — DO NOT EDIT BY HAND -->
   <configuration default="false" name="$name" type="FlutterRunConfigurationType" factoryName="Flutter">
-    <option name="filePath" value="\$PROJECT_DIR\$/lib/main.dart" />
+    <option name="filePath" value="$filePath" />
     <option name="buildFlavor" value="$flavor" />
     <option name="additionalArgs" value="$args" />
     <method v="2" />
@@ -361,6 +486,7 @@ class IdeGenerator {
   static String _intellijShellRunConfigXml({
     required String name,
     required String script,
+    String workingDirectory = r'$PROJECT_DIR$',
   }) {
     return '''
 <component name="ProjectRunConfigurationManager">
@@ -371,7 +497,7 @@ class IdeGenerator {
     <option name="SCRIPT_PATH" value="" />
     <option name="SCRIPT_OPTIONS" value="" />
     <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
-    <option name="SCRIPT_WORKING_DIRECTORY" value="\$PROJECT_DIR\$" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$workingDirectory" />
     <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
     <option name="INTERPRETER_PATH" value="/bin/zsh" />
     <option name="INTERPRETER_OPTIONS" value="" />

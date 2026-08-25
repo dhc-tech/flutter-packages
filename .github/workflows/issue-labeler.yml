@@ -2,32 +2,177 @@
 # Use of this source code is governed by an MIT-style license that can be
 # found in the LICENSE file.
 #
-# Official github/issue-labeler: keyword/regex-based issue triage. Chosen
-# over an AI issue-triage app because there is no well-maintained,
-# non-duplicate Marketplace App for this specific task (Sourcery and
-# similar review apps only operate on PR diffs, not issue text), and this
-# official action covers the actual need (route new issues to the right
-# package/type label) without adding another third-party dependency.
+# Single consolidated Issue classification and triage engine, matching
+# pr-metadata.yml. Built on the official actions/github-script action to
+# avoid fragile marketplace action dependencies.
 
-name: Issue Labeler
+name: Issue Metadata & Triage
 
 on:
   issues:
     types: [opened, edited]
 
 permissions:
-  issues: write
   contents: read
+  issues: write
+
+concurrency:
+  group: issue-metadata-${{ github.event.issue.number }}
+  cancel-in-progress: true
 
 jobs:
   triage:
     name: triage
     runs-on: ubuntu-latest
     steps:
-      - uses: github/issue-labeler@c1b0f9f52a63158c4adc09425e858e87b32e9685 # v3.4
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
         with:
-          configuration-path: .github/issue-labeler.yml
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          include-title: 1
-          include-body: 1
-          sync-labels: 1
+          persist-credentials: false
+
+      - name: Classify, label, and assign issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v8.0.0
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        with:
+          script: |
+            const issue = context.payload.issue;
+            if (!issue) return;
+
+            const title = issue.title || '';
+            const body = issue.body || '';
+            const text = `${title}\n${body}`;
+
+            const existingLabels = (issue.labels || []).map((l) => l.name);
+            const nextLabels = new Set(existingLabels);
+
+            // ---- Package classification (p:*) ----
+            const PACKAGE_RULES = [
+              { label: 'p: white_label_kit', regex: /white[_ -]?label/i },
+              { label: 'p: dig_cli', regex: /dig[_ -]?cli/i },
+              { label: 'p: apple_sign_in_plugin', regex: /apple[_ -]?sign[_ -]?in/i },
+            ];
+            for (const { label, regex } of PACKAGE_RULES) {
+              if (regex.test(text)) nextLabels.add(label);
+            }
+
+            // ---- Type classification (type:*) ----
+            if (/\[Bug\]/i.test(title) || /\b(bug|crash|error|exception|broken|doesn't work|not working)\b/i.test(text)) {
+              nextLabels.add('type:fix');
+            }
+            if (/\[Feature\]/i.test(title) || /\b(feature request|feature|enhancement|proposal)\b/i.test(text)) {
+              nextLabels.add('type:feat');
+            }
+            if (/\b(docs?|documentation|readme)\b/i.test(text)) {
+              nextLabels.add('documentation');
+            }
+            if (/\b(ci|github actions?|workflows?|pipelines?)\b/i.test(text)) {
+              nextLabels.add('infra: workflows');
+            }
+            if (/\bbreaking[_ -]?change\b/i.test(text)) {
+              nextLabels.add('breaking-change');
+            }
+
+            // ---- Apply labels ----
+            const finalLabels = [...nextLabels].sort();
+            if (JSON.stringify(finalLabels) !== JSON.stringify([...existingLabels].sort())) {
+              await github.rest.issues.setLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: finalLabels,
+              });
+              core.info(`Updated labels for #${issue.number}: ${finalLabels.join(', ')}`);
+            }
+
+            // ---- Auto-assign maintainer on open ----
+            if (context.payload.action === 'opened') {
+              const currentAssignees = (issue.assignees || []).map((a) => a.login);
+              if (!currentAssignees.includes('dhc-tech')) {
+                await github.rest.issues.addAssignees({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  assignees: ['dhc-tech'],
+                });
+                core.info(`Assigned dhc-tech to #${issue.number}`);
+              }
+            }
+
+            // ---- Smart AI Triage / Auto-comment on open ----
+            if (context.payload.action === 'opened') {
+              const packageNames = PACKAGE_RULES.filter((r) => r.regex.test(text)).map((r) => r.label);
+              const targetPkg = packageNames.length > 0 ? packageNames.join(', ') : 'general repository';
+
+              let commentBody = '';
+              const groqKey = process.env.GROQ_API_KEY;
+
+              if (groqKey && groqKey.trim().length > 0) {
+                try {
+                  const aiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${groqKey.trim()}`,
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      model: 'llama-3.3-70b-versatile',
+                      messages: [
+                        {
+                          role: 'system',
+                          content: 'You are the official AI Technical Assistant for DHC Tech Flutter Packages monorepo (packages: white_label_kit, dig_cli, apple_sign_in_plugin). Provide a helpful, technical, concise initial triage comment on this newly opened issue. Give troubleshooting advice, check if reproduction details or Flutter doctor output are needed, and provide relevant tips. Format in clean markdown.',
+                        },
+                        {
+                          role: 'user',
+                          content: `Issue Title: ${title}\nTarget Package: ${targetPkg}\nIssue Content:\n${body}`,
+                        },
+                      ],
+                      temperature: 0.3,
+                      max_tokens: 800,
+                    }),
+                  });
+
+                  if (aiRes.ok) {
+                    const aiData = await aiRes.json();
+                    const aiContent = aiData.choices?.[0]?.message?.content;
+                    if (aiContent && aiContent.trim().length > 0) {
+                      commentBody = `### 👋 Thank you for reporting!
+
+We have categorized this issue for **${targetPkg}** and assigned maintainer @dhc-tech.
+
+---
+### 🤖 AI Triage & Guidance:
+${aiContent.trim()}
+
+---
+_Auto-triage powered by Groq Llama 3.3. Maintainer @dhc-tech will follow up soon!_`;
+                    }
+                  } else {
+                    core.warning(`Groq API responded with status: ${aiRes.status}`);
+                  }
+                } catch (err) {
+                  core.warning(`Groq AI triage call failed: ${err.message}`);
+                }
+              }
+
+              // Fallback to standard template if AI was not available
+              if (!commentBody) {
+                commentBody = `### 👋 Thank you for reporting!
+
+We have automatically categorized this issue for **${targetPkg}** and assigned maintainer @dhc-tech for review.
+
+---
+#### 📋 Next Steps & Tips:
+- If this is a **bug**, please make sure you provided the exact package version, Flutter \`flutter doctor -v\` output, and a minimal reproducible snippet.
+- If this is a **feature request**, please provide any relevant API design thoughts or specific use cases.
+- We will review this and follow up shortly!`;
+              }
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: commentBody,
+              });
+              core.info(`Posted automated welcome & triage comment on #${issue.number}`);
+            }

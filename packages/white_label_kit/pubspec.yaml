@@ -4,7 +4,7 @@ description: >-
   apps. Automatically configures Android Gradle and iOS Xcode schemes from a single YAML file.
 repository: https://github.com/dhc-tech/flutter-packages/tree/main/packages/white_label_kit
 issue_tracker: https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+white_label_kit%22
-version: 0.0.5
+version: 0.0.6
 
 environment:
   sdk: ^3.13.0
