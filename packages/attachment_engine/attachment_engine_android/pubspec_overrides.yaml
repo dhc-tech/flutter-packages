@@ -1,0 +1,7 @@
+# Local development override — remove before publishing.
+# attachment_engine_platform_interface is not yet on pub.dev; this points
+# at the sibling package in this monorepo so local builds and tests resolve
+# correctly.
+dependency_overrides:
+  attachment_engine_platform_interface:
+    path: ../attachment_engine_platform_interface

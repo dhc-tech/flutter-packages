@@ -8,14 +8,14 @@
 
 import 'dart:convert';
 
-import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
 import 'package:apple_sign_in_plugin_linux/apple_sign_in_plugin_linux.dart';
+import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 String _fakeIdToken(String sub, [String? email]) {
   String b64(Map<String, dynamic> m) => base64Url.encode(utf8.encode(jsonEncode(m)));
-  final header = b64({'alg': 'RS256', 'kid': 'testkey'});
+  final String header = b64({'alg': 'RS256', 'kid': 'testkey'});
   final payloadMap = <String, dynamic>{
     'sub': sub,
     'iss': 'https://appleid.apple.com',
@@ -24,7 +24,7 @@ String _fakeIdToken(String sub, [String? email]) {
   if (email != null) {
     payloadMap['email'] = email;
   }
-  final payload = b64(payloadMap);
+  final String payload = b64(payloadMap);
   return '$header.$payload.fakesig';
 }
 
@@ -57,10 +57,11 @@ void main() {
           if (mockPlatformError != null) {
             throw mockPlatformError!;
           }
+          final arguments = call.arguments as Map<Object?, Object?>;
           return <String, dynamic>{
             'callbackUrl': mockCallbackUrl ??
-                'com.example.app://apple-callback?code=auth123&state=${call.arguments['state']}&id_token=${_fakeIdToken("user123", "user@example.com")}',
-            'expectedState': call.arguments['state'],
+                'com.example.app://apple-callback?code=auth123&state=${arguments['state']}&id_token=${_fakeIdToken("user123", "user@example.com")}',
+            'expectedState': arguments['state'],
           };
         } else if (call.method == 'onNativeCallback') {
           return true;
@@ -125,14 +126,14 @@ void main() {
     });
 
     test('signIn maps successful native channel result correctly', () async {
-      final userJson = jsonEncode({
+      final String userJson = jsonEncode({
         'name': {'firstName': 'Alice', 'lastName': 'Smith'},
         'email': 'alice@example.com',
       });
       mockCallbackUrl =
           'com.example.app://apple-callback?code=authNative1&state=test-state&id_token=${_fakeIdToken("uNative1")}&user=${Uri.encodeComponent(userJson)}';
 
-      final credential = await impl.signIn(
+      final AppleCredential credential = await impl.signIn(
         scopes: {AppleAuthorizationScope.email, AppleAuthorizationScope.fullName},
         state: 'test-state',
       );
@@ -167,7 +168,7 @@ void main() {
     });
 
     test('handleCallback forwards URL to native channel', () async {
-      final accepted = await impl.handleCallback(
+      final bool accepted = await impl.handleCallback(
         Uri.parse('com.example.app://apple-callback?code=123&state=abc'),
       );
       expect(accepted, isTrue);
