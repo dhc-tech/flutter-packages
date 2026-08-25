@@ -16,6 +16,11 @@ on:
 # Declare default permissions as read only.
 permissions: read-all
 
+# Enforce sequential release execution so multiple merges never publish concurrently
+concurrency:
+  group: release-publishing-lock
+  cancel-in-progress: false
+
 jobs:
   release:
     name: release
