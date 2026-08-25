@@ -3,6 +3,7 @@
 
 version: 2
 updates:
+  # GitHub Actions workflow dependencies
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -14,7 +15,47 @@ updates:
       - "autosubmit"
       - "infra: dependencies"
       - "infra: workflows"
-    # Updating patch versions for "github-actions" is too chatty.
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-patch"]
+
+  # Dart & Flutter Pub packages
+  - package-ecosystem: "pub"
+    directory: "/packages/white_label_kit"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "p: white_label_kit"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/dig_cli"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "p: dig_cli"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/apple_sign_in_plugin/apple_sign_in_plugin"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "p: apple_sign_in_plugin"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/apple_sign_in_plugin/apple_sign_in_plugin_platform_interface"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "p: apple_sign_in_plugin"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/script/tool"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "infra: dependencies"
+      - "infra: workflows"
