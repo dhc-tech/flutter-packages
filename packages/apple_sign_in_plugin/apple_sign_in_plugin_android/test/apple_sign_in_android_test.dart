@@ -9,8 +9,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
 import 'package:apple_sign_in_plugin_android/apple_sign_in_plugin_android.dart';
+import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -18,7 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 String _fakeIdToken(String sub, [String? email]) {
   String b64(Map<String, dynamic> m) => base64Url.encode(utf8.encode(jsonEncode(m)));
-  final header = b64({'alg': 'RS256', 'kid': 'testkey'});
+  final String header = b64({'alg': 'RS256', 'kid': 'testkey'});
   final payloadMap = <String, dynamic>{
     'sub': sub,
     'iss': 'https://appleid.apple.com',
@@ -27,7 +27,7 @@ String _fakeIdToken(String sub, [String? email]) {
   if (email != null) {
     payloadMap['email'] = email;
   }
-  final payload = b64(payloadMap);
+  final String payload = b64(payloadMap);
   return '$header.$payload.fakesig';
 }
 
@@ -39,12 +39,12 @@ const AppleSignInAndroidConfig _kConfig = AppleSignInAndroidConfig(
 );
 
 class _Harness {
-  final AppleSignInAndroidImpl impl;
-  late final Completer<AppleCredential> completer;
-
   _Harness() : impl = AppleSignInAndroidImpl() {
     impl.config = _kConfig;
   }
+
+  final AppleSignInAndroidImpl impl;
+  late final Completer<AppleCredential> completer;
 
   void prime(String state) {
     completer = Completer<AppleCredential>();
@@ -140,7 +140,7 @@ void main() {
     test('handleCallback rejects mismatched scheme', () async {
       final h = _Harness();
       h.prime('expected-state');
-      final result = await h.callHandleAndAwait(
+      final Object? result = await h.callHandleAndAwait(
         Uri.parse(
           'evil.scheme://apple-callback'
           '?code=auth123'
@@ -149,7 +149,7 @@ void main() {
       );
       expect(result, isA<AppleSignInException>());
       expect(
-        (result as AppleSignInException).message,
+        (result! as AppleSignInException).message,
         contains('scheme mismatch'),
       );
     });
@@ -157,7 +157,7 @@ void main() {
     test('handleCallback rejects mismatched host', () async {
       final h = _Harness();
       h.prime('expected-state');
-      final result = await h.callHandleAndAwait(
+      final Object? result = await h.callHandleAndAwait(
         Uri.parse(
           'com.example.app://wrong-host'
           '?code=auth123'
@@ -166,7 +166,7 @@ void main() {
       );
       expect(result, isA<AppleSignInException>());
       expect(
-        (result as AppleSignInException).message,
+        (result! as AppleSignInException).message,
         contains('host mismatch'),
       );
     });
@@ -174,7 +174,7 @@ void main() {
     test('handleCallback rejects mismatched state (CSRF protection)', () async {
       final h = _Harness();
       h.prime('expected-state');
-      final result = await h.callHandleAndAwait(
+      final Object? result = await h.callHandleAndAwait(
         Uri.parse(
           'com.example.app://apple-callback'
           '?code=auth123'
@@ -184,7 +184,7 @@ void main() {
       );
       expect(result, isA<AppleSignInException>());
       expect(
-        (result as AppleSignInException).code,
+        (result! as AppleSignInException).code,
         AppleSignInErrorCode.authorizationFailed,
       );
     });
@@ -192,7 +192,7 @@ void main() {
     test('handleCallback maps user_cancelled_authorize to canceled', () async {
       final h = _Harness();
       h.prime('s1');
-      final result = await h.callHandleAndAwait(
+      final Object? result = await h.callHandleAndAwait(
         Uri.parse(
           'com.example.app://apple-callback'
           '?error=user_cancelled_authorize'
@@ -201,7 +201,7 @@ void main() {
       );
       expect(result, isA<AppleSignInException>());
       expect(
-        (result as AppleSignInException).code,
+        (result! as AppleSignInException).code,
         AppleSignInErrorCode.canceled,
       );
     });
@@ -209,12 +209,12 @@ void main() {
     test('handleCallback rejects missing code and id_token', () async {
       final h = _Harness();
       h.prime('s2');
-      final result = await h.callHandleAndAwait(
+      final Object? result = await h.callHandleAndAwait(
         Uri.parse('com.example.app://apple-callback?state=s2'),
       );
       expect(result, isA<AppleSignInException>());
       expect(
-        (result as AppleSignInException).code,
+        (result! as AppleSignInException).code,
         AppleSignInErrorCode.invalidResponse,
       );
     });
@@ -223,12 +223,12 @@ void main() {
       final h = _Harness();
       h.prime('good-state');
 
-      final userJson = jsonEncode({
+      final String userJson = jsonEncode({
         'name': {'firstName': 'Alice', 'lastName': 'Smith'},
         'email': 'alice@example.com',
       });
 
-      final result = await h.callHandleAndAwait(
+      final Object? result = await h.callHandleAndAwait(
         Uri.parse(
           'com.example.app://apple-callback'
           '?code=authW1'
@@ -239,7 +239,7 @@ void main() {
       );
 
       expect(result, isA<AppleCredential>());
-      final c = result as AppleCredential;
+      final c = result! as AppleCredential;
       expect(c.userIdentifier, 'userW1');
       expect(c.authorizationCode, 'authW1');
       expect(c.email, 'alice@example.com');
@@ -250,7 +250,7 @@ void main() {
     test('handleCallback succeeds without user JSON', () async {
       final h = _Harness();
       h.prime('s3');
-      final result = await h.callHandleAndAwait(
+      final Object? result = await h.callHandleAndAwait(
         Uri.parse(
           'com.example.app://apple-callback'
           '?code=authW2'
@@ -259,13 +259,13 @@ void main() {
         ),
       );
       expect(result, isA<AppleCredential>());
-      expect((result as AppleCredential).email, isNull);
+      expect((result! as AppleCredential).email, isNull);
     });
 
     test('duplicate handleCallback is a no-op after completion', () async {
       final h = _Harness();
       h.prime('s4');
-      final uri = Uri.parse(
+      final Uri uri = Uri.parse(
         'com.example.app://apple-callback'
         '?code=dup'
         '&id_token=${_fakeIdToken("uDup")}'
@@ -279,7 +279,7 @@ void main() {
     test('handleCallback tolerates malformed user JSON', () async {
       final h = _Harness();
       h.prime('s5');
-      final result = await h.callHandleAndAwait(
+      final Object? result = await h.callHandleAndAwait(
         Uri.parse(
           'com.example.app://apple-callback'
           '?code=authW3'
@@ -289,7 +289,7 @@ void main() {
         ),
       );
       expect(result, isA<AppleCredential>());
-      expect((result as AppleCredential).email, isNull);
+      expect((result! as AppleCredential).email, isNull);
     });
   });
 }

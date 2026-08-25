@@ -1,0 +1,32 @@
+name: attachment_engine_android
+description: "The Android implementation of attachment_engine. Provides Pigeon-generated HostApi transport for PDF, audio/video control, share, open-externally, paths, and download start/resume/cancel (plus hand-written EventChannel transport for audio/video/download event streams) over the native Kotlin code backing them on Android."
+version: 0.0.1-dev.0
+repository: "https://github.com/dhc-tech/flutter-packages/tree/main/packages/attachment_engine/attachment_engine_android"
+issue_tracker: "https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+attachment_engine_android%22"
+
+environment:
+  sdk: ^3.12.2
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  attachment_engine_platform_interface: ^0.0.1-dev.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+topics:
+  - attachment
+  - android
+
+flutter:
+  plugin:
+    implements: attachment_engine
+    platforms:
+      android:
+        package: com.dhc.attachment_engine
+        pluginClass: AttachmentEnginePlugin
+        dartPluginClass: AttachmentEngineAndroid

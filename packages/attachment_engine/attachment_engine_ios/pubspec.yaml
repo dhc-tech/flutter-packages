@@ -1,0 +1,31 @@
+name: attachment_engine_ios
+description: "The iOS implementation of attachment_engine. Provides Pigeon-generated HostApi transport for PDF, audio/video control, share, open-externally, office preview, paths, and download start/resume/cancel (plus hand-written EventChannel transport for audio/video/download event streams) over the native Swift code backing them on iOS."
+version: 0.0.1-dev.0
+repository: "https://github.com/dhc-tech/flutter-packages/tree/main/packages/attachment_engine/attachment_engine_ios"
+issue_tracker: "https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+attachment_engine_ios%22"
+
+environment:
+  sdk: ^3.12.2
+  flutter: '>=3.3.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  attachment_engine_platform_interface: ^0.0.1-dev.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+topics:
+  - attachment
+  - ios
+
+flutter:
+  plugin:
+    implements: attachment_engine
+    platforms:
+      ios:
+        pluginClass: AttachmentEnginePlugin
+        dartPluginClass: AttachmentEngineIOS

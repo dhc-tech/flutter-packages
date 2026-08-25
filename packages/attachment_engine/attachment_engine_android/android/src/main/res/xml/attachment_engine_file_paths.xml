@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- App-private internal storage: context.filesDir -->
+    <files-path name="attachment_engine_files" path="." />
+    <!-- App-private cache storage: context.cacheDir -->
+    <cache-path name="attachment_engine_cache" path="." />
+    <!-- External app-specific storage, in case downloads land there. -->
+    <external-files-path name="attachment_engine_external_files" path="." />
+    <external-cache-path name="attachment_engine_external_cache" path="." />
+    <!-- System temp directory used as a fallback by NativePathsChannel/tests. -->
+    <external-path name="attachment_engine_external" path="." />
+</paths>
