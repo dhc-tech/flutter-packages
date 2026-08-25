@@ -1,0 +1,3 @@
+# attachment_engine_platform_interface_example
+
+Demonstrates how platform implementations register against `attachment_engine_platform_interface`.

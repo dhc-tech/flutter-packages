@@ -1,43 +1,27 @@
 # attachment_engine_macos
 
-The macOS implementation of [`attachment_engine`](../attachment_engine),
-backed entirely by native Swift code — **no third-party plugin
-dependencies**.
+[![pub package](https://img.shields.io/pub/v/attachment_engine_macos.svg)](https://pub.dev/packages/attachment_engine_macos)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/dhc-tech/flutter-packages/blob/main/LICENSE)
 
-## Status
+The official macOS implementation of [`attachment_engine`](https://pub.dev/packages/attachment_engine).
 
-Full feature parity with iOS/Android, native (see
-`macos/attachment_engine_macos/Sources/attachment_engine_macos/`). Every
-request/response call goes through a
-[pigeon](https://pub.dev/packages/pigeon)-generated `HostApi` protocol
-(schema: `attachment_engine_platform_interface/pigeons/messages.dart`,
-generated bindings: `Messages.g.swift`); audio/video/download *events*
-stay on hand-written `FlutterEventChannel`s, noted per-row below:
+This package is endorsed by `attachment_engine` and is pulled in automatically for macOS applications.
 
-- **PDF** — PDFKit (`PDFDocument`, `PDFPage.thumbnail`), via `PdfHostApi`
-- **Audio** — AVFoundation (`AVAudioPlayer` for local files, `AVPlayer` for
-  streaming URLs); control via `AudioHostApi`, playback events via a
-  hand-written per-player `FlutterEventChannel`
-- **Video** — AVKit (`AVPlayerLayer`), embedded via a
-  `FlutterPlatformViewFactory` — surfaced to Dart through `AppKitView`;
-  control via `VideoHostApi`, playback events via a hand-written
-  per-player `FlutterEventChannel`
-- **WebView** — `WKWebView`, embedded the same way
-- **Paths** — `NSSearchPathForDirectoriesInDomains`, via `PathsHostApi`
-- **Share** — `NSSharingServicePicker` (AppKit's native share sheet), via
-  `ShareHostApi`
-- **Open externally** — `NSWorkspace.open(_:)`, via `OpenHostApi`
-- **Office preview** — `QLPreviewPanel` (QuickLook; doc/docx/xls/xlsx/ppt/
-  pptx/rtf and more, ships with every macOS install), via `OfficeHostApi`
-- **Download** — `URLSession`/`URLSessionDownloadTask`, with resume-data
-  support; start/resume/cancel via `DownloadHostApi`, progress events via
-  a hand-written shared `FlutterEventChannel`
+## Native Architecture
 
-Registers as a Swift Package (`Package.swift`) — Flutter reports
-`All plugins found for macos are Swift Packages`. A `.podspec` is kept
-alongside it for CocoaPods-only consumers, per Flutter's dual-support
-requirement during the SPM migration window.
+* **PDF Rendering**: Native `PDFKit` framework.
+* **Media Playback**: `AVFoundation` / `AVKit` playback pipeline.
+* **Office & Document Preview**: Native `QuickLook` preview support.
+* **Sharing**: `NSSharingService` native desktop sharing.
+* **Zero Dependencies**: Pure Swift integration with zero third-party dependencies.
 
-You should not need to depend on this package directly — add
-[`attachment_engine`](../attachment_engine) to your app instead, and the
-right platform implementation is selected automatically.
+## Usage
+
+Add `attachment_engine` to your app's `pubspec.yaml`:
+
+```yaml
+dependencies:
+  attachment_engine: ^0.0.1-dev.1
+```
+
+For complete documentation and guides, visit [`attachment_engine`](https://pub.dev/packages/attachment_engine).

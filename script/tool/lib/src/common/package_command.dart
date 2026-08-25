@@ -336,7 +336,14 @@ abstract class PackageCommand extends Command<void> {
     return excludedPackages;
   }
 
-  /// Returns the root diretories of the packages involved in this command
+  /// Comparator used to sort packages in [getTargetPackages] prior to sharding.
+  /// Subclasses can override this to ensure packages are ordered (e.g. by
+  /// dependency tier) before shard partitions are computed.
+  int comparePackages(PackageEnumerationEntry p1, PackageEnumerationEntry p2) {
+    return p1.package.path.compareTo(p2.package.path);
+  }
+
+  /// Returns the root directories of the packages involved in this command
   /// execution.
   ///
   /// Depending on the command arguments, this may be a user-specified set of
@@ -351,10 +358,7 @@ abstract class PackageCommand extends Command<void> {
     // This is considered an implementation detail which is why the API still
     // uses streams.
     final List<PackageEnumerationEntry> allPackages = await _getAllPackages().toList();
-    allPackages.sort(
-      (PackageEnumerationEntry p1, PackageEnumerationEntry p2) =>
-          p1.package.path.compareTo(p2.package.path),
-    );
+    allPackages.sort(comparePackages);
     final int shardSize =
         allPackages.length ~/ shardCount + (allPackages.length % shardCount == 0 ? 0 : 1);
     final int start = min(shardIndex * shardSize, allPackages.length);

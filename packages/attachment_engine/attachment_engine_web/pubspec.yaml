@@ -1,6 +1,6 @@
 name: attachment_engine_web
-description: "The web implementation of attachment_engine. Share via the Web Share API, open-externally via window.open, paths via the Origin Private File System, download via fetch()+OPFS, and video/audio playback via real <video>/<audio> elements — all via raw dart:js_interop (a Dart SDK core library, not even a pub package). PDF native rendering and webview embedding are not yet implemented."
-version: 0.0.1-dev.0
+description: "Web implementation of attachment_engine providing Web Share API, OPFS storage, fetch downloads, and HTML5 video/audio playback."
+version: 0.0.1-dev.1
 repository: "https://github.com/dhc-tech/flutter-packages/tree/main/packages/attachment_engine/attachment_engine_web"
 issue_tracker: "https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+attachment_engine_web%22"
 

@@ -1,4 +1,4 @@
-## 0.0.1-dev.0
+## 0.0.1-dev.1
 
 Initial real release, after a full native rewrite and hardening pass.
 
