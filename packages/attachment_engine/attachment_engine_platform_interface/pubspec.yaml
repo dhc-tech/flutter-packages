@@ -1,6 +1,6 @@
 name: attachment_engine_platform_interface
 description: "Common platform interface for attachment_engine defining the pure-Dart contract for platform-specific implementations to satisfy."
-version: 0.0.1-dev.0
+version: 0.0.1-dev.1
 repository: "https://github.com/dhc-tech/flutter-packages/tree/main/packages/attachment_engine/attachment_engine_platform_interface"
 issue_tracker: "https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+attachment_engine_platform_interface%22"
 

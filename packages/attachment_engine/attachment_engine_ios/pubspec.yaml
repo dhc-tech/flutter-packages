@@ -1,6 +1,6 @@
 name: attachment_engine_ios
 description: "iOS implementation of attachment_engine providing native PDFKit, AVFoundation playback, QuickLook preview, download, and share."
-version: 0.0.1-dev.0
+version: 0.0.1-dev.1
 repository: "https://github.com/dhc-tech/flutter-packages/tree/main/packages/attachment_engine/attachment_engine_ios"
 issue_tracker: "https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+attachment_engine_ios%22"
 
@@ -11,7 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  attachment_engine_platform_interface: ^0.0.1-dev.0
+  attachment_engine_platform_interface: ^0.0.1-dev.1
 
 dev_dependencies:
   flutter_test:

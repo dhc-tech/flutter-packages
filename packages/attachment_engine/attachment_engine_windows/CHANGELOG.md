@@ -11,7 +11,7 @@
   (`attachment_engine_windows_plugin.h`/`.cpp`); `pubspec.yaml` now
   declares `pluginClass`/`cmakeFile` for Windows.
 
-## 0.0.1-dev.0
+## 0.0.1-dev.1
 
 * Initial development release: paths (`path_provider`) and open-externally
   (`url_launcher`) — both published by `flutter.dev`, the Flutter team's

@@ -1,4 +1,4 @@
-## 0.0.1-dev.0
+## 0.0.1-dev.1
 
 * Initial development release: share (`shareText`, via the Web Share API)
   and open-externally (`window.open`) — via raw `dart:js_interop` (a Dart

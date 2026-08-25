@@ -1,4 +1,4 @@
-## 0.0.1-dev.0
+## 0.0.1-dev.1
 
 * Initial release: the Android implementation extracted from
   `attachment_engine` 0.1.0 as part of the federated-plugin split. Implements

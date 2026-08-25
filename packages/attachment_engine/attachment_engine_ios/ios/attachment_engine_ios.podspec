@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'attachment_engine_ios'
-  s.version          = '0.0.1-dev.0'
+  s.version          = '0.0.1-dev.1'
   s.summary          = 'iOS implementation of the attachment_engine plugin.'
   s.description      = <<-DESC
 Native Swift implementation (PDF, video, audio, webview, share, open,

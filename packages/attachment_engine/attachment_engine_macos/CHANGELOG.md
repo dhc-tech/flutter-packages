@@ -1,4 +1,4 @@
-## 0.0.1-dev.0
+## 0.0.1-dev.1
 
 * Initial development release: native Swift implementation of PDF
   (PDFKit), audio (AVFoundation), video (AVKit, embedded via
