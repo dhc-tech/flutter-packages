@@ -1,0 +1,50 @@
+# Copyright 2026 DHC Tech
+# Use of this source code is governed by an MIT-style license that can be
+# found in the LICENSE file.
+#
+# Zizmor: Static analysis and security auditing engine specifically designed
+# for GitHub Actions workflows. Reports findings directly into GitHub
+# Security & Quality Code Scanning tab via SARIF.
+
+name: GitHub Actions Security (Zizmor)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/**'
+  schedule:
+    - cron: '0 0 * * 0' # Weekly Sunday scan
+
+permissions:
+  contents: read
+
+jobs:
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor security audit
+        uses: woodruffw/zizmor-action@a87be7b233a0b8106f3634ea576ca22ebc29ffc1 # v1.4.1
+        with:
+          args: --format sarif .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload SARIF report to Code Scanning
+        uses: github/codeql-action/upload-sarif@b56ba49b26e50535fa1e7f7db0f4f7b4bf65d80d # v3.28.10
+        with:
+          sarif_file: results.sarif
+          category: zizmor
