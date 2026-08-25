@@ -1,3 +1,13 @@
+## 0.0.6
+
+* New: Full Monorepo & Melos workspace support via `--project-root`,
+  `--config`, and `--ide-root` CLI flags across `configure`, `generate`,
+  `build`, `run`, `doctor`, `validate`, `list`, `add-tenant`, and
+  `remove-tenant`.
+* Supports nested Flutter apps (e.g. `apps/<flutter-app>`) while placing
+  IDE run configurations (`.vscode/launch.json`, `.run/*.xml`) at the
+  monorepo root or custom workspace root.
+
 ## 0.0.5
 
 * Fixed: generated `.run/*.xml` (Android Studio/IntelliJ run configs) had

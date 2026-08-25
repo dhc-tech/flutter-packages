@@ -197,6 +197,25 @@ URL baked in.
 whichever tenant/environment they actually resolved to, every time they
 run — there's no separate "don't forget to regenerate" step to remember.
 
+### 7. Monorepos & Melos Workspaces
+
+In a monorepo or Melos workspace where your Flutter app lives in a nested directory (e.g. `apps/my_flutter_app`):
+
+```bash
+# Configure native Android/iOS in apps/my_flutter_app and generate IDE files in monorepo root
+dart run white_label_kit:configure --project-root apps/my_flutter_app --ide-root .
+
+# Or run other commands targeting the nested Flutter project
+dart run white_label_kit:generate --project-root apps/my_flutter_app --tenant acme
+dart run white_label_kit:doctor   --project-root apps/my_flutter_app
+dart run white_label_kit:validate --project-root apps/my_flutter_app
+dart run white_label_kit:build    --project-root apps/my_flutter_app --tenant acme
+```
+
+- `--project-root <dir>`: Sets the target Flutter project directory (where `pubspec.yaml`, `android/`, `ios/`, and `white_label.yaml` live).
+- `--ide-root <dir>`: (Optional) Sets the root directory where `.vscode/` and `.run/` IDE run configurations should be written (defaults to `--project-root`).
+- `--config <path>`: (Optional) Specifies a custom path to `white_label.yaml`.
+
 ---
 
 ## 🖥️ Running & Building Your App

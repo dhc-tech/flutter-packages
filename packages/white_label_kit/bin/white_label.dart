@@ -94,7 +94,7 @@ Future<void> runCli(List<String> args) async {
   }
 
   if (command == 'list') {
-    _listTenants();
+    _listTenants(args.skip(1).toList());
     exit(0);
   }
 
@@ -123,18 +123,31 @@ Future<void> runCli(List<String> args) async {
     exit(_removeTenant(args.skip(1).toList()));
   }
 
+  String? projectRootArg;
+  for (var i = 1; i < args.length; i++) {
+    if (args[i] == '--project-root' && i + 1 < args.length) {
+      projectRootArg = args[i + 1];
+      break;
+    }
+  }
+  final String effectiveRoot = projectRootArg ?? Directory.current.path;
+
   // `doctor` has the same host-app-vs-generic ambiguity as `build` (see
   // that routing comment below) — this repo's own `doctor` forwards to
   // tool/tenant_doctor.dart via the `_commands` table; a project using only
-  // the generic layer has no such file, so route there instead.
+  // the generic layer has no such file (or passes --project-root/--config), so route there instead.
+  final bool hasGenericDoctorFlags = args.any(
+    (a) => a == '--project-root' || a == '--config',
+  );
   if (command == 'doctor' &&
-      File('white_label.yaml').existsSync() &&
-      !File('tool/tenant_doctor.dart').existsSync()) {
-    exit(_doctor());
+      (hasGenericDoctorFlags ||
+          !File(p.join(effectiveRoot, 'tool', 'tenant_doctor.dart'))
+              .existsSync())) {
+    exit(_doctor(args.skip(1).toList()));
   }
 
   if (command == 'validate') {
-    exit(_validate());
+    exit(_validate(args.skip(1).toList()));
   }
 
   if (command == 'run') {
@@ -144,14 +157,22 @@ Future<void> runCli(List<String> args) async {
   // `build` is ambiguous: it's both the long-standing host-app command
   // (forwards to tool/build_runner.dart, handled by the `_commands` table
   // below — DO NOT touch that path) and the new generic white_label.yaml
-  // build. We disambiguate by evidence in the current directory rather than
-  // renaming either one: if a `white_label.yaml` exists AND the
-  // `tool/build_runner.dart` does NOT (i.e. this is a generic project), route to the
-  // new generic build. Otherwise fall through unchanged to the existing
-  // host-app behavior.
+  // build. We disambiguate by evidence in the effective directory and flags:
+  // if --tenant / --project-root / --config is passed, or if `tool/build_runner.dart` does NOT exist
+  // in effectiveRoot, route to the new generic build.
+  final bool hasGenericBuildFlags = args.any(
+    (a) =>
+        a == '--tenant' ||
+        a == '--project-root' ||
+        a == '--config' ||
+        a == '--clean' ||
+        a == '--stage-only' ||
+        a == '--dry-run',
+  );
   if (command == 'build' &&
-      File('white_label.yaml').existsSync() &&
-      !File('tool/build_runner.dart').existsSync()) {
+      (hasGenericBuildFlags ||
+          !File(p.join(effectiveRoot, 'tool', 'build_runner.dart'))
+              .existsSync())) {
     exit(await _genericBuild(args.skip(1).toList()));
   }
 
@@ -187,8 +208,34 @@ Future<void> runCli(List<String> args) async {
 /// `--tenant`-less command would act on. Prints both a top-line
 /// "Default tenant: `<id>`" summary AND a per-tenant `(default)` marker —
 /// intentionally redundant so it's unmissable either way you're scanning.
-void _listTenants() {
-  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+void _listTenants(List<String> args) {
+  String? projectRoot;
+  String? configPath;
+
+  for (var i = 0; i < args.length; i++) {
+    switch (args[i]) {
+      case '--project-root':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --project-root requires a directory argument.');
+          exit(1);
+        }
+        projectRoot = args[++i];
+      case '--config':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --config requires a file path.');
+          exit(1);
+        }
+        configPath = args[++i];
+      default:
+        stderr.writeln('❌ Unknown flag for `list`: ${args[i]}');
+        exit(1);
+    }
+  }
+
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig(
+    projectRoot: projectRoot,
+    configPath: configPath,
+  );
   if (config == null) {
     exit(1);
   }
@@ -201,12 +248,16 @@ void _listTenants() {
   }
 }
 
-/// Loads `white_label.yaml` from the current directory, printing every
+/// Loads `white_label.yaml` from [projectRoot] (or current directory), printing every
 /// collected validation error (never a raw stack trace) and returning
 /// `null` on failure so callers can `exit(1)` themselves.
-WhiteLabelConfig? _tryLoadWhiteLabelConfig() {
+WhiteLabelConfig? _tryLoadWhiteLabelConfig({
+  String? projectRoot,
+  String? configPath,
+}) {
+  final String root = projectRoot ?? Directory.current.path;
   try {
-    return WhiteLabelConfig.load(Directory.current.path);
+    return WhiteLabelConfig.load(root, configPath: configPath);
   } on WhiteLabelConfigException catch (e) {
     stderr.writeln(e);
     return null;
@@ -216,8 +267,34 @@ WhiteLabelConfig? _tryLoadWhiteLabelConfig() {
 /// `validate` — loads + type/shape-checks `white_label.yaml` without doing
 /// anything else (no staging, no asset copying). Returns the process exit
 /// code (0 valid, 1 invalid).
-int _validate() {
-  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+int _validate(List<String> args) {
+  String? projectRoot;
+  String? configPath;
+
+  for (var i = 0; i < args.length; i++) {
+    switch (args[i]) {
+      case '--project-root':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --project-root requires a directory argument.');
+          return 1;
+        }
+        projectRoot = args[++i];
+      case '--config':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --config requires a file path.');
+          return 1;
+        }
+        configPath = args[++i];
+      default:
+        stderr.writeln('❌ Unknown flag for `validate`: ${args[i]}');
+        return 1;
+    }
+  }
+
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig(
+    projectRoot: projectRoot,
+    configPath: configPath,
+  );
   if (config == null) {
     return 1;
   }
@@ -237,7 +314,7 @@ int _validate() {
 /// exists and looks like it was generated for a tenant this config still
 /// declares (a stale/missing generated file is a common real mistake — ran
 /// `generate` once, then added/renamed tenants and forgot to re-run it).
-/// Whether the host app's own `pubspec.yaml` (cwd, not this package's)
+/// Whether the host app's own `pubspec.yaml` (cwd or projectRoot, not this package's)
 /// lists [packageName] under `dependencies:`, `dev_dependencies:`, or
 /// `dependency_overrides:`. Used
 /// by `doctor` to catch the `splash_generate` opt-in gap ahead of time —
@@ -249,8 +326,9 @@ int _validate() {
 /// same as the dependency truly being absent — `doctor` already reports
 /// other pubspec problems elsewhere, this check doesn't need to duplicate
 /// that.
-bool _hasHostDependency(String packageName) {
-  final pubspecFile = File('pubspec.yaml');
+bool _hasHostDependency(String packageName, {String? projectRoot}) {
+  final String root = projectRoot ?? Directory.current.path;
+  final pubspecFile = File(p.join(root, 'pubspec.yaml'));
   if (!pubspecFile.existsSync()) {
     return false;
   }
@@ -275,8 +353,35 @@ bool _hasHostDependency(String packageName) {
   }
 }
 
-int _doctor() {
-  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+int _doctor(List<String> args) {
+  String? projectRoot;
+  String? configPath;
+
+  for (var i = 0; i < args.length; i++) {
+    switch (args[i]) {
+      case '--project-root':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --project-root requires a directory argument.');
+          return 1;
+        }
+        projectRoot = args[++i];
+      case '--config':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --config requires a file path.');
+          return 1;
+        }
+        configPath = args[++i];
+      default:
+        stderr.writeln('❌ Unknown flag for `doctor`: ${args[i]}');
+        return 1;
+    }
+  }
+
+  final String effectiveRoot = projectRoot ?? Directory.current.path;
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig(
+    projectRoot: effectiveRoot,
+    configPath: configPath,
+  );
   if (config == null) {
     return 1;
   }
@@ -290,7 +395,10 @@ int _doctor() {
     final marker = config.isDefault(id) ? ' (default)' : '';
     stdout.writeln('  - $id — ${tenant.name}$marker');
     for (final String assetPath in tenant.assets.all) {
-      final bool exists = File(assetPath).existsSync();
+      final String resolvedPath = p.isAbsolute(assetPath)
+          ? assetPath
+          : p.join(effectiveRoot, assetPath);
+      final bool exists = File(resolvedPath).existsSync();
       stdout.writeln('      ${exists ? '✅' : '❌'} $assetPath');
       if (!exists) {
         healthy = false;
@@ -302,7 +410,10 @@ int _doctor() {
     (tenant) => tenant.features['splash_generate'] == true,
   );
   if (anyTenantWantsSplashGenerate &&
-      !_hasHostDependency('flutter_native_splash')) {
+      !_hasHostDependency(
+        'flutter_native_splash',
+        projectRoot: effectiveRoot,
+      )) {
     stdout.writeln(
       "⚠️  A tenant has features.splash_generate: true, but this app's "
       "pubspec.yaml doesn't list flutter_native_splash as a dependency — "
@@ -313,7 +424,7 @@ int _doctor() {
     healthy = false;
   }
 
-  final generated = File('lib/white_label.g.dart');
+  final generated = File(p.join(effectiveRoot, 'lib', 'white_label.g.dart'));
   if (!generated.existsSync()) {
     stdout.writeln(
       '⚠️  lib/white_label.g.dart does not exist yet — run `dart run '
@@ -344,7 +455,7 @@ int _doctor() {
   return healthy ? 0 : 1;
 }
 
-/// `init [--example] [--force] [--path <dir>]` — scaffolds a starter
+/// `init [--example] [--force] [--path <dir>] [--project-root <dir>]` — scaffolds a starter
 /// `white_label.yaml` in a Flutter project. Never overwrites an existing
 /// file unless `--force` is passed. Returns the process exit code.
 int _init(List<String> args) {
@@ -359,8 +470,9 @@ int _init(List<String> args) {
       case '--force':
         force = true;
       case '--path':
+      case '--project-root':
         if (i + 1 >= args.length) {
-          stderr.writeln('❌ --path requires a directory argument.');
+          stderr.writeln('❌ ${args[i]} requires a directory argument.');
           return 1;
         }
         path = args[++i];
@@ -376,7 +488,7 @@ int _init(List<String> args) {
   if (!pubspecFile.existsSync()) {
     stderr.writeln(
       '❌ No pubspec.yaml found at $targetDir — `init` must be run from '
-      '(or pointed at, via --path) a Flutter project root.',
+      '(or pointed at, via --path/--project-root) a Flutter project root.',
     );
     return 1;
   }
@@ -460,7 +572,7 @@ int _init(List<String> args) {
 /// Rolls back everything it wrote (the yaml edit AND the created folder) if
 /// the resulting config fails to validate — never leaves the project in a
 /// half-added, invalid state.
-/// `generate [--tenant <id>] [--config <path>]` — the primary, recommended
+/// `generate [--tenant <id>] [--config <path>] [--project-root <dir>]` — the primary, recommended
 /// way to (re)create `lib/white_label.g.dart`: one direct command, no
 /// `build_runner` involved, the same shape as `flutter_native_splash:create`
 /// / `icons_launcher:create`. See `lib/builder.dart` for the OPTIONAL
@@ -468,12 +580,13 @@ int _init(List<String> args) {
 /// logic (`lib/src/generation/dart_config_generator.dart`).
 ///
 /// `--config <path>` overrides the default `white_label.yaml` name/location
-/// (relative to cwd, or absolute) — same idea as `flutter_native_splash
+/// (relative to project-root, or absolute) — same idea as `flutter_native_splash
 /// --path=...`, for a project that names its config file differently or
 /// keeps more than one (e.g. `white_label_dev.yaml`).
 int _generate(List<String> args) {
   String? tenantId;
   String? configPath;
+  String? projectRoot;
   String? envName;
 
   for (var i = 0; i < args.length; i++) {
@@ -490,6 +603,12 @@ int _generate(List<String> args) {
           return 1;
         }
         configPath = args[++i];
+      case '--project-root':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --project-root requires a directory argument.');
+          return 1;
+        }
+        projectRoot = args[++i];
       case '--env':
         if (i + 1 >= args.length) {
           stderr.writeln(
@@ -504,8 +623,9 @@ int _generate(List<String> args) {
     }
   }
 
+  final String effectiveRoot = projectRoot ?? Directory.current.path;
   final File configFile = WhiteLabelConfig.configFile(
-    Directory.current.path,
+    effectiveRoot,
     configPath: configPath,
   );
   if (!configFile.existsSync()) {
@@ -520,7 +640,7 @@ int _generate(List<String> args) {
   try {
     config = WhiteLabelConfig.parse(
       configFile.readAsStringSync(),
-      projectRoot: Directory.current.path,
+      projectRoot: effectiveRoot,
     );
   } on WhiteLabelConfigException catch (e) {
     stderr.writeln(e);
@@ -540,7 +660,7 @@ int _generate(List<String> args) {
 
   try {
     writeGeneratedFile(
-      Directory.current.path,
+      effectiveRoot,
       config,
       resolvedTenantId,
       envName: envName,
@@ -577,7 +697,7 @@ int _generate(List<String> args) {
   return (startMatch.start, nextMatch?.start ?? text.length);
 }
 
-/// `update-tenant <id> [--name <n>] [--android-id <id>] [--ios-id <id>] [--api-url <url>] [--logo <path>] [--default]`
+/// `update-tenant <id> [--name <n>] [--android-id <id>] [--ios-id <id>] [--api-url <url>] [--logo <path>] [--project-root <dir>] [--config <path>] [--default]`
 /// — changes an existing tenant's fields WITHOUT hand-editing
 /// `white_label.yaml`. Any flag you omit keeps that field's current value
 /// (read from the tenant's current, already-valid config) — you only pass
@@ -590,6 +710,8 @@ int _updateTenant(List<String> args) {
   String? iosId;
   String? apiUrl;
   String? logoPath;
+  String? projectRoot;
+  String? configPath;
   var makeDefault = false;
 
   for (var i = 0; i < args.length; i++) {
@@ -604,6 +726,18 @@ int _updateTenant(List<String> args) {
         apiUrl = args[++i];
       case '--logo':
         logoPath = args[++i];
+      case '--project-root':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --project-root requires a directory argument.');
+          return 1;
+        }
+        projectRoot = args[++i];
+      case '--config':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --config requires a file path.');
+          return 1;
+        }
+        configPath = args[++i];
       case '--default':
         makeDefault = true;
       default:
@@ -614,13 +748,18 @@ int _updateTenant(List<String> args) {
   if (positional.length != 1) {
     stderr.writeln(
       '❌ Usage: update-tenant <id> [--name <n>] [--android-id <id>] '
-      '[--ios-id <id>] [--api-url <url>] [--logo <path>] [--default]',
+      '[--ios-id <id>] [--api-url <url>] [--logo <path>] [--project-root <dir>] '
+      '[--config <path>] [--default]',
     );
     return 1;
   }
   final String id = positional[0];
 
-  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  final String effectiveRoot = projectRoot ?? Directory.current.path;
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig(
+    projectRoot: effectiveRoot,
+    configPath: configPath,
+  );
   if (config == null) {
     return 1;
   }
@@ -652,7 +791,10 @@ int _updateTenant(List<String> args) {
     }
   }
 
-  final whiteLabelFile = File('white_label.yaml');
+  final File whiteLabelFile = WhiteLabelConfig.configFile(
+    effectiveRoot,
+    configPath: configPath,
+  );
   final String originalYaml = whiteLabelFile.readAsStringSync();
   final (int, int)? range = _findTenantBlock(originalYaml, id);
   if (range == null) {
@@ -676,8 +818,9 @@ int _updateTenant(List<String> args) {
       stderr.writeln('❌ --logo file not found: $logoPath');
       return 1;
     }
-    final dest = File(p.join('tenants', id, 'assets', 'logo.png'))
-      ..parent.createSync(recursive: true);
+    final dest = File(
+      p.join(effectiveRoot, 'tenants', id, 'assets', 'logo.png'),
+    )..parent.createSync(recursive: true);
     source.copySync(dest.path);
   }
 
@@ -717,7 +860,7 @@ int _updateTenant(List<String> args) {
 
   whiteLabelFile.writeAsStringSync(updatedYaml);
   try {
-    WhiteLabelConfig.load(Directory.current.path);
+    WhiteLabelConfig.load(effectiveRoot, configPath: configPath);
   } on WhiteLabelConfigException catch (e) {
     whiteLabelFile.writeAsStringSync(originalYaml);
     stderr.writeln(
@@ -736,7 +879,7 @@ int _updateTenant(List<String> args) {
   return 0;
 }
 
-/// `remove-tenant <id> [--keep-assets]` — deletes a tenant's block from
+/// `remove-tenant <id> [--keep-assets] [--project-root <dir>] [--config <path>] [--ide-root <dir>]` — deletes a tenant's block from
 /// `white_label.yaml` WITHOUT hand-editing the file, and (unless
 /// `--keep-assets`) deletes its `tenants/<id>/` folder too. Refuses to
 /// remove the last remaining tenant, or the `default_tenant` unless another
@@ -745,20 +888,50 @@ int _updateTenant(List<String> args) {
 int _removeTenant(List<String> args) {
   final positional = <String>[];
   var keepAssets = false;
-  for (final arg in args) {
-    if (arg == '--keep-assets') {
-      keepAssets = true;
-    } else {
-      positional.add(arg);
+  String? projectRoot;
+  String? configPath;
+  String? ideRoot;
+
+  for (var i = 0; i < args.length; i++) {
+    switch (args[i]) {
+      case '--keep-assets':
+        keepAssets = true;
+      case '--project-root':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --project-root requires a directory argument.');
+          return 1;
+        }
+        projectRoot = args[++i];
+      case '--config':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --config requires a file path.');
+          return 1;
+        }
+        configPath = args[++i];
+      case '--ide-root':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --ide-root requires a directory argument.');
+          return 1;
+        }
+        ideRoot = args[++i];
+      default:
+        positional.add(args[i]);
     }
   }
   if (positional.length != 1) {
-    stderr.writeln('❌ Usage: remove-tenant <id> [--keep-assets]');
+    stderr.writeln(
+      '❌ Usage: remove-tenant <id> [--keep-assets] [--project-root <dir>] [--config <path>] [--ide-root <dir>]',
+    );
     return 1;
   }
   final String id = positional[0];
 
-  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  final String effectiveRoot = projectRoot ?? Directory.current.path;
+  final String effectiveIdeRoot = ideRoot ?? effectiveRoot;
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig(
+    projectRoot: effectiveRoot,
+    configPath: configPath,
+  );
   if (config == null) {
     return 1;
   }
@@ -771,7 +944,10 @@ int _removeTenant(List<String> args) {
     return 1;
   }
 
-  final whiteLabelFile = File('white_label.yaml');
+  final File whiteLabelFile = WhiteLabelConfig.configFile(
+    effectiveRoot,
+    configPath: configPath,
+  );
   final String originalYaml = whiteLabelFile.readAsStringSync();
   final (int, int)? range = _findTenantBlock(originalYaml, id);
   if (range == null) {
@@ -796,7 +972,7 @@ int _removeTenant(List<String> args) {
 
   whiteLabelFile.writeAsStringSync(updatedYaml);
   try {
-    WhiteLabelConfig.load(Directory.current.path);
+    WhiteLabelConfig.load(effectiveRoot, configPath: configPath);
   } on WhiteLabelConfigException catch (e) {
     whiteLabelFile.writeAsStringSync(originalYaml);
     stderr.writeln(
@@ -807,25 +983,34 @@ int _removeTenant(List<String> args) {
   }
 
   if (!keepAssets) {
-    final dir = Directory(p.join('tenants', id));
+    final dir = Directory(p.join(effectiveRoot, 'tenants', id));
     if (dir.existsSync()) {
       dir.deleteSync(recursive: true);
     }
   }
 
   // Native & IDE cleanup: remove Android flavor, iOS Xcode configs/schemes, and IDE run configs
-  final String projectRoot = Directory.current.path;
   try {
-    removeAndroidFlavor(id, projectRoot: projectRoot);
-    removeIosConfig(id, projectRoot: projectRoot);
-    IdeGenerator.remove(id, projectRoot: projectRoot);
+    removeAndroidFlavor(id, projectRoot: effectiveRoot);
+    removeIosConfig(id, projectRoot: effectiveRoot);
+    IdeGenerator.remove(
+      id,
+      projectRoot: effectiveRoot,
+      ideRoot: effectiveIdeRoot,
+    );
   } catch (e) {
     stderr.writeln('⚠️  Native/IDE file cleanup encountered an error: $e');
   }
 
   // Regenerate white_label.g.dart for the active default tenant
   final String effectiveDefault = newDefault ?? config.defaultTenant;
-  _generate(['--tenant', effectiveDefault]);
+  _generate([
+    '--tenant',
+    effectiveDefault,
+    '--project-root',
+    effectiveRoot,
+    if (configPath != null) ...['--config', configPath],
+  ]);
 
   stdout.writeln('✅ Removed tenant "$id" from white_label.yaml');
   if (newDefault != null) {
@@ -845,6 +1030,8 @@ int _removeTenant(List<String> args) {
 int _addTenant(List<String> args) {
   final positional = <String>[];
   String? logoPath;
+  String? projectRoot;
+  String? configPath;
   var makeDefault = false;
 
   for (var i = 0; i < args.length; i++) {
@@ -855,6 +1042,18 @@ int _addTenant(List<String> args) {
           return 1;
         }
         logoPath = args[++i];
+      case '--project-root':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --project-root requires a directory argument.');
+          return 1;
+        }
+        projectRoot = args[++i];
+      case '--config':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --config requires a file path.');
+          return 1;
+        }
+        configPath = args[++i];
       case '--default':
         makeDefault = true;
       default:
@@ -864,7 +1063,7 @@ int _addTenant(List<String> args) {
 
   if (positional.length < 3) {
     stderr.writeln(
-      '❌ Usage: add-tenant <id> "<Name>" <bundleId> [--logo <path>] [--default]',
+      '❌ Usage: add-tenant <id> "<Name>" <bundleId> [--logo <path>] [--project-root <dir>] [--config <path>] [--default]',
     );
     return 1;
   }
@@ -890,11 +1089,14 @@ int _addTenant(List<String> args) {
     return 1;
   }
 
-  final whiteLabelFile = File('white_label.yaml');
+  final String effectiveRoot = projectRoot ?? Directory.current.path;
+  final File whiteLabelFile = WhiteLabelConfig.configFile(
+    effectiveRoot,
+    configPath: configPath,
+  );
   if (!whiteLabelFile.existsSync()) {
     stderr.writeln(
-      '❌ No white_label.yaml here — run `dart run white_label_kit:white_label '
-      'init` first.',
+      '❌ No white_label.yaml found at ${whiteLabelFile.path} — run `dart run white_label_kit:init` first.',
     );
     return 1;
   }
@@ -906,7 +1108,7 @@ int _addTenant(List<String> args) {
 
   // Auto-generate tenants/<id>/assets/ — the manual `mkdir` step this
   // command exists to remove.
-  final assetsDir = Directory(p.join('tenants', id, 'assets'))
+  final assetsDir = Directory(p.join(effectiveRoot, 'tenants', id, 'assets'))
     ..createSync(recursive: true);
   final logoFile = File(p.join(assetsDir.path, 'logo.png'));
   var logoIsPlaceholder = false;
@@ -944,7 +1146,7 @@ int _addTenant(List<String> args) {
   final tenantsMarker = RegExp(r'^  tenants:\r?\n', multiLine: true);
   final RegExpMatch? match = tenantsMarker.firstMatch(originalYaml);
   if (match == null) {
-    Directory(p.join('tenants', id)).deleteSync(recursive: true);
+    Directory(p.join(effectiveRoot, 'tenants', id)).deleteSync(recursive: true);
     stderr.writeln(
       '❌ white_label.yaml has no `  tenants:` key — malformed file, refusing to guess where to insert.',
     );
@@ -969,10 +1171,10 @@ int _addTenant(List<String> args) {
   // the created folder if the result is somehow invalid, rather than
   // leaving a half-added tenant behind.
   try {
-    WhiteLabelConfig.load(Directory.current.path);
+    WhiteLabelConfig.load(effectiveRoot, configPath: configPath);
   } on WhiteLabelConfigException catch (e) {
     whiteLabelFile.writeAsStringSync(originalYaml);
-    Directory(p.join('tenants', id)).deleteSync(recursive: true);
+    Directory(p.join(effectiveRoot, 'tenants', id)).deleteSync(recursive: true);
     stderr.writeln(
       '❌ Adding tenant "$id" produced an invalid config — rolled back.',
     );
@@ -1035,11 +1237,13 @@ const _placeholderPngBase64 =
 
 /// The generic white_label.yaml build path.
 ///
-/// Usage: `build --tenant <id> [--platform ..] [--mode ..] [--dry-run] [--verbose] [--clean]`
+/// Usage: `build --tenant <id> [--platform ..] [--mode ..] [--dry-run] [--verbose] [--clean] [--project-root ..] [--config ..]`
 ///
 /// Stages the resolved tenant's assets into an isolated `.generated/<tenant>` directory.
 Future<int> _genericBuild(List<String> args) async {
   String? tenantId;
+  String? projectRoot;
+  String? configPath;
   var platform = 'android';
   var mode = 'debug';
   var dryRun = false;
@@ -1076,6 +1280,18 @@ Future<int> _genericBuild(List<String> args) async {
           return 1;
         }
         envName = args[++i];
+      case '--project-root':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --project-root requires a directory argument.');
+          return 1;
+        }
+        projectRoot = args[++i];
+      case '--config':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --config requires a file path.');
+          return 1;
+        }
+        configPath = args[++i];
       case '--dry-run':
         dryRun = true;
       case '--verbose':
@@ -1105,7 +1321,8 @@ Future<int> _genericBuild(List<String> args) async {
     return 1;
   }
 
-  final stager = TenantStager(Directory.current.path);
+  final String effectiveRoot = projectRoot ?? Directory.current.path;
+  final stager = TenantStager(effectiveRoot);
 
   if (clean) {
     if (tenantId == null) {
@@ -1117,7 +1334,10 @@ Future<int> _genericBuild(List<String> args) async {
     return 0;
   }
 
-  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig(
+    projectRoot: effectiveRoot,
+    configPath: configPath,
+  );
   if (config == null) {
     return 1;
   }
@@ -1162,12 +1382,7 @@ Future<int> _genericBuild(List<String> args) async {
   // config (API URL, theme, feature flags) if that doesn't happen to match
   // what was just resolved above. There's no separate step to remember.
   try {
-    writeGeneratedFile(
-      Directory.current.path,
-      config,
-      tenant.id,
-      envName: envName,
-    );
+    writeGeneratedFile(effectiveRoot, config, tenant.id, envName: envName);
     stdout.writeln(
       'Regenerated lib/white_label.g.dart for tenant "${tenant.id}"'
       '${envName == null ? '' : ' (environment: "$envName")'}.',
@@ -1207,7 +1422,6 @@ Future<int> _genericBuild(List<String> args) async {
   // handles the Xcode project configuration (generateIosConfig) but cannot
   // and should not manage provisioning profiles or signing certificates.
   var overallExitCode = 0;
-  final String projectRoot = Directory.current.path;
 
   // ── Icons & Splash (opt-in via features: icon_generate/splash_generate) ──
   // Runs here too (not only in `configure`) so `build` alone is enough on
@@ -1215,7 +1429,7 @@ Future<int> _genericBuild(List<String> args) async {
   // maybeGenerateNativeSplash's doc comments.
   final IconSplashGenerateResult? icon = maybeGenerateLauncherIcon(
     tenant,
-    projectRoot: projectRoot,
+    projectRoot: effectiveRoot,
   );
   if (icon != null && icon.ran) {
     stdout.writeln('✅ Icons: generated for "${tenant.id}".');
@@ -1228,7 +1442,7 @@ Future<int> _genericBuild(List<String> args) async {
 
   final IconSplashGenerateResult? splash = maybeGenerateNativeSplash(
     tenant,
-    projectRoot: projectRoot,
+    projectRoot: effectiveRoot,
   );
   if (splash != null && splash.ran) {
     stdout.writeln('✅ Splash: generated for "${tenant.id}".');
@@ -1242,7 +1456,7 @@ Future<int> _genericBuild(List<String> args) async {
   if (platform == 'android' || platform == 'android-aab' || platform == 'all') {
     // ── Android ─────────────────────────────────────────────────────────────
     try {
-      generateAndroidFlavor(tenant, projectRoot: projectRoot);
+      generateAndroidFlavor(tenant, projectRoot: effectiveRoot);
       stdout.writeln(
         '✅ Android: Gradle flavor "${tenant.id}" ensured in '
         'android/app/build.gradle.kts.',
@@ -1275,7 +1489,7 @@ Future<int> _genericBuild(List<String> args) async {
       // in the same folder.
       if (mode == 'release') ...[
         '--obfuscate',
-        '--split-debug-info=${p.join(projectRoot, 'build', 'outputs', 'symbols', tenant.id, 'android')}',
+        '--split-debug-info=${p.join(effectiveRoot, 'build', 'outputs', 'symbols', tenant.id, 'android')}',
       ],
     ];
 
@@ -1283,7 +1497,7 @@ Future<int> _genericBuild(List<String> args) async {
     final Process androidProcess = await Process.start(
       'flutter',
       androidArgs,
-      workingDirectory: projectRoot,
+      workingDirectory: effectiveRoot,
       mode: ProcessStartMode.inheritStdio,
     );
     final int androidExitCode = await androidProcess.exitCode;
@@ -1298,6 +1512,7 @@ Future<int> _genericBuild(List<String> args) async {
       overallExitCode = androidExitCode;
     } else {
       final String? artifactPath = _findBuiltArtifact(
+        projectRoot: effectiveRoot,
         tenantId: tenant.id,
         buildCommand: buildCommand,
         mode: mode,
@@ -1325,7 +1540,7 @@ Future<int> _genericBuild(List<String> args) async {
     // ── iOS ──────────────────────────────────────────────────────────────────
     // Xcode project configuration first — idempotent, safe to re-run.
     final xcodeprojDir = Directory(
-      p.join(projectRoot, 'ios', 'Runner.xcodeproj'),
+      p.join(effectiveRoot, 'ios', 'Runner.xcodeproj'),
     );
     if (!xcodeprojDir.existsSync()) {
       stderr.writeln(
@@ -1338,7 +1553,7 @@ Future<int> _genericBuild(List<String> args) async {
       overallExitCode = 1;
     } else {
       try {
-        generateIosConfig(tenant, projectRoot: projectRoot);
+        generateIosConfig(tenant, projectRoot: effectiveRoot);
         stdout.writeln(
           '✅ iOS: Xcode build configs + scheme ensured for "${tenant.id}".',
         );
@@ -1370,7 +1585,7 @@ Future<int> _genericBuild(List<String> args) async {
           // above — see https://docs.flutter.dev/deployment/obfuscate.
           if (mode == 'release') ...[
             '--obfuscate',
-            '--split-debug-info=${p.join(projectRoot, 'build', 'outputs', 'symbols', tenant.id, 'ios')}',
+            '--split-debug-info=${p.join(effectiveRoot, 'build', 'outputs', 'symbols', tenant.id, 'ios')}',
           ],
         ];
 
@@ -1378,7 +1593,7 @@ Future<int> _genericBuild(List<String> args) async {
         final Process iosProcess = await Process.start(
           'flutter',
           iosArgs,
-          workingDirectory: projectRoot,
+          workingDirectory: effectiveRoot,
           mode: ProcessStartMode.inheritStdio,
         );
         final int iosExitCode = await iosProcess.exitCode;
@@ -1408,15 +1623,15 @@ Future<int> _genericBuild(List<String> args) async {
 /// caller can report a real "no artifact on disk" failure instead of
 /// trusting `flutter build`'s exit code alone.
 String? _findBuiltArtifact({
+  String? projectRoot,
   required String tenantId,
   required String buildCommand,
   required String mode,
 }) {
   final ext = buildCommand == 'appbundle' ? 'aab' : 'apk';
   final expectedName = 'app-$tenantId-$mode.$ext';
-  final outputsDir = Directory(
-    p.join(Directory.current.path, 'build', 'app', 'outputs'),
-  );
+  final String root = projectRoot ?? Directory.current.path;
+  final outputsDir = Directory(p.join(root, 'build', 'app', 'outputs'));
   if (!outputsDir.existsSync()) {
     return null;
   }
@@ -1430,10 +1645,12 @@ String? _findBuiltArtifact({
 
 /// Resolves and stages a tenant in debug mode.
 ///
-/// Usage: `run [--tenant <id>] [--env <name>]`
+/// Usage: `run [--tenant <id>] [--env <name>] [--project-root <dir>] [--config <path>]`
 Future<int> _run(List<String> args) async {
   String? tenantId;
   String? envName;
+  String? projectRoot;
+  String? configPath;
 
   for (var i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -1451,18 +1668,34 @@ Future<int> _run(List<String> args) async {
           return 1;
         }
         envName = args[++i];
+      case '--project-root':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --project-root requires a directory argument.');
+          return 1;
+        }
+        projectRoot = args[++i];
+      case '--config':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --config requires a file path.');
+          return 1;
+        }
+        configPath = args[++i];
       default:
         stderr.writeln('❌ Unknown flag for `run`: ${args[i]}');
         return 1;
     }
   }
 
-  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  final String effectiveRoot = projectRoot ?? Directory.current.path;
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig(
+    projectRoot: effectiveRoot,
+    configPath: configPath,
+  );
   if (config == null) {
     return 1;
   }
 
-  final stager = TenantStager(Directory.current.path);
+  final stager = TenantStager(effectiveRoot);
 
   final TenantConfig tenant;
   try {
@@ -1484,12 +1717,7 @@ Future<int> _run(List<String> args) async {
   // `build` — see its comment above `writeGeneratedFile` for why this
   // can't be skipped even for a debug `run`.
   try {
-    writeGeneratedFile(
-      Directory.current.path,
-      config,
-      tenant.id,
-      envName: envName,
-    );
+    writeGeneratedFile(effectiveRoot, config, tenant.id, envName: envName);
     stdout.writeln(
       'Regenerated lib/white_label.g.dart for tenant "${tenant.id}"'
       '${envName == null ? '' : ' (environment: "$envName")'}.',
@@ -1527,7 +1755,7 @@ Future<int> _run(List<String> args) async {
 
 /// The configuration setup command.
 ///
-/// Usage: `configure [--tenant <id>] [--platform android|ios|all] [--dry-run] [--skip-generate] [--verbose]`
+/// Usage: `configure [--tenant <id>] [--platform android|ios|all] [--dry-run] [--skip-generate] [--verbose] [--project-root <dir>] [--config <path>] [--ide-root <dir>]`
 ///
 /// Patches Android `build.gradle.kts` and the iOS Xcode project for every declared tenant
 /// so that `flutter build --flavor <id>` just works without any manual file editing.
@@ -1553,6 +1781,9 @@ Future<int> _run(List<String> args) async {
 /// applies any value changes), never a duplicate or a conflict.
 Future<int> _configureTenants(List<String> args) async {
   String? tenantId;
+  String? projectRoot;
+  String? configPath;
+  String? ideRoot;
   var platform = 'all';
   var dryRun = false;
   var skipGenerate = false;
@@ -1584,6 +1815,24 @@ Future<int> _configureTenants(List<String> args) async {
           return 1;
         }
         envName = args[++i];
+      case '--project-root':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --project-root requires a directory argument.');
+          return 1;
+        }
+        projectRoot = args[++i];
+      case '--config':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --config requires a file path.');
+          return 1;
+        }
+        configPath = args[++i];
+      case '--ide-root':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --ide-root requires a directory argument.');
+          return 1;
+        }
+        ideRoot = args[++i];
       case '--verbose':
         // Accepted for compatibility
         break;
@@ -1602,7 +1851,12 @@ Future<int> _configureTenants(List<String> args) async {
     return 1;
   }
 
-  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig();
+  final String effectiveRoot = projectRoot ?? Directory.current.path;
+  final String effectiveIdeRoot = ideRoot ?? effectiveRoot;
+  final WhiteLabelConfig? config = _tryLoadWhiteLabelConfig(
+    projectRoot: effectiveRoot,
+    configPath: configPath,
+  );
   if (config == null) {
     return 1;
   }
@@ -1620,7 +1874,6 @@ Future<int> _configureTenants(List<String> args) async {
     ];
   }
 
-  final String projectRoot = Directory.current.path;
   stdout.writeln(
     '🔧 Configuring ${tenants.length} tenant(s): '
     '${tenants.map((t) => t.id).join(', ')}',
@@ -1645,7 +1898,7 @@ Future<int> _configureTenants(List<String> args) async {
         );
       } else {
         try {
-          generateAndroidFlavor(tenant, projectRoot: projectRoot);
+          generateAndroidFlavor(tenant, projectRoot: effectiveRoot);
           stdout.writeln(
             '   ✅ Android: Gradle flavor "${tenant.id}" configured '
             'in android/app/build.gradle.kts',
@@ -1660,7 +1913,7 @@ Future<int> _configureTenants(List<String> args) async {
     // ── iOS ──────────────────────────────────────────────────────────────────
     if (platform == 'ios' || platform == 'all') {
       final xcodeprojDir = Directory(
-        p.join(projectRoot, 'ios', 'Runner.xcodeproj'),
+        p.join(effectiveRoot, 'ios', 'Runner.xcodeproj'),
       );
       if (!xcodeprojDir.existsSync()) {
         if (platform == 'ios') {
@@ -1682,7 +1935,7 @@ Future<int> _configureTenants(List<String> args) async {
         );
       } else {
         try {
-          generateIosConfig(tenant, projectRoot: projectRoot);
+          generateIosConfig(tenant, projectRoot: effectiveRoot);
           stdout.writeln(
             '   ✅ iOS: Xcode build configs + scheme configured '
             'for "${tenant.id}"',
@@ -1700,7 +1953,12 @@ Future<int> _configureTenants(List<String> args) async {
     // ── IDE (VS Code + Android Studio / IntelliJ) ───────────────────────────
     if (!dryRun) {
       try {
-        IdeGenerator.generate(tenant, projectRoot: projectRoot);
+        IdeGenerator.generate(
+          tenant,
+          projectRoot: effectiveRoot,
+          ideRoot: effectiveIdeRoot,
+          configPath: configPath,
+        );
         stdout.writeln(
           '   ✅ IDE: Android Studio & VS Code run configurations '
           'configured for "${tenant.id}"',
@@ -1718,7 +1976,7 @@ Future<int> _configureTenants(List<String> args) async {
     if (!dryRun) {
       final IconSplashGenerateResult? icon = maybeGenerateLauncherIcon(
         tenant,
-        projectRoot: projectRoot,
+        projectRoot: effectiveRoot,
       );
       if (icon != null && icon.ran) {
         stdout.writeln('   ✅ Icons: generated for "${tenant.id}"');
@@ -1731,7 +1989,7 @@ Future<int> _configureTenants(List<String> args) async {
 
       final IconSplashGenerateResult? splash = maybeGenerateNativeSplash(
         tenant,
-        projectRoot: projectRoot,
+        projectRoot: effectiveRoot,
       );
       if (splash != null && splash.ran) {
         stdout.writeln('   ✅ Splash: generated for "${tenant.id}"');
@@ -1764,7 +2022,13 @@ Future<int> _configureTenants(List<String> args) async {
       '🔄 Regenerating lib/white_label.g.dart '
       'for tenant "$generateForTenant"$envSuffix...',
     );
-    final generateArgs = ['--tenant', generateForTenant];
+    final generateArgs = [
+      '--tenant',
+      generateForTenant,
+      '--project-root',
+      effectiveRoot,
+      if (configPath != null) ...['--config', configPath],
+    ];
     if (envName != null) {
       generateArgs.addAll(['--env', envName]);
     }
@@ -1927,6 +2191,7 @@ repo's tenants/ + tool/ folder layout; see lib/src/config, lib/src/generation):
 
   configure [--tenant <id>] [--platform android|ios|all]
             [--dry-run] [--skip-generate] [--verbose]
+            [--project-root <dir>] [--config <path>] [--ide-root <dir>]
                                                 THE zero-touch setup command —
                                                 equivalent to
                                                 `dart run flutter_flavorizr`
@@ -1951,13 +2216,19 @@ repo's tenants/ + tool/ folder layout; see lib/src/config, lib/src/generation):
                                                 --skip-generate
                                                   Skip the final
                                                   `generate` step.
+                                                --project-root Target Flutter
+                                                  project root (for monorepos).
+                                                --config       Path to
+                                                  white_label.yaml.
+                                                --ide-root     Target root for
+                                                  IDE run configs (.vscode/.run).
                                                 Exit 1 on any Android
                                                 Gradle or iOS Xcode config
                                                 failure.
 
   add-tenant <id> "<Name>" <bundleId>           Add a tenant WITHOUT hand-
-    [--logo <path>] [--default]                 editing white_label.yaml or
-                                                mkdir-ing a tenants/<id>/
+    [--logo <path>] [--project-root <dir>]      editing white_label.yaml or
+    [--config <path>] [--default]               mkdir-ing a tenants/<id>/
                                                 folder yourself — both are
                                                 generated. --logo copies a
                                                 real file in; omitted, a
@@ -1974,14 +2245,17 @@ repo's tenants/ + tool/ folder layout; see lib/src/config, lib/src/generation):
                                                 not found.
 
   remove-tenant <id> [--keep-assets]            Remove a tenant from
-                                                white_label.yaml, clean its
-                                                tenants/<id>/ folder, remove
+    [--project-root <dir>] [--config <path>]    white_label.yaml, clean its
+    [--ide-root <dir>]                          tenants/<id>/ folder, remove
                                                 its Android Gradle flavor and
                                                 iOS Xcode configs/schemes, and
                                                 regenerate lib/white_label.g.dart.
 
-  validate                                     Load + validate
-                                                white_label.yaml. Prints
+  generate [--tenant <id>] [--env <name>]       (Re)generate lib/white_label.g.dart
+    [--project-root <dir>] [--config <path>]    for a single tenant / environment.
+
+  validate [--project-root <dir>]               Load + validate
+    [--config <path>]                           white_label.yaml. Prints
                                                 every collected error (not
                                                 just the first) on failure
                                                 — never a raw stack trace.
@@ -1989,16 +2263,19 @@ repo's tenants/ + tool/ folder layout; see lib/src/config, lib/src/generation):
                                                 (including "file not
                                                 found").
 
-  list                                         List every tenant declared
-                                                in white_label.yaml, with a
+  list [--project-root <dir>]                   List every tenant declared
+    [--config <path>]                           in white_label.yaml, with a
                                                 top "Default tenant: <id>"
                                                 line plus a per-tenant
                                                 "(default)" marker.
                                                 Exit 1 if config invalid.
 
+  doctor [--project-root <dir>]                 Health-check a white_label.yaml
+    [--config <path>]                           project and declared assets.
+
   build --tenant <id> [--platform android|ios|all] [--mode debug|release]
         [--dry-run] [--verbose] [--clean]      GENERIC build: resolves the
-                                                tenant (--tenant, else the
+        [--project-root <dir>] [--config <path>] tenant (--tenant, else the
                                                 declared default_tenant —
                                                 never an arbitrary guess)
                                                 and stages its assets into
@@ -2065,7 +2342,7 @@ repo's tenants/ + tool/ folder layout; see lib/src/config, lib/src/generation):
                                                 always.
 
   run [--tenant <id>]                          Resolves + stages a tenant
-                                                (same resolution + staging
+    [--project-root <dir>] [--config <path>]    (same resolution + staging
                                                 as `build`, debug mode) but
                                                 does NOT invoke `flutter
                                                 run` itself — that's
@@ -2095,6 +2372,9 @@ Examples:
   dart run white_label_kit:build --tenant acme --platform android --mode release
   dart run white_label_kit:build --tenant acme --platform ios --mode debug
   dart run white_label_kit:build --tenant acme --platform all --mode release
+
+  # Monorepo / Melos workspace layout
+  dart run white_label_kit:configure --project-root apps/student_app --ide-root .
 
   # Or call flutter directly after configure — native files already patched
   flutter build apk --flavor acme --dart-define=TENANT_ID=acme

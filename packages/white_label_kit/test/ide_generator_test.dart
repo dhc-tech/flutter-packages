@@ -106,4 +106,117 @@ void main() {
             .cast<Map<String, dynamic>>();
     expect(configs.isEmpty, isTrue);
   });
+
+  test(
+    'supports monorepo workspace layout where ideRoot differs from projectRoot',
+    () {
+      final appDir = Directory(p.join(tempDir.path, 'apps', 'student_app'))
+        ..createSync(recursive: true);
+
+      IdeGenerator.generate(
+        tenant,
+        projectRoot: appDir.path,
+        ideRoot: tempDir.path,
+      );
+
+      // VS Code launch.json written at workspace root (tempDir/.vscode/launch.json)
+      final launchFile = File(p.join(tempDir.path, '.vscode', 'launch.json'));
+      expect(launchFile.existsSync(), isTrue);
+
+      final launchJson =
+          jsonDecode(launchFile.readAsStringSync()) as Map<String, dynamic>;
+      final List<Map<String, dynamic>> configs =
+          (launchJson['configurations'] as List<dynamic>)
+              .cast<Map<String, dynamic>>();
+      expect(configs.length, 3);
+      expect(configs[0]['name'], 'Acme Student (debug)');
+      expect(configs[0]['program'], 'apps/student_app/lib/main.dart');
+
+      // VS Code tasks.json check
+      final tasksFile = File(p.join(tempDir.path, '.vscode', 'tasks.json'));
+      expect(tasksFile.existsSync(), isTrue);
+      final tasksJson =
+          jsonDecode(tasksFile.readAsStringSync()) as Map<String, dynamic>;
+      final List<Map<String, dynamic>> tasks =
+          (tasksJson['tasks'] as List<dynamic>).cast<Map<String, dynamic>>();
+      expect(tasks.isNotEmpty, isTrue);
+      expect(
+        tasks[0]['command'],
+        contains(
+          "cd 'apps/student_app' && dart run white_label_kit:generate --tenant acme && flutter build",
+        ),
+      );
+
+      // Android Studio / IntelliJ check written at workspace root (.run)
+      final debugRun = File(p.join(tempDir.path, '.run', 'acme_debug.run.xml'));
+      expect(debugRun.existsSync(), isTrue);
+      final String debugContent = debugRun.readAsStringSync();
+      expect(
+        debugContent,
+        contains(r'$PROJECT_DIR$/apps/student_app/lib/main.dart'),
+      );
+
+      final buildRun = File(
+        p.join(tempDir.path, '.run', 'acme_build_apk.run.xml'),
+      );
+      expect(buildRun.existsSync(), isTrue);
+      final String buildContent = buildRun.readAsStringSync();
+      expect(buildContent, contains(r'$PROJECT_DIR$/apps/student_app'));
+
+      // Removal check in monorepo
+      IdeGenerator.remove(
+        'acme',
+        projectRoot: appDir.path,
+        ideRoot: tempDir.path,
+      );
+      expect(
+        File(p.join(tempDir.path, '.run', 'acme_debug.run.xml')).existsSync(),
+        isFalse,
+      );
+      expect(
+        File(p.join(tempDir.path, '.run', 'acme_build_apk.run.xml'))
+            .existsSync(),
+        isFalse,
+      );
+    },
+  );
+
+  test('forwards custom --config path and safely quotes paths with spaces in IDE configs', () {
+    final appWithSpaces = Directory(p.join(tempDir.path, 'apps', 'my app'))
+      ..createSync(recursive: true);
+
+    IdeGenerator.generate(
+      tenant,
+      projectRoot: appWithSpaces.path,
+      ideRoot: tempDir.path,
+      configPath: 'configs/custom_white_label.yaml',
+    );
+
+    final tasksFile = File(p.join(tempDir.path, '.vscode', 'tasks.json'));
+    expect(tasksFile.existsSync(), isTrue);
+    final tasksJson =
+        jsonDecode(tasksFile.readAsStringSync()) as Map<String, dynamic>;
+    final List<Map<String, dynamic>> tasks =
+        (tasksJson['tasks'] as List<dynamic>).cast<Map<String, dynamic>>();
+    expect(
+      tasks[0]['command'],
+      contains(
+        "cd 'apps/my app' && dart run white_label_kit:generate --tenant acme --config 'configs/custom_white_label.yaml'",
+      ),
+    );
+
+    final configureTask = tasks.firstWhere(
+      (t) => t['label'] == '🔧 Configure White-Label',
+    );
+    expect(
+      configureTask['command'],
+      contains(
+        "cd 'apps/my app' && dart run white_label_kit:configure --ide-root '../..' --config 'configs/custom_white_label.yaml'",
+      ),
+    );
+
+    final runXml = File(p.join(tempDir.path, '.run', 'acme_build_apk.run.xml'))
+        .readAsStringSync();
+    expect(runXml, contains("--config 'configs/custom_white_label.yaml'"));
+  });
 }

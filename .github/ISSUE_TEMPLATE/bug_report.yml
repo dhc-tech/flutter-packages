@@ -1,7 +1,7 @@
 name: 🐛 Bug Report
 description: Report an issue or unexpected behavior in any of the packages.
 title: "[Bug]: "
-labels: ["bug", "needs-triage"]
+labels: ["type:fix"]
 body:
   - type: markdown
     attributes:
