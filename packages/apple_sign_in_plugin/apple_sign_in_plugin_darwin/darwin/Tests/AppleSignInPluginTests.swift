@@ -8,13 +8,13 @@
 
 import XCTest
 
+@testable import apple_sign_in_plugin_darwin
+
 #if os(iOS)
   import Flutter
 #elseif os(macOS)
   import FlutterMacOS
 #endif
-
-@testable import apple_sign_in_plugin_darwin
 
 final class AppleSignInPluginTests: XCTestCase {
   func testIsAvailableAlwaysReturnsTrue() {
