@@ -11,7 +11,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  attachment_engine_platform_interface: ^0.0.1-dev.1
+  attachment_engine_platform_interface: ^0.0.1-dev.0
 
 dev_dependencies:
   flutter_test:

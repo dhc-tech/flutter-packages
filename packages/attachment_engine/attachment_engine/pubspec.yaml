@@ -18,13 +18,13 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  attachment_engine_platform_interface: ^0.0.1-dev.1
-  attachment_engine_android: ^0.0.1-dev.1
-  attachment_engine_ios: ^0.0.1-dev.1
-  attachment_engine_windows: ^0.0.1-dev.1
-  attachment_engine_linux: ^0.0.1-dev.1
-  attachment_engine_macos: ^0.0.1-dev.1
-  attachment_engine_web: ^0.0.1-dev.1
+  attachment_engine_platform_interface: ^0.0.1-dev.0
+  attachment_engine_android: ^0.0.1-dev.0
+  attachment_engine_ios: ^0.0.1-dev.0
+  attachment_engine_windows: ^0.0.1-dev.0
+  attachment_engine_linux: ^0.0.1-dev.0
+  attachment_engine_macos: ^0.0.1-dev.0
+  attachment_engine_web: ^0.0.1-dev.0
   crypto: ^3.0.6
   meta: ^1.16.0
   webview_flutter: ^4.14.0
