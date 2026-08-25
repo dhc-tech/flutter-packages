@@ -154,6 +154,13 @@ class PublishCommand extends PackageLoopingCommand {
 
   @override
   Future<void> initializeRun() async {
+    if (shardCount > 1) {
+      usageException(
+        'Publishing cannot be sharded across multiple jobs as federated packages '
+        'must be published sequentially in strict dependency order.',
+      );
+    }
+
     print('Checking local repo...');
 
     // Ensure that the requested remote is present.
@@ -276,14 +283,7 @@ class PublishCommand extends PackageLoopingCommand {
 
     // Sort by dependency tier so platform interfaces are published before
     // platform implementations, and platform implementations before the main app wrapper.
-    packagesToProcess.sort((PackageEnumerationEntry a, PackageEnumerationEntry b) {
-      final int pA = _publishPriority(a.package.directory.basename);
-      final int pB = _publishPriority(b.package.directory.basename);
-      if (pA != pB) {
-        return pA.compareTo(pB);
-      }
-      return a.package.path.compareTo(b.package.path);
-    });
+    packagesToProcess.sort(comparePackages);
 
     for (final entry in packagesToProcess) {
       yield entry;

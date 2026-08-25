@@ -336,7 +336,14 @@ abstract class PackageCommand extends Command<void> {
     return excludedPackages;
   }
 
-  /// Returns the root diretories of the packages involved in this command
+  /// Comparator used to sort packages in [getTargetPackages] prior to sharding.
+  /// Subclasses can override this to ensure packages are ordered (e.g. by
+  /// dependency tier) before shard partitions are computed.
+  int comparePackages(PackageEnumerationEntry p1, PackageEnumerationEntry p2) {
+    return p1.package.path.compareTo(p2.package.path);
+  }
+
+  /// Returns the root directories of the packages involved in this command
   /// execution.
   ///
   /// Depending on the command arguments, this may be a user-specified set of
@@ -345,13 +352,6 @@ abstract class PackageCommand extends Command<void> {
   ///
   /// By default, packages excluded via --exclude will not be in the stream, but
   /// they can be included by passing false for [filterExcluded].
-  /// Comparator used to sort packages in [getTargetPackages] prior to sharding.
-  /// Subclasses can override this to ensure packages are ordered (e.g. by
-  /// dependency tier) before shard partitions are computed.
-  int comparePackages(PackageEnumerationEntry p1, PackageEnumerationEntry p2) {
-    return p1.package.path.compareTo(p2.package.path);
-  }
-
   Stream<PackageEnumerationEntry> getTargetPackages({bool filterExcluded = true}) async* {
     // To avoid assuming consistency of `Directory.list` across command
     // invocations, we collect and sort the package folders before sharding.
