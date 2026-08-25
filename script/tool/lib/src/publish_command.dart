@@ -184,9 +184,31 @@ class PublishCommand extends PackageLoopingCommand {
     }
   }
 
+  /// Returns the dependency priority for publishing federated packages in the
+  /// correct order:
+  /// 0: `*_platform_interface` (published first, other packages depend on it)
+  /// 1: Platform implementations (published second)
+  /// 2: Main app-facing wrapper packages (published last)
+  int _publishPriority(String packageName) {
+    if (packageName.endsWith('_platform_interface')) {
+      return 0;
+    }
+    if (packageName.endsWith('_android') ||
+        packageName.endsWith('_ios') ||
+        packageName.endsWith('_macos') ||
+        packageName.endsWith('_linux') ||
+        packageName.endsWith('_windows') ||
+        packageName.endsWith('_web')) {
+      return 1;
+    }
+    return 2;
+  }
+
   @override
   Stream<PackageEnumerationEntry> getPackagesToProcess() async* {
     final String batchReleaseBranchName = getStringArg(_batchReleaseBranchOption);
+    final packagesToProcess = <PackageEnumerationEntry>[];
+
     if (getBoolArg(_allChangedFlag)) {
       print('Publishing all packages that have changed relative to "$baseSha"\n');
 
@@ -229,15 +251,32 @@ class PublishCommand extends PackageLoopingCommand {
           }
         }
 
-        // git outputs a relativa, Posix-style path.
+        // git outputs a relative, Posix-style path.
         final File pubspecFile = childFileWithSubcomponents(
           packagesDir.fileSystem.directory((await gitDir).path),
           p.posix.split(pubspecPath),
         );
-        yield PackageEnumerationEntry(RepositoryPackage(pubspecFile.parent), excluded: false);
+        packagesToProcess.add(
+          PackageEnumerationEntry(RepositoryPackage(pubspecFile.parent), excluded: false),
+        );
       }
     } else {
-      yield* getTargetPackages(filterExcluded: false);
+      packagesToProcess.addAll(await getTargetPackages(filterExcluded: false).toList());
+    }
+
+    // Sort by dependency tier so platform interfaces are published before
+    // platform implementations, and platform implementations before the main app wrapper.
+    packagesToProcess.sort((PackageEnumerationEntry a, PackageEnumerationEntry b) {
+      final int pA = _publishPriority(a.package.directory.basename);
+      final int pB = _publishPriority(b.package.directory.basename);
+      if (pA != pB) {
+        return pA.compareTo(pB);
+      }
+      return a.package.path.compareTo(b.package.path);
+    });
+
+    for (final entry in packagesToProcess) {
+      yield entry;
     }
   }
 

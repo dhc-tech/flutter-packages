@@ -1,5 +1,5 @@
 name: attachment_engine_linux
-description: "The Linux implementation of attachment_engine. Paths and open-externally via path_provider/url_launcher (both flutter.dev-published, official Flutter team plugins); download via dart:io. Audio/video playback and video embedding (native, GStreamer playbin/gtksink) are implemented in C but not yet build-verified (no Linux toolchain in CI at time of writing). Share is intentionally still unimplemented — no universal Linux OS-level share mechanism exists (xdg-desktop-portal's OpenURI only opens with a user-chosen app, it does not broadcast to share targets). Native PDF rendering and embedded webview surfaces are still not implemented on Linux."
+description: "Linux implementation of attachment_engine providing native file paths, external opening, and Dart-based download pipelines."
 version: 0.0.1-dev.0
 repository: "https://github.com/dhc-tech/flutter-packages/tree/main/packages/attachment_engine/attachment_engine_linux"
 issue_tracker: "https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+attachment_engine_linux%22"

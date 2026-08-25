@@ -1,5 +1,5 @@
 name: attachment_engine_macos
-description: "The macOS implementation of attachment_engine. Full-parity native Swift implementation — PDF (PDFKit), audio/video (AVFoundation/AVKit), webview (WKWebView), share, open-externally, office preview (QuickLook), paths, and download — zero third-party plugin dependencies. Request/response calls go through Pigeon-generated HostApi protocols; audio/video/download event streams stay on hand-written EventChannels."
+description: "macOS implementation of attachment_engine providing native PDFKit, AVFoundation playback, QuickLook preview, download, and share."
 version: 0.0.1-dev.0
 repository: "https://github.com/dhc-tech/flutter-packages/tree/main/packages/attachment_engine/attachment_engine_macos"
 issue_tracker: "https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+attachment_engine_macos%22"

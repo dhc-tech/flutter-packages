@@ -1,5 +1,5 @@
 name: attachment_engine_windows
-description: "The Windows implementation of attachment_engine. Paths and open-externally via path_provider/url_launcher (both flutter.dev-published, official Flutter team plugins); download via dart:io. Share (native, IDataTransferManagerInterop), audio/video playback and video embedding (native, Media Foundation IMFMediaEngine) are implemented in C++ but not yet build-verified (no Windows toolchain in CI at time of writing). Native PDF rendering and embedded webview surfaces are still not implemented on Windows."
+description: "Windows implementation of attachment_engine providing native file paths, external opening, share, and Dart-based download pipeline."
 version: 0.0.1-dev.0
 repository: "https://github.com/dhc-tech/flutter-packages/tree/main/packages/attachment_engine/attachment_engine_windows"
 issue_tracker: "https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+attachment_engine_windows%22"
