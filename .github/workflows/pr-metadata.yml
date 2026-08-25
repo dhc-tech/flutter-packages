@@ -182,6 +182,11 @@ jobs:
             for (const s of STATUS_LABELS) removeLabel(s);
             setLabel(status);
 
+            // Automatically remove autosubmit label if changes are requested, CI fails, or PR is blocked
+            if (['status:changes-requested', 'status:ci-failed', 'status:blocked'].includes(status)) {
+              removeLabel('autosubmit');
+            }
+
             // ---- apply label changes ----
             const finalLabels = [...nextLabels].sort();
             if (JSON.stringify(finalLabels) !== JSON.stringify([...existingLabels].sort())) {
