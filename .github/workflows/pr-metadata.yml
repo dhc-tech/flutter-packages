@@ -154,9 +154,19 @@ jobs:
               repo: context.repo.repo,
               ref: pr.head.sha,
             });
-            const relevantRuns = checkRuns.check_runs.filter((c) => c.name !== 'classify');
+
+            // Deduplicate and keep only the latest run for each unique check name
+            const latestCheckByName = new Map();
+            for (const c of checkRuns.check_runs) {
+              if (c.name === 'classify' || c.name === 'PR Metadata / classify') continue;
+              const prev = latestCheckByName.get(c.name);
+              if (!prev || new Date(c.started_at || 0) > new Date(prev.started_at || 0)) {
+                latestCheckByName.set(c.name, c);
+              }
+            }
+            const relevantRuns = [...latestCheckByName.values()];
             const anyFailed = relevantRuns.some((c) =>
-              ['failure', 'cancelled', 'timed_out'].includes(c.conclusion),
+              c.status === 'completed' && ['failure', 'timed_out'].includes(c.conclusion),
             );
             const anyPending = relevantRuns.some((c) => c.status !== 'completed');
 
