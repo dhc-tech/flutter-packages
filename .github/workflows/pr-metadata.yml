@@ -28,7 +28,7 @@ name: PR Metadata
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize, edited, ready_for_review, converted_to_draft]
+    types: [opened, reopened, synchronize, edited, ready_for_review, converted_to_draft, labeled, unlabeled]
   pull_request_review:
     types: [submitted, dismissed]
   check_suite:
@@ -182,19 +182,50 @@ jobs:
               });
             }
 
-            // ---- native auto-merge for non-dependency PRs once ready ----
-            if (status === 'status:ready' && !isDependencyPr && !pr.auto_merge) {
-              try {
-                await github.graphql(
-                  `mutation($id: ID!) {
-                    enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: SQUASH }) {
-                      clientMutationId
+            // ---- native auto-merge for PRs with autosubmit or when ready ----
+            const hasAutosubmit = nextLabels.has('autosubmit');
+            if (status === 'status:ready' && !isDependencyPr) {
+              if (hasAutosubmit) {
+                try {
+                  // Direct squash-merge if approved and all checks passed
+                  await github.rest.pulls.merge({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: prNumber,
+                    merge_method: 'squash',
+                  });
+                  core.info(`Automatically squash-merged #${prNumber} via autosubmit label.`);
+                } catch (mergeErr) {
+                  core.info(`Direct merge not yet completed, enabling GraphQL auto-merge: ${mergeErr.message}`);
+                  if (!pr.auto_merge) {
+                    try {
+                      await github.graphql(
+                        `mutation($id: ID!) {
+                          enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: SQUASH }) {
+                            clientMutationId
+                          }
+                        }`,
+                        { id: pr.node_id },
+                      );
+                      core.info(`Enabled native auto-merge for #${prNumber}.`);
+                    } catch (err) {
+                      core.warning(`Could not enable auto-merge for #${prNumber}: ${err.message}`);
                     }
-                  }`,
-                  { id: pr.node_id },
-                );
-                core.info(`Enabled native auto-merge for #${prNumber}.`);
-              } catch (err) {
-                core.warning(`Could not enable auto-merge for #${prNumber}: ${err.message}`);
+                  }
+                }
+              } else if (!pr.auto_merge) {
+                try {
+                  await github.graphql(
+                    `mutation($id: ID!) {
+                      enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: SQUASH }) {
+                        clientMutationId
+                      }
+                    }`,
+                    { id: pr.node_id },
+                  );
+                  core.info(`Enabled native auto-merge for #${prNumber}.`);
+                } catch (err) {
+                  core.warning(`Could not enable auto-merge for #${prNumber}: ${err.message}`);
+                }
               }
             }
