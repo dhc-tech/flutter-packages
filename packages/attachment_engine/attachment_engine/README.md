@@ -147,8 +147,8 @@ Customize caching limits, retry backoff, and renderers via `AttachmentEngineConf
 ```dart
 final customConfig = AttachmentEngineConfig(
   cache: const CacheConfig(
-    maxCacheSizeBytes: 1024 * 1024 * 500, // 500 MB
-    maxAge: Duration(days: 14),
+    maxTotalSizeBytes: 1024 * 1024 * 500, // 500 MB
+    retention: Duration(days: 14),
   ),
   download: const DownloadConfig(
     maxConcurrentDownloads: 4,
