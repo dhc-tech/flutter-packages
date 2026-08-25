@@ -1,0 +1,11 @@
+# Sourcery AI configuration for automated PR reviews on every push/update
+version: '1'
+
+github:
+  # Enable automated code reviews on PR open and commit pushes (synchronize)
+  request_review: true
+  enable_summary: true
+  enable_annotations: true
+  enable_review: true
+  sourcery_branch: false
+  show_review_guide: true
