@@ -154,13 +154,6 @@ class PublishCommand extends PackageLoopingCommand {
 
   @override
   Future<void> initializeRun() async {
-    if (shardCount > 1) {
-      usageException(
-        'Publishing cannot be sharded across multiple jobs as federated packages '
-        'must be published sequentially in strict dependency order.',
-      );
-    }
-
     print('Checking local repo...');
 
     // Ensure that the requested remote is present.
@@ -219,6 +212,34 @@ class PublishCommand extends PackageLoopingCommand {
       return pA.compareTo(pB);
     }
     return p1.package.path.compareTo(p2.package.path);
+  }
+
+  /// Checks whether [packages] contains multiple packages from the same federated
+  /// plugin group that belong to different dependency tiers (e.g. platform interface
+  /// and platform implementations/app wrapper).
+  bool _hasInterdependentFederatedPackages(List<PackageEnumerationEntry> packages) {
+    final pluginGroupTiers = <String, Set<int>>{};
+    for (final entry in packages) {
+      final String pkgName = entry.package.directory.basename;
+      final int priority = _publishPriority(pkgName);
+      var groupName = pkgName;
+      for (final suffix in const <String>[
+        '_platform_interface',
+        '_android',
+        '_ios',
+        '_macos',
+        '_linux',
+        '_windows',
+        '_web',
+      ]) {
+        if (pkgName.endsWith(suffix)) {
+          groupName = pkgName.substring(0, pkgName.length - suffix.length);
+          break;
+        }
+      }
+      pluginGroupTiers.putIfAbsent(groupName, () => <int>{}).add(priority);
+    }
+    return pluginGroupTiers.values.any((Set<int> tiers) => tiers.length > 1);
   }
 
   @override
@@ -284,6 +305,15 @@ class PublishCommand extends PackageLoopingCommand {
     // Sort by dependency tier so platform interfaces are published before
     // platform implementations, and platform implementations before the main app wrapper.
     packagesToProcess.sort(comparePackages);
+
+    if (shardCount > 1 && _hasInterdependentFederatedPackages(packagesToProcess)) {
+      usageException(
+        'Publishing multiple interdependent packages of a federated plugin across '
+        'multiple shards is not supported because platform interfaces must be '
+        'published before platform implementations. Please publish federated packages '
+        'without sharding.',
+      );
+    }
 
     for (final entry in packagesToProcess) {
       yield entry;
