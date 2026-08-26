@@ -27,7 +27,7 @@ class ScormAttachmentRenderer extends AttachmentRenderer {
   const ScormAttachmentRenderer();
 
   @override
-  AttachmentType get type => AttachmentType.scorm;
+  AttachmentType get type => .scorm;
 
   @override
   Widget build(BuildContext context, Attachment attachment) {

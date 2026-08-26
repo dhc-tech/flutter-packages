@@ -44,7 +44,7 @@ class _OfflineDocxViewerState extends State<OfflineDocxViewer> {
   void initState() {
     super.initState();
     _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setJavaScriptMode(.unrestricted)
       ..addJavaScriptChannel(
         'OfflineDocViewer',
         onMessageReceived: (message) {

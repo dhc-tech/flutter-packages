@@ -74,7 +74,7 @@ class ArchiveAttachmentRenderer extends AttachmentRenderer {
   const ArchiveAttachmentRenderer();
 
   @override
-  AttachmentType get type => AttachmentType.archive;
+  AttachmentType get type => .archive;
 
   @override
   Widget build(BuildContext context, Attachment attachment) {

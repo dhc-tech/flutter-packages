@@ -98,7 +98,7 @@ class OfficeAttachmentRenderer extends AttachmentRenderer {
   final ConnectivityChecker connectivityChecker;
 
   @override
-  AttachmentType get type => AttachmentType.office;
+  AttachmentType get type => .office;
 
   @override
   Widget build(BuildContext context, Attachment attachment) {
@@ -134,7 +134,7 @@ class _OfficeViewState extends State<_OfficeView> {
   bool _opening = false;
   String? _error;
   bool _previewedInApp = false;
-  _OfflineFormat _offlineFormat = _OfflineFormat.none;
+  _OfflineFormat _offlineFormat = .none;
   String? _convertedPdfPath;
   String? _officeOnlineUrl;
 
@@ -159,15 +159,15 @@ class _OfficeViewState extends State<_OfficeView> {
   _OfflineFormat get _offlineFormatForExtension {
     switch (widget.attachment.extension?.toLowerCase()) {
       case 'docx':
-        return _OfflineFormat.docx;
+        return .docx;
       case 'xlsx':
       case 'xls':
       case 'xlsm':
-        return _OfflineFormat.spreadsheet;
+        return .spreadsheet;
       case 'pptx':
-        return _OfflineFormat.pptx;
+        return .pptx;
       default:
-        return _OfflineFormat.none;
+        return .none;
     }
   }
 
@@ -194,8 +194,7 @@ class _OfficeViewState extends State<_OfficeView> {
       // Android, a format with a bundled offline renderer: it wins over
       // Office Online below — it needs no network at all.
       final offlineFormat = _offlineFormatForExtension;
-      if (offlineFormat != _OfflineFormat.none &&
-          widget.attachment.localPath != null) {
+      if (offlineFormat != .none && widget.attachment.localPath != null) {
         setState(() => _offlineFormat = offlineFormat);
         return;
       }
@@ -248,7 +247,7 @@ class _OfficeViewState extends State<_OfficeView> {
   /// If the bundled offline renderer itself fails, fall through to the
   /// same chain [_open] would have used had it not applied at all.
   Future<void> _offlineRendererFailed() async {
-    if (mounted) setState(() => _offlineFormat = _OfflineFormat.none);
+    if (mounted) setState(() => _offlineFormat = .none);
     await _tryOfficeOnlineThenConversionThenExternal();
   }
 
@@ -353,7 +352,7 @@ class _OfficeOnlineViewState extends State<_OfficeOnlineView> {
   void initState() {
     super.initState();
     _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setJavaScriptMode(.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(onWebResourceError: (_) => widget.onFailed()),
       )

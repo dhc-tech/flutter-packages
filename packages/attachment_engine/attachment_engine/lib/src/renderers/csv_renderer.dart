@@ -28,7 +28,7 @@ class CsvAttachmentRenderer extends AttachmentRenderer {
   const CsvAttachmentRenderer();
 
   @override
-  AttachmentType get type => AttachmentType.csv;
+  AttachmentType get type => .csv;
 
   @override
   Widget build(BuildContext context, Attachment attachment) {

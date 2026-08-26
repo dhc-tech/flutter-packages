@@ -30,7 +30,7 @@ class UnknownAttachmentRenderer extends AttachmentRenderer {
   final bool disabledByConfig;
 
   @override
-  AttachmentType get type => AttachmentType.unknown;
+  AttachmentType get type => .unknown;
 
   @override
   Widget build(BuildContext context, Attachment attachment) {

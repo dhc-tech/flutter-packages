@@ -42,7 +42,7 @@ class _OfflinePptxViewerState extends State<OfflinePptxViewer> {
   void initState() {
     super.initState();
     _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setJavaScriptMode(.unrestricted)
       ..addJavaScriptChannel(
         'OfflineDocViewer',
         onMessageReceived: (message) {

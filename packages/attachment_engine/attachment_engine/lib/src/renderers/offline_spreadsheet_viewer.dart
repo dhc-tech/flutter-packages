@@ -43,7 +43,7 @@ class _OfflineSpreadsheetViewerState extends State<OfflineSpreadsheetViewer> {
   void initState() {
     super.initState();
     _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setJavaScriptMode(.unrestricted)
       ..addJavaScriptChannel(
         'OfflineDocViewer',
         onMessageReceived: (message) {

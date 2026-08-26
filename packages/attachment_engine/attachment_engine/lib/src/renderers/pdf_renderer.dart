@@ -61,7 +61,7 @@ class PdfAttachmentRenderer extends AttachmentRenderer {
   final PdfPageMemory pageMemory;
 
   @override
-  AttachmentType get type => AttachmentType.pdf;
+  AttachmentType get type => .pdf;
 
   @override
   Widget build(BuildContext context, Attachment attachment) {

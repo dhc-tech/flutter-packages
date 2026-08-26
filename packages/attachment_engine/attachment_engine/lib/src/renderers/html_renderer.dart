@@ -18,7 +18,7 @@ class HtmlAttachmentRenderer extends AttachmentRenderer {
   const HtmlAttachmentRenderer();
 
   @override
-  AttachmentType get type => AttachmentType.html;
+  AttachmentType get type => .html;
 
   @override
   Widget build(BuildContext context, Attachment attachment) {
@@ -40,8 +40,7 @@ class _HtmlViewState extends State<_HtmlView> {
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted);
+    _controller = WebViewController()..setJavaScriptMode(.unrestricted);
     final path = widget.attachment.localPath;
     final url = widget.attachment.remoteUrl;
     if (path != null) {
