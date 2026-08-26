@@ -25,14 +25,26 @@ import 'text_renderer.dart' show CircularProgressIndicatorPlaceholder;
 /// delimiter/newlines via RFC 4180-style double-quote escaping) rather than
 /// pulling in a dedicated CSV package, to keep this renderer dependency-free.
 class CsvAttachmentRenderer extends AttachmentRenderer {
-  const CsvAttachmentRenderer();
+  const CsvAttachmentRenderer({this.maxRenderedRows});
+
+  /// Caps how many parsed rows are actually built as table rows, showing a
+  /// "showing first N of total" notice above the table when the file has
+  /// more rows than this. `Table` builds every row's widget subtree
+  /// eagerly (it has no lazy/virtualized builder API), so a very large
+  /// CSV/TSV can mean a very large widget tree — this is an opt-in guard
+  /// against that.
+  ///
+  /// Defaults to null: unlimited, every row is rendered. Pass a value
+  /// (e.g. `5000`) if you expect files large enough that this matters for
+  /// your users.
+  final int? maxRenderedRows;
 
   @override
   AttachmentType get type => .csv;
 
   @override
   Widget build(BuildContext context, Attachment attachment) {
-    return _CsvView(attachment: attachment);
+    return _CsvView(attachment: attachment, maxRenderedRows: maxRenderedRows);
   }
 
   /// Reads and parses [attachment]'s file, propagating any I/O or parse
@@ -106,8 +118,9 @@ class CsvAttachmentRenderer extends AttachmentRenderer {
 }
 
 class _CsvView extends StatefulWidget {
-  const _CsvView({required this.attachment});
+  const _CsvView({required this.attachment, this.maxRenderedRows});
   final Attachment attachment;
+  final int? maxRenderedRows;
 
   @override
   State<_CsvView> createState() => _CsvViewState();
@@ -168,41 +181,58 @@ class _CsvViewState extends State<_CsvView> {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicatorPlaceholder());
         }
-        final rows = snapshot.data!;
-        if (rows.isEmpty) {
+        final allRows = snapshot.data!;
+        if (allRows.isEmpty) {
           return Center(
             child: Text('${_delimiter == '\t' ? 'TSV' : 'CSV'} file is empty'),
           );
         }
+        final cap = widget.maxRenderedRows;
+        final truncated = cap != null && allRows.length > cap;
+        final rows = truncated ? allRows.take(cap).toList() : allRows;
         final columnCount = rows
             .map((r) => r.length)
             .reduce((a, b) => a > b ? a : b);
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Table(
-              defaultColumnWidth: const IntrinsicColumnWidth(),
-              border: const TableBorder.symmetric(
-                inside: BorderSide(color: Color(0x33000000)),
+        return Column(
+          children: [
+            if (truncated)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: Text(
+                  'Showing the first $cap of ${allRows.length} rows.',
+                  style: const TextStyle(fontStyle: FontStyle.italic),
+                ),
               ),
-              children: [
-                for (final row in rows)
-                  TableRow(
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Table(
+                    defaultColumnWidth: const IntrinsicColumnWidth(),
+                    border: const TableBorder.symmetric(
+                      inside: BorderSide(color: Color(0x33000000)),
+                    ),
                     children: [
-                      for (var i = 0; i < columnCount; i++)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          child: Text(i < row.length ? row[i] : ''),
+                      for (final row in rows)
+                        TableRow(
+                          children: [
+                            for (var i = 0; i < columnCount; i++)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                child: Text(i < row.length ? row[i] : ''),
+                              ),
+                          ],
                         ),
                     ],
                   ),
-              ],
+                ),
+              ),
             ),
-          ),
+          ],
         );
       },
     );

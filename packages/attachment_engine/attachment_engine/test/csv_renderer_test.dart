@@ -224,5 +224,70 @@ void main() {
         expect(find.text('first'), findsNothing);
       },
     );
+
+    testWidgets(
+      'renders every row with no truncation notice when maxRenderedRows '
+      'is left unset (the default)',
+      (tester) async {
+        final file = File('${tempDir.path}/big.csv');
+        final buffer = StringBuffer('col\n');
+        for (var i = 0; i < 200; i++) {
+          buffer.writeln('row-$i');
+        }
+        file.writeAsStringSync(buffer.toString());
+        const renderer = CsvAttachmentRenderer();
+
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Builder(
+                builder: (context) =>
+                    renderer.build(context, csvAttachment(file.path)),
+              ),
+            ),
+          );
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          await tester.pump();
+        });
+
+        expect(find.text('row-0'), findsOneWidget);
+        expect(find.text('row-199'), findsOneWidget);
+        expect(find.textContaining('Showing the first'), findsNothing);
+      },
+    );
+
+    testWidgets('caps rendered rows and shows a truncation notice when '
+        'maxRenderedRows is set and the file has more rows than that', (
+      tester,
+    ) async {
+      final file = File('${tempDir.path}/big.csv');
+      final buffer = StringBuffer('col\n');
+      for (var i = 0; i < 200; i++) {
+        buffer.writeln('row-$i');
+      }
+      file.writeAsStringSync(buffer.toString());
+      const renderer = CsvAttachmentRenderer(maxRenderedRows: 50);
+
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) =>
+                  renderer.build(context, csvAttachment(file.path)),
+            ),
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        await tester.pump();
+      });
+
+      // 201 parsed rows total (header + 200 data rows); cap of 50 keeps
+      // the header + row-0..row-48.
+      expect(find.text('Showing the first 50 of 201 rows.'), findsOneWidget);
+      expect(find.text('row-48'), findsOneWidget);
+      expect(find.text('row-49'), findsNothing);
+    });
   });
 }
