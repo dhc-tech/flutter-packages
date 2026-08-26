@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<!--
+  Copyright 2026 DHC Tech
+  Use of this source code is governed by an MIT-style license that can be
+  found in the LICENSE file.
+
+  Fully offline spreadsheet viewer shell (xlsx and legacy xls) — see
+  docx_viewer.html for the general approach. Renders sheets as plain HTML
+  tables, one per tab, with tab buttons to switch between them.
+
+  Third-party code bundled alongside this file, unmodified:
+  - xlsx.full.min.js (Apache-2.0) https://github.com/SheetJS/sheetjs
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; padding: 0; background: #ffffff; }
+  #status { font-family: -apple-system, Roboto, sans-serif; color: #666; padding: 24px; text-align: center; }
+  #tabs { display: flex; overflow-x: auto; border-bottom: 1px solid #ddd; font-family: -apple-system, Roboto, sans-serif; }
+  #tabs button { border: none; background: none; padding: 10px 16px; font-size: 14px; white-space: nowrap; }
+  #tabs button.active { border-bottom: 2px solid #2b7de9; color: #2b7de9; font-weight: 600; }
+  #sheetContainer { overflow: auto; }
+  table { border-collapse: collapse; font-family: -apple-system, Roboto, sans-serif; font-size: 13px; }
+  td, th { border: 1px solid #ddd; padding: 4px 8px; white-space: nowrap; }
+</style>
+<script src="xlsx.full.min.js"></script>
+</head>
+<body>
+<div id="status">Loading…</div>
+<div id="tabs"></div>
+<div id="sheetContainer"></div>
+<script>
+  let workbook = null;
+
+  function base64ToUint8Array(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function showSheet(name) {
+    const container = document.getElementById('sheetContainer');
+    const sheet = workbook.Sheets[name];
+    container.innerHTML = XLSX.utils.sheet_to_html(sheet, { editable: false });
+    document.querySelectorAll('#tabs button').forEach(function (btn) {
+      btn.classList.toggle('active', btn.textContent === name);
+    });
+  }
+
+  // Called from Dart once the document's bytes are ready.
+  window.renderSpreadsheet = function(base64) {
+    const status = document.getElementById('status');
+    try {
+      const bytes = base64ToUint8Array(base64);
+      workbook = XLSX.read(bytes, { type: 'array' });
+      const tabs = document.getElementById('tabs');
+      workbook.SheetNames.forEach(function (name) {
+        const btn = document.createElement('button');
+        btn.textContent = name;
+        btn.onclick = function () { showSheet(name); };
+        tabs.appendChild(btn);
+      });
+      showSheet(workbook.SheetNames[0]);
+      status.style.display = 'none';
+    } catch (err) {
+      status.textContent = 'Unable to render this spreadsheet.';
+      if (window.OfflineDocViewer) {
+        window.OfflineDocViewer.postMessage('error:' + err);
+      }
+    }
+  };
+</script>
+</body>
+</html>

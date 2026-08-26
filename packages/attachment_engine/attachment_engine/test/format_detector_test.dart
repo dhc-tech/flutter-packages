@@ -154,5 +154,22 @@ void main() {
       );
       expect(type, AttachmentType.csv);
     });
+
+    test('detects tsv extension as csv, not text', () {
+      final type = detector.detect(extension: 'tsv');
+      expect(type, AttachmentType.csv);
+    });
+
+    test('detects text/tab-separated-values mime type as csv', () {
+      final type = detector.detect(
+        explicitMimeType: 'text/tab-separated-values',
+      );
+      expect(type, AttachmentType.csv);
+    });
+
+    test('detects xlsm extension as office, not archive', () {
+      final type = detector.detect(extension: 'xlsm');
+      expect(type, AttachmentType.office);
+    });
   });
 }

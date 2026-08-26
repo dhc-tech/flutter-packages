@@ -11,12 +11,14 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  Attachment csvAttachment(String localPath) => Attachment(
-    id: 'sample-csv',
-    name: 'sample.csv',
-    source: const AttachmentSource.url('https://example.com/sample.csv'),
-    localPath: localPath,
-  );
+  Attachment csvAttachment(String localPath, {String extension = 'csv'}) =>
+      Attachment(
+        id: 'sample-csv',
+        name: 'sample.$extension',
+        source: AttachmentSource.url('https://example.com/sample.$extension'),
+        extension: extension,
+        localPath: localPath,
+      );
 
   late Directory tempDir;
 
@@ -57,6 +59,17 @@ void main() {
 
     test('returns empty list for empty content', () {
       expect(CsvAttachmentRenderer.parseCsv(''), isEmpty);
+    });
+
+    test('parses tab-separated rows when delimiter is tab', () {
+      final rows = CsvAttachmentRenderer.parseCsv(
+        'a\tb\tc\n1\t2\t3\n',
+        delimiter: '\t',
+      );
+      expect(rows, [
+        ['a', 'b', 'c'],
+        ['1', '2', '3'],
+      ]);
     });
   });
 
@@ -112,6 +125,34 @@ void main() {
       });
 
       expect(find.text('CSV file is empty'), findsOneWidget);
+    });
+
+    testWidgets('renders a .tsv file using tab as the delimiter', (
+      tester,
+    ) async {
+      final file = File('${tempDir.path}/sample.tsv');
+      file.writeAsStringSync('name\tage\nAda\t36\n');
+      const renderer = CsvAttachmentRenderer();
+
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) => renderer.build(
+                context,
+                csvAttachment(file.path, extension: 'tsv'),
+              ),
+            ),
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        await tester.pump();
+      });
+
+      expect(find.text('name'), findsOneWidget);
+      expect(find.text('Ada'), findsOneWidget);
+      expect(find.text('36'), findsOneWidget);
     });
   });
 }

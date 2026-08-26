@@ -15,6 +15,7 @@ const _officeExtensions = {
   'docx',
   'xls',
   'xlsx',
+  'xlsm',
   'ppt',
   'pptx',
   'odt',
@@ -24,7 +25,7 @@ const _officeExtensions = {
 };
 
 const _textExtensions = {'txt', 'md', 'json', 'log', 'xml', 'yaml', 'yml'};
-const _csvExtensions = {'csv'};
+const _csvExtensions = {'csv', 'tsv'};
 const _htmlExtensions = {'html', 'htm'};
 const _archiveExtensions = {'zip', 'rar', '7z', 'tar', 'gz'};
 
@@ -121,7 +122,9 @@ class FormatDetector {
     if (lower.startsWith('audio/')) return AttachmentType.audio;
     if (lower == 'application/pdf') return AttachmentType.pdf;
     if (lower.startsWith('text/html')) return AttachmentType.html;
-    if (lower == 'text/csv' || lower == 'application/csv') {
+    if (lower == 'text/csv' ||
+        lower == 'application/csv' ||
+        lower == 'text/tab-separated-values') {
       return AttachmentType.csv;
     }
     if (lower.startsWith('text/')) return AttachmentType.text;

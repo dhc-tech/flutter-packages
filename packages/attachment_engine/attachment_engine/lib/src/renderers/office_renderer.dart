@@ -14,8 +14,14 @@ import '../native/native_open_channel.dart';
 import '../platform/platform_info.dart';
 import '../resolver/attachment_resolver.dart'
     show ConnectivityChecker, DefaultConnectivityChecker;
+import 'offline_docx_viewer.dart';
+import 'offline_spreadsheet_viewer.dart';
 import 'pdf_renderer.dart';
 import 'renderer.dart';
+
+/// Which bundled, genuinely-offline in-app renderer applies to a given
+/// office document, if any.
+enum _OfflineFormat { none, docx, spreadsheet }
 
 /// Extension point for a host app to plug in server-side or on-device
 /// office-to-PDF conversion (there is no server in this fresh project to
@@ -36,20 +42,29 @@ abstract class OfficeConversionStrategy {
 /// 1. On iOS: genuine in-app preview via [NativeOfficeChannel], backed by
 ///    Apple's `QLPreviewController` (QuickLook) — a zero-dependency native
 ///    framework that renders these formats directly and natively, so it
-///    always wins on iOS.
-/// 2. On Android (no native in-app Office viewer): while the device has a
-///    connection and the attachment has a public URL, *Microsoft's own*
-///    Office Online viewer (`view.officeapps.live.com`) is shown in-app via
-///    [webview_flutter] — still avoiding a trip to another app, and with
-///    better fidelity than a generic doc→PDF conversion.
-/// 3. If neither of the above applies (Android, offline or no public URL)
-///    but a [conversionStrategy] is supplied and successfully converts the
-///    document to a PDF, that PDF is rendered in-app using
-///    [PdfAttachmentRenderer]. This is a deliberately lower-priority,
-///    fully optional extension point — automated doc→PDF conversion is
-///    lossy for complex documents, so it only kicks in when nothing better
-///    is available, and never on iOS (QuickLook already covers it there).
-/// 4. Only when none of the above apply does this fall back to
+///    always wins on iOS (already fully offline).
+/// 2. On Android, for formats with a bundled genuinely-offline renderer —
+///    currently `.docx` ([OfflineDocxViewer], via `docx-preview` +
+///    `JSZip`) and `.xlsx`/`.xls` ([OfflineSpreadsheetViewer], via
+///    SheetJS) — see `assets/office_offline/README.md` for what's covered
+///    and what isn't (`.pptx`/`.ppt`, legacy `.doc`, OpenDocument formats
+///    fall through to step 3+ instead, for lack of a suitable
+///    dependency-free JS renderer). These need no network at all, so they
+///    win over Office Online below.
+/// 3. On Android otherwise (or if step 2 doesn't apply/fails): while the
+///    device has a connection and the attachment has a public URL,
+///    *Microsoft's own* Office Online viewer
+///    (`view.officeapps.live.com`) is shown in-app via [webview_flutter]
+///    — still avoiding a trip to another app, and with better fidelity
+///    than a generic doc→PDF conversion.
+/// 4. If none of the above applies but a [conversionStrategy] is supplied
+///    and successfully converts the document to a PDF, that PDF is
+///    rendered in-app using [PdfAttachmentRenderer]. This is a
+///    deliberately lower-priority, fully optional extension point —
+///    automated doc→PDF conversion is lossy for complex documents, so it
+///    only kicks in when nothing better is available, and never on iOS
+///    (QuickLook already covers it there).
+/// 5. Only when none of the above apply does this fall back to
 ///    [NativeOpenChannel]'s external-open flow (`ACTION_VIEW` +
 ///    `FileProvider`) as the genuine last resort.
 class OfficeAttachmentRenderer extends AttachmentRenderer {
@@ -116,6 +131,7 @@ class _OfficeViewState extends State<_OfficeView> {
   bool _opening = false;
   String? _error;
   bool _previewedInApp = false;
+  _OfflineFormat _offlineFormat = _OfflineFormat.none;
   String? _convertedPdfPath;
   String? _officeOnlineUrl;
 
@@ -133,6 +149,21 @@ class _OfficeViewState extends State<_OfficeView> {
     if (remoteUrl != null) return remoteUrl;
     final source = widget.attachment.source;
     return source is UrlAttachmentSource ? source.url : null;
+  }
+
+  /// Which bundled offline renderer (if any) covers this attachment's
+  /// extension. See `assets/office_offline/README.md` for what's covered.
+  _OfflineFormat get _offlineFormatForExtension {
+    switch (widget.attachment.extension?.toLowerCase()) {
+      case 'docx':
+        return _OfflineFormat.docx;
+      case 'xlsx':
+      case 'xls':
+      case 'xlsm':
+        return _OfflineFormat.spreadsheet;
+      default:
+        return _OfflineFormat.none;
+    }
   }
 
   Future<void> _open() async {
@@ -155,46 +186,16 @@ class _OfficeViewState extends State<_OfficeView> {
         return;
       }
 
-      // Android has no native in-app Office viewer. Prefer Microsoft's own
-      // Office Online viewer (still in-app, via a WebView) over both the
-      // conversion fallback below and sending the user to an external
-      // app — it needs a public URL for the document and an actual
-      // connection to reach it.
-      final publicUrl = _publicDocumentUrl;
-      if (publicUrl != null &&
-          await widget.connectivityChecker.hasConnection()) {
-        setState(() => _officeOnlineUrl = _officeOnlineViewerUrl(publicUrl));
+      // Android, a format with a bundled offline renderer: it wins over
+      // Office Online below — it needs no network at all.
+      final offlineFormat = _offlineFormatForExtension;
+      if (offlineFormat != _OfflineFormat.none &&
+          widget.attachment.localPath != null) {
+        setState(() => _offlineFormat = offlineFormat);
         return;
       }
 
-      // Office Online isn't usable (offline / no public URL). A supplied
-      // conversion is a deliberately lower-priority, fully optional
-      // fallback — doc→PDF conversion is lossy for complex documents — so
-      // it's only tried here, once nothing better is available.
-      final converted = await widget.conversionStrategy?.convert(
-        widget.attachment,
-      );
-      if (converted != null) {
-        setState(() => _convertedPdfPath = converted);
-        return;
-      }
-
-      final path = widget.attachment.localPath;
-      if (path == null) {
-        setState(() => _error = 'No local file to open.');
-      } else if (!widget.externalOpenConfig.allowExternalFallback) {
-        setState(
-          () => _error = 'Opening this attachment externally is disabled.',
-        );
-      } else {
-        // Genuine last resort: no in-app viewer on this platform, Office
-        // Online unusable, and no (or failed) conversion, so hand off to
-        // an external app.
-        final result = await NativeOpenChannel.openExternally(path);
-        if (!result.success) {
-          setState(() => _error = result.message);
-        }
-      }
+      await _tryOfficeOnlineThenConversionThenExternal();
     } catch (e) {
       setState(() => _error = 'Unable to open this document.');
     } finally {
@@ -202,14 +203,53 @@ class _OfficeViewState extends State<_OfficeView> {
     }
   }
 
+  /// The fallback chain used once neither iOS QuickLook nor the offline
+  /// DOCX viewer applies (or the offline viewer failed): Office Online,
+  /// then a supplied conversion, then external-open as the genuine last
+  /// resort.
+  Future<void> _tryOfficeOnlineThenConversionThenExternal() async {
+    // Prefer Microsoft's own Office Online viewer (still in-app, via a
+    // WebView) over both the conversion fallback below and sending the
+    // user to an external app — it needs a public URL for the document
+    // and an actual connection to reach it.
+    final publicUrl = _publicDocumentUrl;
+    if (publicUrl != null && await widget.connectivityChecker.hasConnection()) {
+      if (mounted) {
+        setState(() => _officeOnlineUrl = _officeOnlineViewerUrl(publicUrl));
+      }
+      return;
+    }
+
+    // Office Online isn't usable (offline / no public URL). A supplied
+    // conversion is a deliberately lower-priority, fully optional
+    // fallback — doc→PDF conversion is lossy for complex documents — so
+    // it's only tried here, once nothing better is available.
+    final converted = await widget.conversionStrategy?.convert(
+      widget.attachment,
+    );
+    if (converted != null) {
+      if (mounted) setState(() => _convertedPdfPath = converted);
+      return;
+    }
+
+    await _openExternallyAsLastResort();
+  }
+
   static String _officeOnlineViewerUrl(String documentUrl) {
     final encoded = Uri.encodeComponent(documentUrl);
     return 'https://view.officeapps.live.com/op/view.aspx?src=$encoded';
   }
 
+  /// If the bundled offline renderer itself fails, fall through to the
+  /// same chain [_open] would have used had it not applied at all.
+  Future<void> _offlineRendererFailed() async {
+    if (mounted) setState(() => _offlineFormat = _OfflineFormat.none);
+    await _tryOfficeOnlineThenConversionThenExternal();
+  }
+
   /// If Office Online itself fails to load in the WebView, fall through to
-  /// the same lower-priority steps [_open] would have used had Office
-  /// Online not been available at all: conversion, then external-open.
+  /// the same lower-priority steps as above: conversion, then
+  /// external-open.
   Future<void> _officeOnlineFailed() async {
     setState(() => _officeOnlineUrl = null);
     final converted = await widget.conversionStrategy?.convert(
@@ -244,6 +284,20 @@ class _OfficeViewState extends State<_OfficeView> {
 
   @override
   Widget build(BuildContext context) {
+    switch (_offlineFormat) {
+      case _OfflineFormat.docx:
+        return OfflineDocxViewer(
+          localPath: widget.attachment.localPath!,
+          onFailed: _offlineRendererFailed,
+        );
+      case _OfflineFormat.spreadsheet:
+        return OfflineSpreadsheetViewer(
+          localPath: widget.attachment.localPath!,
+          onFailed: _offlineRendererFailed,
+        );
+      case _OfflineFormat.none:
+        break;
+    }
     final convertedPdfPath = _convertedPdfPath;
     if (convertedPdfPath != null) {
       return PdfAttachmentRenderer().build(

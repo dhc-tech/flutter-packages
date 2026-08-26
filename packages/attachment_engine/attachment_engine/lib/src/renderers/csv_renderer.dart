@@ -11,14 +11,18 @@ import '../models/attachment_type.dart';
 import 'renderer.dart';
 import 'text_renderer.dart' show CircularProgressIndicatorPlaceholder;
 
-/// Full-view CSV renderer: parses the resolved file and lays it out as a
-/// scrollable [Table] (row-and-column grid) rather than dumping raw
-/// comma-separated text, which is how [AttachmentType.csv] used to be
-/// rendered before it had its own renderer (it fell back to the plain-text
+/// Full-view CSV/TSV renderer: parses the resolved file and lays it out as
+/// a scrollable [Table] (row-and-column grid) rather than dumping raw
+/// delimited text, which is how [AttachmentType.csv] used to be rendered
+/// before it had its own renderer (it fell back to the plain-text
 /// renderer, which just showed the raw file content unparsed).
 ///
-/// Parsing is intentionally minimal (handles quoted fields containing
-/// commas/newlines via RFC 4180-style double-quote escaping) rather than
+/// `.tsv` files are handled by this same renderer/[AttachmentType] — the
+/// delimiter (comma vs. tab) is auto-detected from [Attachment.extension]
+/// (falling back to comma when it's absent or unrecognized).
+///
+/// Parsing is intentionally minimal (handles quoted fields containing the
+/// delimiter/newlines via RFC 4180-style double-quote escaping) rather than
 /// pulling in a dedicated CSV package, to keep this renderer dependency-free.
 class CsvAttachmentRenderer extends AttachmentRenderer {
   const CsvAttachmentRenderer();
@@ -28,15 +32,18 @@ class CsvAttachmentRenderer extends AttachmentRenderer {
 
   @override
   Widget build(BuildContext context, Attachment attachment) {
+    final delimiter = attachment.extension?.toLowerCase() == 'tsv' ? '\t' : ',';
     return FutureBuilder<List<List<String>>>(
-      future: _readRows(attachment),
+      future: _readRows(attachment, delimiter),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicatorPlaceholder());
         }
         final rows = snapshot.data!;
         if (rows.isEmpty) {
-          return const Center(child: Text('CSV file is empty'));
+          return Center(
+            child: Text('${delimiter == '\t' ? 'TSV' : 'CSV'} file is empty'),
+          );
         }
         final columnCount = rows
             .map((r) => r.length)
@@ -72,20 +79,24 @@ class CsvAttachmentRenderer extends AttachmentRenderer {
     );
   }
 
-  Future<List<List<String>>> _readRows(Attachment attachment) async {
+  Future<List<List<String>>> _readRows(
+    Attachment attachment,
+    String delimiter,
+  ) async {
     final path = attachment.localPath;
     if (path == null) return const [];
     try {
       final content = await File(path).readAsString();
-      return parseCsv(content);
+      return parseCsv(content, delimiter: delimiter);
     } catch (_) {
       return const [];
     }
   }
 
-  /// Parses [content] as CSV, honoring RFC 4180 double-quote escaping for
-  /// fields containing commas, newlines, or literal quotes (`""`).
-  static List<List<String>> parseCsv(String content) {
+  /// Parses [content] as delimited text (comma by default; pass `'\t'` for
+  /// TSV), honoring RFC 4180 double-quote escaping for fields containing
+  /// the delimiter, newlines, or literal quotes (`""`).
+  static List<List<String>> parseCsv(String content, {String delimiter = ','}) {
     final rows = <List<String>>[];
     var row = <String>[];
     final field = StringBuffer();
@@ -108,25 +119,24 @@ class CsvAttachmentRenderer extends AttachmentRenderer {
         i++;
         continue;
       }
-      switch (char) {
-        case '"':
-          inQuotes = true;
-          i++;
-        case ',':
-          row.add(field.toString());
-          field.clear();
-          i++;
-        case '\r':
-          i++;
-        case '\n':
-          row.add(field.toString());
-          field.clear();
-          rows.add(row);
-          row = [];
-          i++;
-        default:
-          field.write(char);
-          i++;
+      if (char == '"') {
+        inQuotes = true;
+        i++;
+      } else if (char == delimiter) {
+        row.add(field.toString());
+        field.clear();
+        i++;
+      } else if (char == '\r') {
+        i++;
+      } else if (char == '\n') {
+        row.add(field.toString());
+        field.clear();
+        rows.add(row);
+        row = [];
+        i++;
+      } else {
+        field.write(char);
+        i++;
       }
     }
     if (field.isNotEmpty || row.isNotEmpty) {
