@@ -137,5 +137,22 @@ void main() {
       expect(detector.detect(bytes: wavBytes), AttachmentType.audio);
       expect(detector.detect(bytes: webpBytes), AttachmentType.image);
     });
+
+    test('detects csv extension as csv, not text', () {
+      final type = detector.detect(extension: 'csv');
+      expect(type, AttachmentType.csv);
+    });
+
+    test('detects text/csv mime type as csv, not text', () {
+      final type = detector.detect(explicitMimeType: 'text/csv');
+      expect(type, AttachmentType.csv);
+    });
+
+    test('detects csv via url extension', () {
+      final type = detector.detect(
+        url: 'https://example.com/export.csv?sig=abc',
+      );
+      expect(type, AttachmentType.csv);
+    });
   });
 }

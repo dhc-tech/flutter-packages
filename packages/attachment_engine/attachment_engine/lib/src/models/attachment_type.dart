@@ -13,6 +13,7 @@ enum AttachmentType {
   document,
   office,
   text,
+  csv,
   html,
   scorm,
   h5p,

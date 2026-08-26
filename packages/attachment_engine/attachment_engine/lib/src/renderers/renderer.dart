@@ -9,6 +9,7 @@ import '../models/attachment.dart';
 import '../models/attachment_type.dart';
 import 'archive_renderer.dart';
 import 'audio_renderer.dart';
+import 'csv_renderer.dart';
 import 'html_renderer.dart';
 import 'image_renderer.dart';
 import 'office_renderer.dart';
@@ -57,16 +58,17 @@ class RendererRegistry {
   /// disabled/unsupported type also honors external-open policy.
   final ExternalOpenConfig externalOpenConfig;
 
-  static List<AttachmentRenderer> _defaultRenderers() => const [
-    ImageAttachmentRenderer(),
+  static List<AttachmentRenderer> _defaultRenderers() => [
+    const ImageAttachmentRenderer(),
     PdfAttachmentRenderer(),
-    VideoAttachmentRenderer(),
-    AudioAttachmentRenderer(),
-    HtmlAttachmentRenderer(),
-    TextAttachmentRenderer(),
-    ScormAttachmentRenderer(),
-    OfficeAttachmentRenderer(),
-    ArchiveAttachmentRenderer(),
+    const VideoAttachmentRenderer(),
+    const AudioAttachmentRenderer(),
+    const HtmlAttachmentRenderer(),
+    const CsvAttachmentRenderer(),
+    const TextAttachmentRenderer(),
+    const ScormAttachmentRenderer(),
+    const OfficeAttachmentRenderer(),
+    const ArchiveAttachmentRenderer(),
   ];
 
   void register(AttachmentRenderer renderer) {

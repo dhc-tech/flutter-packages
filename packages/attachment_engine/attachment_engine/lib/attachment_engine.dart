@@ -60,6 +60,7 @@ export 'src/capability/capability_engine.dart';
 // Renderers
 export 'src/renderers/archive_renderer.dart';
 export 'src/renderers/audio_renderer.dart';
+export 'src/renderers/csv_renderer.dart';
 export 'src/renderers/html_renderer.dart';
 export 'src/renderers/image_renderer.dart';
 export 'src/renderers/office_renderer.dart';

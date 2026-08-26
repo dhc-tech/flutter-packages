@@ -197,6 +197,7 @@ class RendererConfig extends ValueEquatable {
     this.document = true,
     this.office = true,
     this.text = true,
+    this.csv = true,
     this.html = true,
     this.scorm = true,
     this.h5p = true,
@@ -210,6 +211,7 @@ class RendererConfig extends ValueEquatable {
   final bool document;
   final bool office;
   final bool text;
+  final bool csv;
   final bool html;
   final bool scorm;
   final bool h5p;
@@ -233,6 +235,8 @@ class RendererConfig extends ValueEquatable {
         return office;
       case AttachmentType.text:
         return text;
+      case AttachmentType.csv:
+        return csv;
       case AttachmentType.html:
         return html;
       case AttachmentType.scorm:
@@ -256,6 +260,7 @@ class RendererConfig extends ValueEquatable {
     bool? document,
     bool? office,
     bool? text,
+    bool? csv,
     bool? html,
     bool? scorm,
     bool? h5p,
@@ -269,6 +274,7 @@ class RendererConfig extends ValueEquatable {
       document: document ?? this.document,
       office: office ?? this.office,
       text: text ?? this.text,
+      csv: csv ?? this.csv,
       html: html ?? this.html,
       scorm: scorm ?? this.scorm,
       h5p: h5p ?? this.h5p,
@@ -285,6 +291,7 @@ class RendererConfig extends ValueEquatable {
     document,
     office,
     text,
+    csv,
     html,
     scorm,
     h5p,

@@ -54,6 +54,8 @@ class AttachmentThumbnail extends StatelessWidget {
         return Icons.description;
       case AttachmentType.text:
         return Icons.article;
+      case AttachmentType.csv:
+        return Icons.table_chart;
       case AttachmentType.html:
         return Icons.public;
       case AttachmentType.scorm:

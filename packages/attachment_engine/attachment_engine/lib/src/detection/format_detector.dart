@@ -23,16 +23,8 @@ const _officeExtensions = {
   'rtf',
 };
 
-const _textExtensions = {
-  'txt',
-  'md',
-  'csv',
-  'json',
-  'log',
-  'xml',
-  'yaml',
-  'yml',
-};
+const _textExtensions = {'txt', 'md', 'json', 'log', 'xml', 'yaml', 'yml'};
+const _csvExtensions = {'csv'};
 const _htmlExtensions = {'html', 'htm'};
 const _archiveExtensions = {'zip', 'rar', '7z', 'tar', 'gz'};
 
@@ -112,6 +104,7 @@ class FormatDetector {
     if (ext == 'h5p') return AttachmentType.h5p;
     if (_officeExtensions.contains(ext)) return AttachmentType.office;
     if (ext == 'pdf') return AttachmentType.pdf;
+    if (_csvExtensions.contains(ext)) return AttachmentType.csv;
     if (_textExtensions.contains(ext)) return AttachmentType.text;
     if (_htmlExtensions.contains(ext)) return AttachmentType.html;
     if (_archiveExtensions.contains(ext)) return AttachmentType.archive;
@@ -128,6 +121,9 @@ class FormatDetector {
     if (lower.startsWith('audio/')) return AttachmentType.audio;
     if (lower == 'application/pdf') return AttachmentType.pdf;
     if (lower.startsWith('text/html')) return AttachmentType.html;
+    if (lower == 'text/csv' || lower == 'application/csv') {
+      return AttachmentType.csv;
+    }
     if (lower.startsWith('text/')) return AttachmentType.text;
     if (lower == 'application/zip' ||
         lower == 'application/x-zip-compressed' ||

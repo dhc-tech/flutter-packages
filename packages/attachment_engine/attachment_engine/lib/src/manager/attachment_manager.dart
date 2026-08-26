@@ -6,6 +6,7 @@ import '../cache/attachment_cache_manager.dart';
 import '../cache/cache_metadata_store.dart';
 import '../capability/capability_engine.dart';
 import '../config/attachment_engine_config.dart';
+import '../download/download_manager.dart';
 import '../models/attachment.dart';
 import '../models/attachment_capabilities.dart';
 import '../models/attachment_failure.dart';
@@ -74,6 +75,8 @@ class AttachmentManager {
   static Future<AttachmentManager> initializeDefault({
     AttachmentDiagnosticsSink? diagnostics,
     AttachmentEngineConfig config = const AttachmentEngineConfig.defaults(),
+    DownloadClient? downloadClient,
+    ConnectivityChecker? connectivityChecker,
   }) async {
     config.validate();
     final cacheManager = AttachmentCacheManager(
@@ -84,6 +87,16 @@ class AttachmentManager {
     final resolver = AttachmentResolver(
       cacheManager: cacheManager,
       downloadConfig: config.download,
+      // A caller-supplied client lets the host app route every attachment
+      // download through its own HTTP stack (e.g. a `dio`/`ApiClient`
+      // instance with auth interceptors already attached), instead of the
+      // package's native client which knows nothing about app-level auth.
+      // Omit to keep the package's own native download path.
+      downloadManager: downloadClient == null
+          ? null
+          : DownloadManager(client: downloadClient, config: config.download),
+      connectivityChecker:
+          connectivityChecker ?? const DefaultConnectivityChecker(),
       capabilityEngine: CapabilityEngine(
         rendererConfig: config.renderers,
         externalOpenConfig: config.externalOpen,
