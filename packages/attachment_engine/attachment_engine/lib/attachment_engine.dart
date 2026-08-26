@@ -65,6 +65,7 @@ export 'src/renderers/html_renderer.dart';
 export 'src/renderers/image_renderer.dart';
 export 'src/renderers/office_renderer.dart';
 export 'src/renderers/offline_docx_viewer.dart';
+export 'src/renderers/offline_pptx_viewer.dart';
 export 'src/renderers/offline_spreadsheet_viewer.dart';
 export 'src/renderers/pdf_renderer.dart';
 export 'src/renderers/renderer.dart';

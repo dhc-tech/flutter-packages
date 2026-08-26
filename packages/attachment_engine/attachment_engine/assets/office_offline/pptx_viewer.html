@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!--
+  Copyright 2026 DHC Tech
+  Use of this source code is governed by an MIT-style license that can be
+  found in the LICENSE file.
+
+  Fully offline PPTX viewer shell — see docx_viewer.html for the general
+  approach. The document's bytes are handed over as a local `blob:` URL
+  (created in-page from the base64 payload, resolved entirely by the
+  WebView itself — no network request happens for it) because PPTXjs only
+  accepts a URL to fetch, not raw bytes directly.
+
+  Third-party code bundled alongside this file, unmodified (all MIT):
+  - pptxjs.min.js + pptxjs.css   https://github.com/meshesha/PPTXjs
+  - jquery-1.11.3.min.js         https://jquery.com
+  - filereader.js                https://github.com/dwightjack/filereader.js
+  - d3.min.js / nv.d3.min.js + nv.d3.min.css (PPTXjs' chart rendering deps)
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="nv.d3.min.css">
+<link rel="stylesheet" href="pptxjs.css">
+<style>
+  html, body { margin: 0; padding: 0; background: #ffffff; }
+  #status { font-family: -apple-system, Roboto, sans-serif; color: #666; padding: 24px; text-align: center; }
+  #result { width: 100%; }
+</style>
+<script src="jquery-1.11.3.min.js"></script>
+<script src="filereader.js"></script>
+<script src="d3.min.js"></script>
+<script src="nv.d3.min.js"></script>
+<script src="pptxjs.min.js"></script>
+</head>
+<body>
+<div id="status">Loading…</div>
+<div id="result"></div>
+<script>
+  function base64ToUint8Array(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  // Called from Dart once the document's bytes are ready.
+  window.renderPptx = function(base64) {
+    const status = document.getElementById('status');
+    try {
+      const bytes = base64ToUint8Array(base64);
+      const blobUrl = URL.createObjectURL(
+        new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' })
+      );
+      $('#result').pptxToHtml({
+        pptxFileUrl: blobUrl,
+        slideMode: false,
+        keyBoardShortCut: false,
+      });
+      status.style.display = 'none';
+    } catch (err) {
+      status.textContent = 'Unable to render this presentation.';
+      if (window.OfflineDocViewer) {
+        window.OfflineDocViewer.postMessage('error:' + err);
+      }
+    }
+  };
+</script>
+</body>
+</html>

@@ -15,13 +15,14 @@ import '../platform/platform_info.dart';
 import '../resolver/attachment_resolver.dart'
     show ConnectivityChecker, DefaultConnectivityChecker;
 import 'offline_docx_viewer.dart';
+import 'offline_pptx_viewer.dart';
 import 'offline_spreadsheet_viewer.dart';
 import 'pdf_renderer.dart';
 import 'renderer.dart';
 
 /// Which bundled, genuinely-offline in-app renderer applies to a given
 /// office document, if any.
-enum _OfflineFormat { none, docx, spreadsheet }
+enum _OfflineFormat { none, docx, spreadsheet, pptx }
 
 /// Extension point for a host app to plug in server-side or on-device
 /// office-to-PDF conversion (there is no server in this fresh project to
@@ -45,12 +46,12 @@ abstract class OfficeConversionStrategy {
 ///    always wins on iOS (already fully offline).
 /// 2. On Android, for formats with a bundled genuinely-offline renderer —
 ///    currently `.docx` ([OfflineDocxViewer], via `docx-preview` +
-///    `JSZip`) and `.xlsx`/`.xls` ([OfflineSpreadsheetViewer], via
-///    SheetJS) — see `assets/office_offline/README.md` for what's covered
-///    and what isn't (`.pptx`/`.ppt`, legacy `.doc`, OpenDocument formats
-///    fall through to step 3+ instead, for lack of a suitable
-///    dependency-free JS renderer). These need no network at all, so they
-///    win over Office Online below.
+///    `JSZip`), `.xlsx`/`.xls`/`.xlsm` ([OfflineSpreadsheetViewer], via
+///    SheetJS), and `.pptx` ([OfflinePptxViewer], via PPTXjs) — see
+///    `assets/office_offline/README.md` for what's covered and what isn't
+///    (legacy `.doc`/`.ppt`, OpenDocument formats fall through to step 3+
+///    instead, for lack of a suitable dependency-free JS renderer). These
+///    need no network at all, so they win over Office Online below.
 /// 3. On Android otherwise (or if step 2 doesn't apply/fails): while the
 ///    device has a connection and the attachment has a public URL,
 ///    *Microsoft's own* Office Online viewer
@@ -161,6 +162,8 @@ class _OfficeViewState extends State<_OfficeView> {
       case 'xls':
       case 'xlsm':
         return _OfflineFormat.spreadsheet;
+      case 'pptx':
+        return _OfflineFormat.pptx;
       default:
         return _OfflineFormat.none;
     }
@@ -292,6 +295,11 @@ class _OfficeViewState extends State<_OfficeView> {
         );
       case _OfflineFormat.spreadsheet:
         return OfflineSpreadsheetViewer(
+          localPath: widget.attachment.localPath!,
+          onFailed: _offlineRendererFailed,
+        );
+      case _OfflineFormat.pptx:
+        return OfflinePptxViewer(
           localPath: widget.attachment.localPath!,
           onFailed: _offlineRendererFailed,
         );

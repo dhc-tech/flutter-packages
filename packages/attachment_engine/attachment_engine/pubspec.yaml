@@ -72,6 +72,14 @@ flutter:
     - assets/office_offline/jszip.min.js
     - assets/office_offline/xlsx_viewer.html
     - assets/office_offline/xlsx.full.min.js
+    - assets/office_offline/pptx_viewer.html
+    - assets/office_offline/pptxjs.min.js
+    - assets/office_offline/pptxjs.css
+    - assets/office_offline/jquery-1.11.3.min.js
+    - assets/office_offline/filereader.js
+    - assets/office_offline/d3.min.js
+    - assets/office_offline/nv.d3.min.js
+    - assets/office_offline/nv.d3.min.css
   #
   # For details regarding assets in packages, see
   # https://flutter.dev/to/asset-from-package
