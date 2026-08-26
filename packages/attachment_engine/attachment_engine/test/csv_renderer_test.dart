@@ -289,5 +289,16 @@ void main() {
       expect(find.text('row-48'), findsOneWidget);
       expect(find.text('row-49'), findsNothing);
     });
+
+    test('rejects a non-positive maxRenderedRows at construction', () {
+      expect(
+        () => CsvAttachmentRenderer(maxRenderedRows: 0),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => CsvAttachmentRenderer(maxRenderedRows: -5),
+        throwsA(isA<AssertionError>()),
+      );
+    });
   });
 }

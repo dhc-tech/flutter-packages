@@ -107,13 +107,30 @@ class _SearchableTextViewState extends State<_SearchableTextView> {
   // laid-out row once it exists.
   static const _estimatedLineHeight = 20.0;
 
-  late final List<String> _lines = widget.text.split('\n');
+  late List<String> _lines = widget.text.split('\n');
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   final _itemScrollOffsets = <int, GlobalKey>{};
 
   List<_Match> _matches = [];
   int _currentMatch = -1;
+
+  @override
+  void didUpdateWidget(_SearchableTextView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A parent may reuse this same widget/State for different text (e.g.
+    // RendererRegistry reusing a TextAttachmentRenderer instance across
+    // files); without this, the previous document's lines/search results
+    // would keep showing against the new text.
+    if (oldWidget.text != widget.text) {
+      setState(() {
+        _lines = widget.text.split('\n');
+        _itemScrollOffsets.clear();
+        _matches = _findMatches(_searchController.text);
+        _currentMatch = _matches.isEmpty ? -1 : 0;
+      });
+    }
+  }
 
   @override
   void dispose() {

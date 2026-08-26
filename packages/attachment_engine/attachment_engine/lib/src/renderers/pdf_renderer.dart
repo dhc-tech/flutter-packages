@@ -230,6 +230,11 @@ class _PdfPageState extends State<_PdfPage> {
 
   Future<void> _render() async {
     if (_bytes != null) return;
+    // Captured before the await: if didUpdateWidget swaps in a different
+    // controller (new document) while this render is still in flight, its
+    // late completion must not overwrite bytes/failure state that no
+    // longer belongs to the currently-displayed controller.
+    final requestedController = widget.controller;
     setState(() => _failed = false);
     final size = MediaQuery.of(context).size;
     final width = (size.width * MediaQuery.of(context).devicePixelRatio)
@@ -237,14 +242,18 @@ class _PdfPageState extends State<_PdfPage> {
     final height = (size.height * MediaQuery.of(context).devicePixelRatio)
         .round();
     try {
-      final bytes = await widget.controller.renderPage(
+      final bytes = await requestedController.renderPage(
         widget.index,
         width: width,
         height: height,
       );
-      if (mounted) setState(() => _bytes = bytes);
+      if (mounted && requestedController == widget.controller) {
+        setState(() => _bytes = bytes);
+      }
     } catch (_) {
-      if (mounted) setState(() => _failed = true);
+      if (mounted && requestedController == widget.controller) {
+        setState(() => _failed = true);
+      }
     }
   }
 

@@ -203,5 +203,18 @@ void main() {
       );
       expect(type, AttachmentType.pdf);
     });
+
+    test('a parameterized mime type (e.g. "text/csv; charset=utf-8") still '
+        'matches exactly, instead of falling through to generic text', () {
+      final type = detector.detect(explicitMimeType: 'text/csv; charset=utf-8');
+      expect(type, AttachmentType.csv);
+    });
+
+    test('a parameterized application/pdf mime type still matches', () {
+      final type = detector.detect(
+        explicitMimeType: 'application/pdf;charset=binary',
+      );
+      expect(type, AttachmentType.pdf);
+    });
   });
 }

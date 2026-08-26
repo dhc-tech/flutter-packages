@@ -25,7 +25,12 @@ import 'text_renderer.dart' show CircularProgressIndicatorPlaceholder;
 /// delimiter/newlines via RFC 4180-style double-quote escaping) rather than
 /// pulling in a dedicated CSV package, to keep this renderer dependency-free.
 class CsvAttachmentRenderer extends AttachmentRenderer {
-  const CsvAttachmentRenderer({this.maxRenderedRows});
+  const CsvAttachmentRenderer({this.maxRenderedRows})
+    : assert(
+        maxRenderedRows == null || maxRenderedRows > 0,
+        'maxRenderedRows must be positive (or null for unlimited), '
+        'got $maxRenderedRows.',
+      );
 
   /// Caps how many parsed rows are actually built as table rows, showing a
   /// "showing first N of total" notice above the table when the file has
@@ -36,7 +41,9 @@ class CsvAttachmentRenderer extends AttachmentRenderer {
   ///
   /// Defaults to null: unlimited, every row is rendered. Pass a value
   /// (e.g. `5000`) if you expect files large enough that this matters for
-  /// your users.
+  /// your users. Must be positive if set — asserted in debug builds; in a
+  /// release build a non-positive value is treated as unlimited rather
+  /// than crashing.
   final int? maxRenderedRows;
 
   @override
@@ -187,7 +194,11 @@ class _CsvViewState extends State<_CsvView> {
             child: Text('${_delimiter == '\t' ? 'TSV' : 'CSV'} file is empty'),
           );
         }
-        final cap = widget.maxRenderedRows;
+        // A non-positive cap is asserted against in the constructor, but
+        // asserts are stripped in release builds — treat it as "unlimited"
+        // there too, rather than letting `.take(cap)` throw a RangeError.
+        final rawCap = widget.maxRenderedRows;
+        final cap = (rawCap != null && rawCap > 0) ? rawCap : null;
         final truncated = cap != null && allRows.length > cap;
         final rows = truncated ? allRows.take(cap).toList() : allRows;
         final columnCount = rows

@@ -102,7 +102,10 @@ class AttachmentResolver {
     // 2. In-memory bytes: write straight to cache so we have a stable path.
     if (source is BytesAttachmentSource) {
       final path = await _cacheManager.write(attachment, source.bytes);
-      return _finish(attachment, path, fromCache: false);
+      // Pass the bytes through so _finish's attachmentType auto-detection
+      // can use magic-byte sniffing too, same as the downloaded-bytes
+      // path below — not just extension/mime/url.
+      return _finish(attachment, path, fromCache: false, bytes: source.bytes);
     }
 
     // 3. Cache lookup by stable logical identity (never by signed URL).

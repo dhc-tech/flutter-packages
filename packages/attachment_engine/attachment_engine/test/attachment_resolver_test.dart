@@ -95,6 +95,29 @@ void main() {
         expect(resolved.attachment.attachmentType, AttachmentType.unknown);
       },
     );
+
+    test('detects type from magic bytes for a BytesAttachmentSource with no '
+        'extension/mime/url signal', () async {
+      final bytesResolver = AttachmentResolver(
+        cacheManager: AttachmentCacheManager(
+          metadataStore: _NoopStore(),
+          directoryProvider: () async => tempDir,
+        ),
+        downloadManager: DownloadManager(client: _UnusedDownloadClient()),
+      );
+      // Real %PDF-1.4 magic bytes — no extension, mime, or url given, so
+      // this can only be detected via the bytes themselves.
+      final bytes = Uint8List.fromList('%PDF-1.4 fake'.codeUnits);
+      final attachment = Attachment(
+        id: 'a5',
+        name: 'mystery-blob',
+        source: AttachmentSource.bytes(bytes),
+      );
+
+      final resolved = await bytesResolver.resolve(attachment);
+
+      expect(resolved.attachment.attachmentType, AttachmentType.pdf);
+    });
   });
 }
 

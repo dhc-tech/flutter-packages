@@ -131,7 +131,12 @@ class FormatDetector {
   }
 
   AttachmentType? _typeFromMime(String mimeType) {
-    final lower = mimeType.toLowerCase();
+    // Strip parameters (e.g. `; charset=utf-8` in `text/csv; charset=utf-8`,
+    // which servers commonly append) before matching — otherwise an exact
+    // match like `lower == 'text/csv'` would never fire for a
+    // parameterized mime type, silently falling through to the generic
+    // `text/*` handling below instead.
+    final lower = mimeType.split(';').first.trim().toLowerCase();
     if (lower.startsWith('image/')) return AttachmentType.image;
     if (lower.startsWith('video/')) return AttachmentType.video;
     if (lower.startsWith('audio/')) return AttachmentType.audio;

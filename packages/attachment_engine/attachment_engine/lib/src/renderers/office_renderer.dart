@@ -156,6 +156,15 @@ class _OfficeViewState extends State<_OfficeView> {
   String? _convertedPdfPath;
   String? _officeOnlineUrl;
 
+  // Bumped on every _open() call and threaded through its whole
+  // continuation chain (_tryOfficeOnlineThenConversionThenExternal,
+  // _openExternallyAsLastResort). If the widget is reused for a
+  // different attachment while an earlier chain is still awaiting a
+  // platform/connectivity/conversion call, that earlier chain's
+  // generation no longer matches _openGeneration by the time it
+  // resumes — its result is stale and must not be applied.
+  int _openGeneration = 0;
+
   @override
   void initState() {
     super.initState();
@@ -210,6 +219,7 @@ class _OfficeViewState extends State<_OfficeView> {
   }
 
   Future<void> _open() async {
+    final generation = ++_openGeneration;
     setState(() {
       _opening = true;
       _error = null;
@@ -218,14 +228,18 @@ class _OfficeViewState extends State<_OfficeView> {
       if (widget.platformInfo.isIOS) {
         final path = widget.attachment.localPath;
         if (path == null) {
-          setState(() => _error = 'No local file to open.');
+          if (mounted && generation == _openGeneration) {
+            setState(() => _error = 'No local file to open.');
+          }
           return;
         }
         // Genuine in-app preview via QuickLook — requires a local file URL,
         // which the resolver guarantees by the time this renderer runs.
         // Always wins on iOS; conversion isn't needed here.
         await NativeOfficeChannel.openOfficePreview(path);
-        _previewedInApp = true;
+        if (mounted && generation == _openGeneration) {
+          setState(() => _previewedInApp = true);
+        }
         return;
       }
 
@@ -235,9 +249,12 @@ class _OfficeViewState extends State<_OfficeView> {
         // iOS/Android; web/desktop would otherwise silently attempt
         // Android-shaped behavior with no platform implementation behind
         // it. Report this distinctly rather than falling through.
-        setState(
-          () => _error = 'Office documents aren\'t supported on this platform.',
-        );
+        if (mounted && generation == _openGeneration) {
+          setState(
+            () =>
+                _error = 'Office documents aren\'t supported on this platform.',
+          );
+        }
         return;
       }
 
@@ -245,15 +262,21 @@ class _OfficeViewState extends State<_OfficeView> {
       // Office Online below — it needs no network at all.
       final offlineFormat = _offlineFormatForExtension;
       if (offlineFormat != .none && widget.attachment.localPath != null) {
-        setState(() => _offlineFormat = offlineFormat);
+        if (mounted && generation == _openGeneration) {
+          setState(() => _offlineFormat = offlineFormat);
+        }
         return;
       }
 
-      await _tryOfficeOnlineThenConversionThenExternal();
+      await _tryOfficeOnlineThenConversionThenExternal(generation);
     } catch (e) {
-      setState(() => _error = 'Unable to open this document.');
+      if (mounted && generation == _openGeneration) {
+        setState(() => _error = 'Unable to open this document.');
+      }
     } finally {
-      if (mounted) setState(() => _opening = false);
+      if (mounted && generation == _openGeneration) {
+        setState(() => _opening = false);
+      }
     }
   }
 
@@ -261,7 +284,10 @@ class _OfficeViewState extends State<_OfficeView> {
   /// DOCX viewer applies (or the offline viewer failed): Office Online,
   /// then a supplied conversion, then external-open as the genuine last
   /// resort.
-  Future<void> _tryOfficeOnlineThenConversionThenExternal() async {
+  Future<void> _tryOfficeOnlineThenConversionThenExternal([
+    int? generation,
+  ]) async {
+    final gen = generation ?? _openGeneration;
     // Prefer Microsoft's own Office Online viewer (still in-app, via a
     // WebView) over both the conversion fallback below and sending the
     // user to an external app — it needs a public URL for the document
@@ -289,7 +315,7 @@ class _OfficeViewState extends State<_OfficeView> {
       }
     }
     if (urlIsSafeToForward && hasConnection) {
-      if (mounted) {
+      if (mounted && gen == _openGeneration) {
         setState(() => _officeOnlineUrl = _officeOnlineViewerUrl(publicUrl));
       }
       return;
@@ -308,11 +334,13 @@ class _OfficeViewState extends State<_OfficeView> {
       converted = null;
     }
     if (converted != null) {
-      if (mounted) setState(() => _convertedPdfPath = converted);
+      if (mounted && gen == _openGeneration) {
+        setState(() => _convertedPdfPath = converted);
+      }
       return;
     }
 
-    await _openExternallyAsLastResort();
+    await _openExternallyAsLastResort(gen);
   }
 
   static String _officeOnlineViewerUrl(String documentUrl) {
@@ -331,6 +359,7 @@ class _OfficeViewState extends State<_OfficeView> {
   /// the same lower-priority steps as above: conversion, then
   /// external-open.
   Future<void> _officeOnlineFailed() async {
+    final gen = _openGeneration;
     setState(() => _officeOnlineUrl = null);
     String? converted;
     try {
@@ -339,20 +368,25 @@ class _OfficeViewState extends State<_OfficeView> {
       converted = null;
     }
     if (converted != null) {
-      if (mounted) setState(() => _convertedPdfPath = converted);
+      if (mounted && gen == _openGeneration) {
+        setState(() => _convertedPdfPath = converted);
+      }
       return;
     }
-    await _openExternallyAsLastResort();
+    await _openExternallyAsLastResort(gen);
   }
 
-  Future<void> _openExternallyAsLastResort() async {
+  Future<void> _openExternallyAsLastResort([int? generation]) async {
+    final gen = generation ?? _openGeneration;
     final path = widget.attachment.localPath;
     if (path == null) {
-      if (mounted) setState(() => _error = 'No local file to open.');
+      if (mounted && gen == _openGeneration) {
+        setState(() => _error = 'No local file to open.');
+      }
       return;
     }
     if (!widget.externalOpenConfig.allowExternalFallback) {
-      if (mounted) {
+      if (mounted && gen == _openGeneration) {
         setState(
           () => _error = 'Opening this attachment externally is disabled.',
         );
@@ -360,7 +394,7 @@ class _OfficeViewState extends State<_OfficeView> {
       return;
     }
     final result = await NativeOpenChannel.openExternally(path);
-    if (!result.success && mounted) {
+    if (!result.success && mounted && gen == _openGeneration) {
       setState(() => _error = result.message);
     }
   }

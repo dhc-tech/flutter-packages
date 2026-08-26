@@ -126,5 +126,70 @@ void main() {
 
       expect(find.byType(TextField), findsNothing);
     });
+
+    testWidgets(
+      'reusing the same widget for different text reloads its lines and '
+      'search results instead of keeping the previous document\'s',
+      (tester) async {
+        const renderer = TextAttachmentRenderer();
+        final fileA = File('${tempDir.path}/a.txt');
+        fileA.writeAsStringSync('apple pie\nbanana split\n');
+        final fileB = File('${tempDir.path}/b.txt');
+        fileB.writeAsStringSync('completely different content\n');
+
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: Builder(
+                  builder: (context) =>
+                      renderer.build(context, textAttachment(fileA.path)),
+                ),
+              ),
+            ),
+          );
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          await tester.pump();
+        });
+        expect(find.text('apple pie'), findsOneWidget);
+
+        // Search for "apple" while file A is showing, then swap to file B
+        // before clearing the query — the stale match count/lines must
+        // not survive the swap.
+        await tester.enterText(find.byType(TextField), 'apple');
+        await tester.pump();
+        expect(find.text('1/1'), findsOneWidget);
+
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: Builder(
+                  builder: (context) =>
+                      renderer.build(context, textAttachment(fileB.path)),
+                ),
+              ),
+            ),
+          );
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          await tester.pump();
+          await tester.pump();
+        });
+
+        // findRichText: true — with the "apple" query still active from
+        // before the swap, each line renders as Text.rich (for match
+        // highlighting) rather than a plain Text.
+        expect(
+          find.text('completely different content', findRichText: true),
+          findsOneWidget,
+        );
+        expect(find.text('apple pie', findRichText: true), findsNothing);
+        // The query text itself is preserved (it's the user's own input,
+        // in _searchController — not attachment-specific state), but its
+        // match count is recomputed against the new document: "apple"
+        // doesn't appear in file B's content at all.
+        expect(find.text('0/0'), findsOneWidget);
+      },
+    );
   });
 }
