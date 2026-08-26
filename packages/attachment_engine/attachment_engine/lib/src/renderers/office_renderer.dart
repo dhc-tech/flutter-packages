@@ -144,6 +144,26 @@ class _OfficeViewState extends State<_OfficeView> {
     _open();
   }
 
+  @override
+  void didUpdateWidget(_OfficeView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A parent may reuse this same widget/State for a different
+    // attachment (e.g. RendererRegistry reusing an OfficeAttachmentRenderer
+    // instance while a user navigates between office documents); without
+    // this, the previous document would keep showing instead of the new
+    // one reopening.
+    if (oldWidget.attachment != widget.attachment) {
+      setState(() {
+        _previewedInApp = false;
+        _offlineFormat = .none;
+        _convertedPdfPath = null;
+        _officeOnlineUrl = null;
+        _error = null;
+      });
+      _open();
+    }
+  }
+
   /// The document's own public URL, if it has one — required for
   /// Microsoft's Office Online viewer, which fetches the file itself
   /// rather than accepting a local path.
@@ -188,6 +208,18 @@ class _OfficeViewState extends State<_OfficeView> {
         // Always wins on iOS; conversion isn't needed here.
         await NativeOfficeChannel.openOfficePreview(path);
         _previewedInApp = true;
+        return;
+      }
+
+      if (!widget.platformInfo.isAndroid) {
+        // Everything below this point (offline WebView renderers, Office
+        // Online, external-open via NativeOpenChannel) is only meant for
+        // iOS/Android; web/desktop would otherwise silently attempt
+        // Android-shaped behavior with no platform implementation behind
+        // it. Report this distinctly rather than falling through.
+        setState(
+          () => _error = 'Office documents aren\'t supported on this platform.',
+        );
         return;
       }
 
@@ -346,15 +378,41 @@ class _OfficeOnlineView extends StatefulWidget {
 }
 
 class _OfficeOnlineViewState extends State<_OfficeOnlineView> {
-  late final WebViewController _controller;
+  late WebViewController _controller;
+  bool _failed = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
+    _controller = _buildController();
+  }
+
+  @override
+  void didUpdateWidget(_OfficeOnlineView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Flutter's element diffing can reuse this State for a different URL
+    // (same widget type/position) without rebuilding the controller;
+    // without this, the previous document would keep showing.
+    if (oldWidget.url != widget.url) {
+      _failed = false;
+      setState(() => _controller = _buildController());
+    }
+  }
+
+  WebViewController _buildController() {
+    return WebViewController()
       ..setJavaScriptMode(.unrestricted)
       ..setNavigationDelegate(
-        NavigationDelegate(onWebResourceError: (_) => widget.onFailed()),
+        NavigationDelegate(
+          onWebResourceError: (_) {
+            // Idempotent and mounted-safe: a WebView can report more than
+            // one resource error, and it could arrive after the caller
+            // has already switched to a different fallback.
+            if (!mounted || _failed) return;
+            _failed = true;
+            widget.onFailed();
+          },
+        ),
       )
       ..loadRequest(Uri.parse(widget.url));
   }

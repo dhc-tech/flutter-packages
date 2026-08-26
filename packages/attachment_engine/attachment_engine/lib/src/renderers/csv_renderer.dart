@@ -4,7 +4,7 @@
 
 import 'dart:io';
 
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 import '../models/attachment.dart';
 import '../models/attachment_type.dart';
@@ -32,65 +32,23 @@ class CsvAttachmentRenderer extends AttachmentRenderer {
 
   @override
   Widget build(BuildContext context, Attachment attachment) {
-    final delimiter = attachment.extension?.toLowerCase() == 'tsv' ? '\t' : ',';
-    return FutureBuilder<List<List<String>>>(
-      future: _readRows(attachment, delimiter),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicatorPlaceholder());
-        }
-        final rows = snapshot.data!;
-        if (rows.isEmpty) {
-          return Center(
-            child: Text('${delimiter == '\t' ? 'TSV' : 'CSV'} file is empty'),
-          );
-        }
-        final columnCount = rows
-            .map((r) => r.length)
-            .reduce((a, b) => a > b ? a : b);
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Table(
-              defaultColumnWidth: const IntrinsicColumnWidth(),
-              border: const TableBorder.symmetric(
-                inside: BorderSide(color: Color(0x33000000)),
-              ),
-              children: [
-                for (final row in rows)
-                  TableRow(
-                    children: [
-                      for (var i = 0; i < columnCount; i++)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          child: Text(i < row.length ? row[i] : ''),
-                        ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    return _CsvView(attachment: attachment);
   }
 
-  Future<List<List<String>>> _readRows(
+  /// Reads and parses [attachment]'s file, propagating any I/O or parse
+  /// failure to the caller (a [FutureBuilder]) rather than swallowing it
+  /// into an empty (and indistinguishable from a genuinely-empty file)
+  /// result.
+  static Future<List<List<String>>> _readRows(
     Attachment attachment,
     String delimiter,
   ) async {
     final path = attachment.localPath;
-    if (path == null) return const [];
-    try {
-      final content = await File(path).readAsString();
-      return parseCsv(content, delimiter: delimiter);
-    } catch (_) {
-      return const [];
+    if (path == null) {
+      throw const FileSystemException('No local file to read.');
     }
+    final content = await File(path).readAsString();
+    return parseCsv(content, delimiter: delimiter);
   }
 
   /// Parses [content] as delimited text (comma by default; pass `'\t'` for
@@ -144,5 +102,109 @@ class CsvAttachmentRenderer extends AttachmentRenderer {
       rows.add(row);
     }
     return rows;
+  }
+}
+
+class _CsvView extends StatefulWidget {
+  const _CsvView({required this.attachment});
+  final Attachment attachment;
+
+  @override
+  State<_CsvView> createState() => _CsvViewState();
+}
+
+class _CsvViewState extends State<_CsvView> {
+  late Future<List<List<String>>> _rows;
+  late String _delimiter;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(_CsvView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A parent may reuse this same renderer/widget for a different
+    // attachment (e.g. RendererRegistry reusing a CsvAttachmentRenderer
+    // instance across CSV files); without this, the previous file's rows
+    // would keep showing instead of reloading the new one.
+    if (oldWidget.attachment.localPath != widget.attachment.localPath) {
+      _load();
+    }
+  }
+
+  void _load() {
+    _delimiter = widget.attachment.extension?.toLowerCase() == 'tsv'
+        ? '\t'
+        : ',';
+    setState(() {
+      _rows = CsvAttachmentRenderer._readRows(widget.attachment, _delimiter);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<List<String>>>(
+      future: _rows,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          final label = _delimiter == '\t' ? 'TSV' : 'CSV';
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Unable to read this $label file'),
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  onPressed: () => setState(_load),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicatorPlaceholder());
+        }
+        final rows = snapshot.data!;
+        if (rows.isEmpty) {
+          return Center(
+            child: Text('${_delimiter == '\t' ? 'TSV' : 'CSV'} file is empty'),
+          );
+        }
+        final columnCount = rows
+            .map((r) => r.length)
+            .reduce((a, b) => a > b ? a : b);
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Table(
+              defaultColumnWidth: const IntrinsicColumnWidth(),
+              border: const TableBorder.symmetric(
+                inside: BorderSide(color: Color(0x33000000)),
+              ),
+              children: [
+                for (final row in rows)
+                  TableRow(
+                    children: [
+                      for (var i = 0; i < columnCount; i++)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          child: Text(i < row.length ? row[i] : ''),
+                        ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }

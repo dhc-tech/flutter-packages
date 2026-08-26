@@ -62,11 +62,13 @@ class _FakeWebViewWidget extends PlatformWebViewWidget {
 }
 
 class _FakePlatformInfo extends PlatformInfo {
-  const _FakePlatformInfo({required this.isIOS});
+  const _FakePlatformInfo({required this.isIOS, bool? isAndroid})
+    : _isAndroid = isAndroid ?? !isIOS;
   @override
   final bool isIOS;
+  final bool _isAndroid;
   @override
-  bool get isAndroid => !isIOS;
+  bool get isAndroid => _isAndroid;
 }
 
 class _FakeConnectivityChecker implements ConnectivityChecker {
@@ -265,6 +267,77 @@ void main() {
 
         expect(platform.calls, isEmpty);
         expect(find.byType(WebViewWidget), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'a platform that is neither iOS nor Android reports "not supported" '
+      'instead of attempting Android-only behavior',
+      (tester) async {
+        final renderer = OfficeAttachmentRenderer(
+          platformInfo: const _FakePlatformInfo(isIOS: false, isAndroid: false),
+          connectivityChecker: const _FakeConnectivityChecker(true),
+        );
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) => renderer.build(
+                context,
+                officeAttachment(
+                  '/tmp/f.docx',
+                  remoteUrl: 'https://cdn.example.com/f.docx',
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(platform.calls, isEmpty);
+        expect(find.byType(WebViewWidget), findsNothing);
+        expect(
+          find.text("Office documents aren't supported on this platform."),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'reusing the same renderer/widget for a different attachment reopens '
+      'instead of keeping the previous document',
+      (tester) async {
+        final renderer = OfficeAttachmentRenderer(
+          platformInfo: const _FakePlatformInfo(isIOS: true),
+        );
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) =>
+                  renderer.build(context, officeAttachment('/tmp/a.docx')),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(platform.calls, ['openOfficePreview:/tmp/a.docx']);
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) =>
+                  renderer.build(context, officeAttachment('/tmp/b.docx')),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(platform.calls, [
+          'openOfficePreview:/tmp/a.docx',
+          'openOfficePreview:/tmp/b.docx',
+        ]);
       },
     );
   });

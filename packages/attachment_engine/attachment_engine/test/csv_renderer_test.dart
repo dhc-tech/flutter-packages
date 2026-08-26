@@ -154,5 +154,75 @@ void main() {
       expect(find.text('Ada'), findsOneWidget);
       expect(find.text('36'), findsOneWidget);
     });
+
+    testWidgets('shows a distinct error state with Retry for an unreadable '
+        'file, instead of silently rendering as empty', (tester) async {
+      // A path that never existed — File.readAsString throws instead of
+      // ever producing a valid (if empty) row list.
+      final missingPath = '${tempDir.path}/does-not-exist.csv';
+      const renderer = CsvAttachmentRenderer();
+
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) =>
+                  renderer.build(context, csvAttachment(missingPath)),
+            ),
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+        await tester.pump();
+      });
+
+      expect(find.text('Unable to read this CSV file'), findsOneWidget);
+      expect(find.text('CSV file is empty'), findsNothing);
+      expect(find.text('Retry'), findsOneWidget);
+    });
+
+    testWidgets(
+      'reusing the same renderer/widget for a different attachment reloads '
+      'instead of keeping the previous rows',
+      (tester) async {
+        final fileA = File('${tempDir.path}/a.csv');
+        fileA.writeAsStringSync('first,file\n');
+        final fileB = File('${tempDir.path}/b.csv');
+        fileB.writeAsStringSync('second,file\n');
+        const renderer = CsvAttachmentRenderer();
+
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Builder(
+                builder: (context) =>
+                    renderer.build(context, csvAttachment(fileA.path)),
+              ),
+            ),
+          );
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          await tester.pump();
+        });
+        expect(find.text('first'), findsOneWidget);
+
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Builder(
+                builder: (context) =>
+                    renderer.build(context, csvAttachment(fileB.path)),
+              ),
+            ),
+          );
+          await Future<void>.delayed(const Duration(milliseconds: 50));
+          await tester.pump();
+        });
+
+        expect(find.text('second'), findsOneWidget);
+        expect(find.text('first'), findsNothing);
+      },
+    );
   });
 }

@@ -94,11 +94,32 @@ class _PdfView extends StatefulWidget {
 class _PdfViewState extends State<_PdfView> {
   NativePdfController? _controller;
   Object? _error;
+  PageController? _pageController;
 
   @override
   void initState() {
     super.initState();
     _open();
+  }
+
+  @override
+  void didUpdateWidget(_PdfView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A parent may reuse this same widget/State for a different
+    // attachment (e.g. navigating docx→docx via OfficeAttachmentRenderer's
+    // reused PdfAttachmentRenderer); without this, the old document would
+    // keep showing instead of the new one.
+    if (oldWidget.path != widget.path) {
+      final previousController = _controller;
+      setState(() {
+        _controller = null;
+        _error = null;
+        _pageController?.dispose();
+        _pageController = null;
+      });
+      previousController?.close();
+      _open();
+    }
   }
 
   Future<void> _open() async {
@@ -109,7 +130,14 @@ class _PdfViewState extends State<_PdfView> {
         await controller.close();
         return;
       }
-      setState(() => _controller = controller);
+      final lastPage = widget.pageMemory.lastPage(widget.pageMemoryKey);
+      final startPage = (lastPage != null && lastPage < controller.pageCount)
+          ? lastPage
+          : 0;
+      setState(() {
+        _controller = controller;
+        _pageController = PageController(initialPage: startPage);
+      });
     } catch (e) {
       if (mounted) setState(() => _error = e);
     }
@@ -118,6 +146,7 @@ class _PdfViewState extends State<_PdfView> {
   @override
   void dispose() {
     _controller?.close();
+    _pageController?.dispose();
     super.dispose();
   }
 
@@ -136,15 +165,12 @@ class _PdfViewState extends State<_PdfView> {
       );
     }
     final controller = _controller;
-    if (controller == null) {
+    final pageController = _pageController;
+    if (controller == null || pageController == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    final lastPage = widget.pageMemory.lastPage(widget.pageMemoryKey);
-    final startPage = (lastPage != null && lastPage < controller.pageCount)
-        ? lastPage
-        : 0;
     return PageView.builder(
-      controller: PageController(initialPage: startPage),
+      controller: pageController,
       itemCount: controller.pageCount,
       onPageChanged: (page) =>
           widget.pageMemory.savePage(widget.pageMemoryKey, page),
@@ -171,6 +197,22 @@ class _PdfPageState extends State<_PdfPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _render();
+  }
+
+  @override
+  void didUpdateWidget(_PdfPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Flutter's element diffing can reuse this State for the same
+    // (type, position) even when the parent PageView was rebuilt for a
+    // different document (different NativePdfController) — without this,
+    // the previously-rendered page's bytes would keep showing.
+    if (oldWidget.controller != widget.controller) {
+      setState(() {
+        _bytes = null;
+        _failed = false;
+      });
+      _render();
+    }
   }
 
   Future<void> _render() async {

@@ -36,29 +36,55 @@ class OfflineSpreadsheetViewer extends StatefulWidget {
 }
 
 class _OfflineSpreadsheetViewerState extends State<OfflineSpreadsheetViewer> {
-  late final WebViewController _controller;
+  late WebViewController _controller;
   bool _renderRequested = false;
+  bool _failed = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
+    _controller = _buildController();
+  }
+
+  @override
+  void didUpdateWidget(OfflineSpreadsheetViewer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A parent may reuse this same widget/State for a different
+    // attachment; without rebuilding the controller, the previous
+    // spreadsheet would keep showing instead of the new one loading.
+    if (oldWidget.localPath != widget.localPath) {
+      _renderRequested = false;
+      _failed = false;
+      setState(() => _controller = _buildController());
+    }
+  }
+
+  WebViewController _buildController() {
+    return WebViewController()
       ..setJavaScriptMode(.unrestricted)
       ..addJavaScriptChannel(
         'OfflineDocViewer',
         onMessageReceived: (message) {
-          if (message.message.startsWith('error:')) widget.onFailed?.call();
+          if (message.message.startsWith('error:')) _reportFailure();
         },
       )
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (_) => _renderDocument(),
-          onWebResourceError: (_) => widget.onFailed?.call(),
+          onWebResourceError: (_) => _reportFailure(),
         ),
       )
       ..loadFlutterAsset(
         'packages/attachment_engine/assets/office_offline/xlsx_viewer.html',
       );
+  }
+
+  /// Idempotent and mounted-safe — see [OfflineDocxViewer]'s
+  /// `_reportFailure` for why this matters.
+  void _reportFailure() {
+    if (!mounted || _failed) return;
+    _failed = true;
+    widget.onFailed?.call();
   }
 
   Future<void> _renderDocument() async {
@@ -69,7 +95,7 @@ class _OfflineSpreadsheetViewerState extends State<OfflineSpreadsheetViewer> {
       final base64Data = base64Encode(bytes);
       await _controller.runJavaScript('renderSpreadsheet("$base64Data")');
     } catch (_) {
-      widget.onFailed?.call();
+      _reportFailure();
     }
   }
 
