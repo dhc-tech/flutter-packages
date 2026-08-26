@@ -76,6 +76,7 @@ class OfficeAttachmentRenderer extends AttachmentRenderer {
     this.platformInfo = const DefaultPlatformInfo(),
     this.externalOpenConfig = const ExternalOpenConfig(),
     this.connectivityChecker = const DefaultConnectivityChecker(),
+    this.isUrlSafeForOfficeOnline,
   });
 
   final OfficeConversionStrategy? conversionStrategy;
@@ -97,6 +98,20 @@ class OfficeAttachmentRenderer extends AttachmentRenderer {
   /// URL).
   final ConnectivityChecker connectivityChecker;
 
+  /// Gates whether an attachment's URL may be sent to Microsoft's Office
+  /// Online viewer (`view.officeapps.live.com`) as its `src` parameter.
+  ///
+  /// Defaults to null, which means the Office Online tier is skipped
+  /// entirely — `Attachment.remoteUrl`/`source.url` are just "the URL this
+  /// attachment came from", not a promise that the URL is safe to forward
+  /// to a third party. A signed or otherwise access-controlled URL
+  /// forwarded to Office Online would leak that access to Microsoft.
+  ///
+  /// Pass a predicate here only if your backend gives you URLs you know
+  /// are genuinely public (no embedded signature/token/session credential)
+  /// — e.g. `(attachment) => attachment.remoteUrl?.startsWith(myPublicCdnPrefix) ?? false`.
+  final bool Function(Attachment attachment)? isUrlSafeForOfficeOnline;
+
   @override
   AttachmentType get type => .office;
 
@@ -108,6 +123,7 @@ class OfficeAttachmentRenderer extends AttachmentRenderer {
       platformInfo: platformInfo,
       externalOpenConfig: externalOpenConfig,
       connectivityChecker: connectivityChecker,
+      isUrlSafeForOfficeOnline: isUrlSafeForOfficeOnline,
     );
   }
 }
@@ -119,12 +135,14 @@ class _OfficeView extends StatefulWidget {
     this.conversionStrategy,
     this.externalOpenConfig = const ExternalOpenConfig(),
     this.connectivityChecker = const DefaultConnectivityChecker(),
+    this.isUrlSafeForOfficeOnline,
   });
   final Attachment attachment;
   final OfficeConversionStrategy? conversionStrategy;
   final PlatformInfo platformInfo;
   final ExternalOpenConfig externalOpenConfig;
   final ConnectivityChecker connectivityChecker;
+  final bool Function(Attachment attachment)? isUrlSafeForOfficeOnline;
 
   @override
   State<_OfficeView> createState() => _OfficeViewState();
@@ -248,8 +266,29 @@ class _OfficeViewState extends State<_OfficeView> {
     // WebView) over both the conversion fallback below and sending the
     // user to an external app — it needs a public URL for the document
     // and an actual connection to reach it.
+    //
+    // Sending a URL to Office Online means sending it to Microsoft — only
+    // do that when the host app has explicitly vouched for it via
+    // isUrlSafeForOfficeOnline (see its dartdoc: without an explicit
+    // predicate, a signed/private remoteUrl could otherwise leak).
+    //
+    // connectivityChecker.hasConnection() is caller-supplied and caught
+    // independently: a throw there shouldn't abort the whole fallback
+    // chain (skipping conversion/external-open) — it should just be
+    // treated as "not usable", same as returning false.
     final publicUrl = _publicDocumentUrl;
-    if (publicUrl != null && await widget.connectivityChecker.hasConnection()) {
+    final urlIsSafeToForward =
+        publicUrl != null &&
+        (widget.isUrlSafeForOfficeOnline?.call(widget.attachment) ?? false);
+    var hasConnection = false;
+    if (urlIsSafeToForward) {
+      try {
+        hasConnection = await widget.connectivityChecker.hasConnection();
+      } catch (_) {
+        hasConnection = false;
+      }
+    }
+    if (urlIsSafeToForward && hasConnection) {
       if (mounted) {
         setState(() => _officeOnlineUrl = _officeOnlineViewerUrl(publicUrl));
       }
@@ -259,10 +298,15 @@ class _OfficeViewState extends State<_OfficeView> {
     // Office Online isn't usable (offline / no public URL). A supplied
     // conversion is a deliberately lower-priority, fully optional
     // fallback — doc→PDF conversion is lossy for complex documents — so
-    // it's only tried here, once nothing better is available.
-    final converted = await widget.conversionStrategy?.convert(
-      widget.attachment,
-    );
+    // it's only tried here, once nothing better is available. Caught
+    // independently for the same reason as connectivityChecker above: a
+    // throwing conversionStrategy shouldn't skip external-open.
+    String? converted;
+    try {
+      converted = await widget.conversionStrategy?.convert(widget.attachment);
+    } catch (_) {
+      converted = null;
+    }
     if (converted != null) {
       if (mounted) setState(() => _convertedPdfPath = converted);
       return;
@@ -288,9 +332,12 @@ class _OfficeViewState extends State<_OfficeView> {
   /// external-open.
   Future<void> _officeOnlineFailed() async {
     setState(() => _officeOnlineUrl = null);
-    final converted = await widget.conversionStrategy?.convert(
-      widget.attachment,
-    );
+    String? converted;
+    try {
+      converted = await widget.conversionStrategy?.convert(widget.attachment);
+    } catch (_) {
+      converted = null;
+    }
     if (converted != null) {
       if (mounted) setState(() => _convertedPdfPath = converted);
       return;

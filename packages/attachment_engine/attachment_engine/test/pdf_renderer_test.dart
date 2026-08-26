@@ -2,6 +2,7 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:attachment_engine/attachment_engine.dart';
@@ -22,8 +23,17 @@ class _FakePdfPlatform extends AttachmentEnginePlatform {
   final List<String> openedPaths = [];
   final Map<String, int> pageCountByHandle = {};
 
+  /// When set, pdfOpen for this exact path waits on this completer before
+  /// resolving — used to simulate an in-flight open completing late, after
+  /// a newer one has already started.
+  String? delayedPath;
+  Completer<void>? delayGate;
+
   @override
   Future<PdfOpenResult> pdfOpen(String path) async {
+    if (path == delayedPath) {
+      await delayGate!.future;
+    }
     openedPaths.add(path);
     final handle = path;
     pageCountByHandle[handle] = path.contains('multi') ? 3 : 1;
@@ -38,8 +48,12 @@ class _FakePdfPlatform extends AttachmentEnginePlatform {
     required int height,
   }) async => _tinyPngBytes;
 
+  final List<String> closedHandles = [];
+
   @override
-  Future<void> pdfClose(String handle) async {}
+  Future<void> pdfClose(String handle) async {
+    closedHandles.add(handle);
+  }
 }
 
 void main() {
@@ -124,5 +138,56 @@ void main() {
       pageMemory.savePage(attachment.id, 2);
       expect(pageMemory.lastPage(attachment.id), 2);
     });
+
+    testWidgets(
+      'a slow-to-open previous document completing late does not clobber '
+      'the newer document already showing',
+      (tester) async {
+        platform.delayedPath = '/tmp/slow.pdf';
+        platform.delayGate = Completer<void>();
+        final renderer = PdfAttachmentRenderer();
+
+        // Start opening the first (slow) document — its pdfOpen() call
+        // hangs on delayGate and never resolves during this pump.
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) =>
+                  renderer.build(context, pdfAttachment('a1', '/tmp/slow.pdf')),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Reuse the same widget for a different (fast) attachment before
+        // the first open has resolved.
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) => renderer.build(
+                context,
+                pdfAttachment('a2', '/tmp/fast-multi.pdf'),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(platform.openedPaths, ['/tmp/fast-multi.pdf']);
+        expect(find.byType(PageView), findsOneWidget);
+
+        // Now let the slow, stale open resolve.
+        platform.delayGate!.complete();
+        await tester.pumpAndSettle();
+
+        // The fix: the stale controller is closed instead of overwriting
+        // the (already-showing) newer one.
+        expect(platform.openedPaths, ['/tmp/fast-multi.pdf', '/tmp/slow.pdf']);
+        expect(platform.closedHandles, contains('/tmp/slow.pdf'));
+        expect(find.byType(PageView), findsOneWidget);
+      },
+    );
   });
 }

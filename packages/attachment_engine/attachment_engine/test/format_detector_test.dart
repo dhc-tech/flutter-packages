@@ -171,5 +171,37 @@ void main() {
       final type = detector.detect(extension: 'xlsm');
       expect(type, AttachmentType.office);
     });
+
+    test('a .csv extension wins over a generic text/plain mime type '
+        '(servers often send text/plain for any text-ish file)', () {
+      final type = detector.detect(
+        explicitMimeType: 'text/plain',
+        extension: 'csv',
+      );
+      expect(type, AttachmentType.csv);
+    });
+
+    test('a .tsv url extension wins over a generic text/plain mime type', () {
+      final type = detector.detect(
+        explicitMimeType: 'text/plain',
+        url: 'https://example.com/export.tsv',
+      );
+      expect(type, AttachmentType.csv);
+    });
+
+    test('a generic text/plain mime type is still used as a fallback when '
+        'nothing more specific is available', () {
+      final type = detector.detect(explicitMimeType: 'text/plain');
+      expect(type, AttachmentType.text);
+    });
+
+    test('a specific mime type (e.g. application/pdf) still wins immediately, '
+        'unaffected by the text/plain deferral', () {
+      final type = detector.detect(
+        explicitMimeType: 'application/pdf',
+        extension: 'csv',
+      );
+      expect(type, AttachmentType.pdf);
+    });
   });
 }

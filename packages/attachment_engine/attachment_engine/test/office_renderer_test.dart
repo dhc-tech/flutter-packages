@@ -185,6 +185,7 @@ void main() {
         final renderer = OfficeAttachmentRenderer(
           platformInfo: const _FakePlatformInfo(isIOS: false),
           connectivityChecker: const _FakeConnectivityChecker(true),
+          isUrlSafeForOfficeOnline: (_) => true,
         );
         await tester.pumpWidget(
           Directionality(
@@ -206,6 +207,39 @@ void main() {
         // Office Online instead.
         expect(platform.calls, isEmpty);
         expect(find.byType(WebViewWidget), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'Office Online is skipped by default (no isUrlSafeForOfficeOnline '
+      'supplied), even with a public URL and a connection, to avoid '
+      "leaking a possibly-private/signed URL to Microsoft's servers",
+      (tester) async {
+        final renderer = OfficeAttachmentRenderer(
+          platformInfo: const _FakePlatformInfo(isIOS: false),
+          connectivityChecker: const _FakeConnectivityChecker(true),
+          // isUrlSafeForOfficeOnline intentionally omitted.
+        );
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) => renderer.build(
+                context,
+                officeAttachment(
+                  '/tmp/f.docx',
+                  remoteUrl: 'https://cdn.example.com/f.docx?sig=secret',
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(WebViewWidget), findsNothing);
+        // No Office Online usable and no conversionStrategy supplied — it
+        // falls all the way through to external-open.
+        expect(platform.calls, ['openExternally:/tmp/f.docx']);
       },
     );
 
@@ -248,6 +282,7 @@ void main() {
           conversionStrategy: const _FakeConversionStrategy(
             '/tmp/converted.pdf',
           ),
+          isUrlSafeForOfficeOnline: (_) => true,
         );
         await tester.pumpWidget(
           Directionality(

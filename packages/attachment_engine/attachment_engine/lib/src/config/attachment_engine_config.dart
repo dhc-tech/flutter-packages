@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import '../util/value_equatable.dart';
+
 import 'package:meta/meta.dart';
 
 import '../models/attachment_type.dart';

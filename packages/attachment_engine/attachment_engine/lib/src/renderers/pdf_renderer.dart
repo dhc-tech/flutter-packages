@@ -96,6 +96,14 @@ class _PdfViewState extends State<_PdfView> {
   Object? _error;
   PageController? _pageController;
 
+  // Bumped on every _open() call and captured locally by it. If a newer
+  // _open() has started by the time an older one's await resolves (the
+  // widget was reused for a different attachment while the first open was
+  // still in flight), the older call's result is stale and must be
+  // discarded — otherwise it could install the wrong document's
+  // controller after the newer one has already started opening.
+  int _openGeneration = 0;
+
   @override
   void initState() {
     super.initState();
@@ -123,10 +131,13 @@ class _PdfViewState extends State<_PdfView> {
   }
 
   Future<void> _open() async {
+    final generation = ++_openGeneration;
     setState(() => _error = null);
     try {
       final controller = await NativePdfController.open(widget.path);
-      if (!mounted) {
+      if (!mounted || generation != _openGeneration) {
+        // Either disposed, or a newer _open() (for a different attachment)
+        // started while this one was awaiting — this result is stale.
         await controller.close();
         return;
       }
@@ -139,7 +150,9 @@ class _PdfViewState extends State<_PdfView> {
         _pageController = PageController(initialPage: startPage);
       });
     } catch (e) {
-      if (mounted) setState(() => _error = e);
+      if (mounted && generation == _openGeneration) {
+        setState(() => _error = e);
+      }
     }
   }
 

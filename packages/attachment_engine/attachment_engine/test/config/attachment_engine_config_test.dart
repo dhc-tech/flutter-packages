@@ -108,24 +108,24 @@ void main() {
 
     test('rejects negative retention', () {
       expect(
-        () => const CacheConfig(
-          retention: Duration(seconds: -1),
-        ).let(_validateCache),
+        () =>
+            const CacheConfig(retention: Duration(seconds: -1))
+                .let(_validateCache),
         throwsA(isA<AttachmentConfigValidationError>()),
       );
     });
 
     test('rejects zero/negative maxConcurrentDownloads', () {
       expect(
-        () => const DownloadConfig(
-          maxConcurrentDownloads: 0,
-        ).let(_validateDownload),
+        () =>
+            const DownloadConfig(maxConcurrentDownloads: 0)
+                .let(_validateDownload),
         throwsA(isA<AttachmentConfigValidationError>()),
       );
       expect(
-        () => const DownloadConfig(
-          maxConcurrentDownloads: -1,
-        ).let(_validateDownload),
+        () =>
+            const DownloadConfig(maxConcurrentDownloads: -1)
+                .let(_validateDownload),
         throwsA(isA<AttachmentConfigValidationError>()),
       );
     });
@@ -139,24 +139,24 @@ void main() {
 
     test('rejects non-positive timeouts', () {
       expect(
-        () => const DownloadConfig(
-          connectTimeout: Duration.zero,
-        ).let(_validateDownload),
+        () =>
+            const DownloadConfig(connectTimeout: Duration.zero)
+                .let(_validateDownload),
         throwsA(isA<AttachmentConfigValidationError>()),
       );
       expect(
-        () => const DownloadConfig(
-          receiveTimeout: Duration.zero,
-        ).let(_validateDownload),
+        () =>
+            const DownloadConfig(receiveTimeout: Duration.zero)
+                .let(_validateDownload),
         throwsA(isA<AttachmentConfigValidationError>()),
       );
     });
 
     test('boundary: maxConcurrentDownloads of exactly 1 is valid', () {
       expect(
-        () => const DownloadConfig(
-          maxConcurrentDownloads: 1,
-        ).let(_validateDownload),
+        () =>
+            const DownloadConfig(maxConcurrentDownloads: 1)
+                .let(_validateDownload),
         returnsNormally,
       );
     });
@@ -196,21 +196,18 @@ void main() {
       store = FakeMetadataStore();
     });
 
-    test(
-      'enabled: init initializes the metadata store and write persists metadata',
-      () async {
-        final manager = AttachmentCacheManager(
-          metadataStore: store,
-          config: const CacheConfig(enabled: true),
-          directoryProvider: () async => Directory.systemTemp,
-        );
-        await manager.init();
-        expect(store.initCalls, 1);
+    test('enabled: init initializes the metadata store and write persists metadata', () async {
+      final manager = AttachmentCacheManager(
+        metadataStore: store,
+        config: const CacheConfig(enabled: true),
+        directoryProvider: () async => Directory.systemTemp,
+      );
+      await manager.init();
+      expect(store.initCalls, 1);
 
-        await manager.write(_attachment(), Uint8List.fromList([1, 2, 3]));
-        expect(store.putCalls, 1);
-      },
-    );
+      await manager.write(_attachment(), Uint8List.fromList([1, 2, 3]));
+      expect(store.putCalls, 1);
+    });
 
     test('disabled: init never touches the metadata store', () async {
       final manager = AttachmentCacheManager(
@@ -270,26 +267,23 @@ void main() {
       },
     );
 
-    test(
-      'maxFileSizeBytes: oversized writes bypass the managed cache (no metadata)',
-      () async {
-        final manager = AttachmentCacheManager(
-          metadataStore: store,
-          config: const CacheConfig(maxFileSizeBytes: 2),
-          directoryProvider: () async => Directory.systemTemp,
-        );
-        await manager.init();
+    test('maxFileSizeBytes: oversized writes bypass the managed cache (no metadata)', () async {
+      final manager = AttachmentCacheManager(
+        metadataStore: store,
+        config: const CacheConfig(maxFileSizeBytes: 2),
+        directoryProvider: () async => Directory.systemTemp,
+      );
+      await manager.init();
 
-        final path = await manager.write(
-          _attachment(),
-          Uint8List.fromList([1, 2, 3, 4]),
-        );
+      final path = await manager.write(
+        _attachment(),
+        Uint8List.fromList([1, 2, 3, 4]),
+      );
 
-        expect(store.putCalls, 0);
-        expect(File(path).existsSync(), isTrue);
-        await File(path).delete();
-      },
-    );
+      expect(store.putCalls, 0);
+      expect(File(path).existsSync(), isTrue);
+      await File(path).delete();
+    });
 
     test(
       'retention: entries older than retention are treated as a miss',
@@ -309,50 +303,44 @@ void main() {
       },
     );
 
-    test(
-      'cache size limit (maxTotalSizeBytes) still evicts via existing CachePolicy',
-      () async {
-        final manager = AttachmentCacheManager(
-          metadataStore: store,
-          policy: const CachePolicy(maxTotalSizeBytes: 5),
-          config: const CacheConfig(maxTotalSizeBytes: 5),
-          directoryProvider: () async => Directory.systemTemp,
-        );
-        await manager.init();
+    test('cache size limit (maxTotalSizeBytes) still evicts via existing CachePolicy', () async {
+      final manager = AttachmentCacheManager(
+        metadataStore: store,
+        policy: const CachePolicy(maxTotalSizeBytes: 5),
+        config: const CacheConfig(maxTotalSizeBytes: 5),
+        directoryProvider: () async => Directory.systemTemp,
+      );
+      await manager.init();
 
-        await manager.write(
-          _attachment(id: 'first'),
-          Uint8List.fromList(List.filled(4, 1)),
-        );
-        await manager.write(
-          _attachment(id: 'second'),
-          Uint8List.fromList(List.filled(4, 2)),
-        );
+      await manager.write(
+        _attachment(id: 'first'),
+        Uint8List.fromList(List.filled(4, 1)),
+      );
+      await manager.write(
+        _attachment(id: 'second'),
+        Uint8List.fromList(List.filled(4, 2)),
+      );
 
-        // First entry should have been evicted to make room for the second.
-        expect(await manager.lookup(_attachment(id: 'first')), isNull);
-        expect(await manager.lookup(_attachment(id: 'second')), isNotNull);
-      },
-    );
+      // First entry should have been evicted to make room for the second.
+      expect(await manager.lookup(_attachment(id: 'first')), isNull);
+      expect(await manager.lookup(_attachment(id: 'second')), isNotNull);
+    });
   });
 
   group('RendererConfig / CapabilityEngine', () {
-    test(
-      'a single disabled renderer type reports rendererDisabledByConfig and no preview/open/play',
-      () {
-        const engine = CapabilityEngine(
-          rendererConfig: RendererConfig(video: false),
-        );
-        final caps = engine.derive(
-          _attachment(type: AttachmentType.video, localPath: '/f.mp4'),
-        );
+    test('a single disabled renderer type reports rendererDisabledByConfig and no preview/open/play', () {
+      const engine = CapabilityEngine(
+        rendererConfig: RendererConfig(video: false),
+      );
+      final caps = engine.derive(
+        _attachment(type: AttachmentType.video, localPath: '/f.mp4'),
+      );
 
-        expect(caps.rendererDisabledByConfig, isTrue);
-        expect(caps.canPreview, isFalse);
-        expect(caps.canPlay, isFalse);
-        expect(caps.canOpen, isFalse);
-      },
-    );
+      expect(caps.rendererDisabledByConfig, isTrue);
+      expect(caps.canPreview, isFalse);
+      expect(caps.canPlay, isFalse);
+      expect(caps.canOpen, isFalse);
+    });
 
     test(
       'multiple renderers disabled simultaneously are each reported disabled',
@@ -453,24 +441,21 @@ void main() {
       expect(client.callCount, 2);
     });
 
-    test(
-      'resumeEnabled:false forces resume:false on every attempt including retries',
-      () async {
-        final client = _CountingFailingClient(failuresBeforeSuccess: 2);
-        final manager = DownloadManager(
-          client: client,
-          config: const DownloadConfig(
-            maxRetries: 5,
-            retryBackoff: DownloadRetryBackoff.none,
-            resumeEnabled: false,
-          ),
-        );
+    test('resumeEnabled:false forces resume:false on every attempt including retries', () async {
+      final client = _CountingFailingClient(failuresBeforeSuccess: 2);
+      final manager = DownloadManager(
+        client: client,
+        config: const DownloadConfig(
+          maxRetries: 5,
+          retryBackoff: DownloadRetryBackoff.none,
+          resumeEnabled: false,
+        ),
+      );
 
-        await manager.download('k', 'https://example.com/f');
+      await manager.download('k', 'https://example.com/f');
 
-        expect(client.resumeFlags, [false, false, false]);
-      },
-    );
+      expect(client.resumeFlags, [false, false, false]);
+    });
 
     test(
       'resumeEnabled:true (default) passes resume:true from the second attempt',

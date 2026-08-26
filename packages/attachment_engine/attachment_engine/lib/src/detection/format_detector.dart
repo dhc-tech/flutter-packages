@@ -48,9 +48,22 @@ class FormatDetector {
     String? url,
     String? httpContentType,
   }) {
+    // A generic `text/*` mime (most commonly `text/plain`, which servers
+    // often send for any text-ish file regardless of its real format) is
+    // deliberately *not* returned immediately: it would otherwise always
+    // win over a more specific extension-based match (e.g. `.csv`/`.tsv`
+    // served as `text/plain`). It's kept as a fallback, used only if
+    // nothing more specific is found below.
+    AttachmentType? genericTextMimeFallback;
     if (explicitMimeType != null) {
       final fromMime = _typeFromMime(explicitMimeType);
-      if (fromMime != null) return fromMime;
+      if (fromMime != null) {
+        if (fromMime == AttachmentType.text) {
+          genericTextMimeFallback = fromMime;
+        } else {
+          return fromMime;
+        }
+      }
     }
 
     if (bytes != null && bytes.isNotEmpty) {
@@ -86,6 +99,8 @@ class FormatDetector {
       final fromMime = _typeFromMime(httpContentType);
       if (fromMime != null) return fromMime;
     }
+
+    if (genericTextMimeFallback != null) return genericTextMimeFallback;
 
     return AttachmentType.unknown;
   }

@@ -6,29 +6,26 @@ import 'package:attachment_engine/attachment_engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test(
-    'N concurrent calls for the same key trigger exactly one underlying operation',
-    () async {
-      final registry = InFlightRegistry<int>();
-      var callCount = 0;
+  test('N concurrent calls for the same key trigger exactly one underlying operation', () async {
+    final registry = InFlightRegistry<int>();
+    var callCount = 0;
 
-      Future<int> underlyingOperation() async {
-        callCount++;
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-        return 42;
-      }
+    Future<int> underlyingOperation() async {
+      callCount++;
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      return 42;
+    }
 
-      final futures = List.generate(
-        10,
-        (_) => registry.run('key-1', underlyingOperation),
-      );
-      final results = await Future.wait(futures);
+    final futures = List.generate(
+      10,
+      (_) => registry.run('key-1', underlyingOperation),
+    );
+    final results = await Future.wait(futures);
 
-      expect(callCount, 1);
-      expect(results, List.filled(10, 42));
-      expect(registry.isInFlight('key-1'), isFalse);
-    },
-  );
+    expect(callCount, 1);
+    expect(results, List.filled(10, 42));
+    expect(registry.isInFlight('key-1'), isFalse);
+  });
 
   test('different keys run independently', () async {
     final registry = InFlightRegistry<int>();

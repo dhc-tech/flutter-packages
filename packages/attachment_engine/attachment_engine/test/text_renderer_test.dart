@@ -62,10 +62,7 @@ void main() {
     });
 
     testWidgets('finds and counts matches across lines', (tester) async {
-      await pumpTextView(
-        tester,
-        'apple pie\nbanana split\napple crumble\n',
-      );
+      await pumpTextView(tester, 'apple pie\nbanana split\napple crumble\n');
 
       await tester.enterText(find.byType(TextField), 'apple');
       await tester.pump();

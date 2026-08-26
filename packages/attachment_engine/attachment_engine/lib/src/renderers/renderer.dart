@@ -22,8 +22,10 @@ import 'video_renderer.dart';
 /// Builds the full-viewer widget for a resolved, ready-to-render
 /// [Attachment]. `localPath` is guaranteed non-null/existing by the time a
 /// renderer is invoked (resolution happens upstream).
-typedef AttachmentRendererBuilder =
-    Widget Function(BuildContext context, Attachment attachment);
+typedef AttachmentRendererBuilder = Widget Function(
+  BuildContext context,
+  Attachment attachment,
+);
 
 /// A pluggable full-view renderer for a specific [AttachmentType].
 abstract class AttachmentRenderer {

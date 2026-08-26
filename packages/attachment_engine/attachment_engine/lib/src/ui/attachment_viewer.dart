@@ -11,8 +11,9 @@ import '../renderers/renderer.dart';
 
 /// Signature for a caller-supplied resolve step. Defaults to
 /// `AttachmentManager.instance.open`.
-typedef AttachmentResolveCallback =
-    Future<ResolvedAttachment> Function(Attachment attachment);
+typedef AttachmentResolveCallback = Future<ResolvedAttachment> Function(
+  Attachment attachment,
+);
 
 /// Full-screen(-capable) attachment viewer. Routes to the appropriate
 /// [AttachmentRenderer] via [RendererRegistry] based on the attachment's
