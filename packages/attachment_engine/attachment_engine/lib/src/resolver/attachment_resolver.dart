@@ -16,6 +16,7 @@ import '../models/attachment.dart';
 import '../models/attachment_failure.dart';
 import '../models/attachment_source.dart';
 import '../models/attachment_status.dart';
+import '../models/attachment_type.dart';
 import '../models/resolved_attachment.dart';
 
 /// Hook for checking network reachability. Default implementation performs
@@ -134,7 +135,7 @@ class AttachmentResolver {
         result.bytes,
         expiresAt: attachment.expiresAt,
       );
-      return _finish(attachment, path, fromCache: false);
+      return _finish(attachment, path, fromCache: false, bytes: result.bytes);
     } on AttachmentResolutionException {
       rethrow;
     } catch (e) {
@@ -164,11 +165,33 @@ class AttachmentResolver {
     Attachment attachment,
     String localPath, {
     required bool fromCache,
+    Uint8List? bytes,
   }) {
-    final resolvedAttachment = attachment.copyWith(
+    var resolvedAttachment = attachment.copyWith(
       localPath: localPath,
       status: AttachmentStatus.ready,
     );
+    // Populate attachmentType when the caller left it unset: without this,
+    // an Attachment built with only id/name/source (the documented,
+    // minimal-required-fields usage) would resolve successfully but stay
+    // permanently `unknown`, so RendererRegistry would always fall through
+    // to UnknownAttachmentRenderer instead of picking a real renderer.
+    if (resolvedAttachment.attachmentType == AttachmentType.unknown) {
+      final source = resolvedAttachment.source;
+      final detected = _formatDetector.detect(
+        explicitMimeType: resolvedAttachment.mimeType,
+        bytes: bytes,
+        extension: resolvedAttachment.extension,
+        url:
+            resolvedAttachment.remoteUrl ??
+            (source is UrlAttachmentSource ? source.url : null),
+      );
+      if (detected != AttachmentType.unknown) {
+        resolvedAttachment = resolvedAttachment.copyWith(
+          attachmentType: detected,
+        );
+      }
+    }
     final capabilities = _capabilityEngine.derive(resolvedAttachment);
     return ResolvedAttachment(
       attachment: resolvedAttachment.copyWith(capabilities: capabilities),

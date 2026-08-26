@@ -1,5 +1,12 @@
 ## 0.0.1-dev.2
 
+* **Fix**: `AttachmentResolver` now actually populates `attachmentType` via
+  `FormatDetector` (from extension/mime/URL, plus magic bytes when
+  freshly downloaded) when a resolved attachment's type is still
+  `unknown` — previously it never did this, so any `Attachment` built
+  without an explicit `attachmentType` (the documented minimal
+  id/name/source usage) stayed `unknown` forever and always fell through
+  to `UnknownAttachmentRenderer`, regardless of its extension.
 * `AttachmentViewer` now auto-resolves an unresolved `Attachment`
   internally (via `AttachmentManager.instance.open` by default,
   overridable), showing loading/error states — callers no longer need to
