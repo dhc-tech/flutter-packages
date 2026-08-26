@@ -48,10 +48,12 @@ abstract class OfficeConversionStrategy {
 ///    currently `.docx` ([OfflineDocxViewer], via `docx-preview` +
 ///    `JSZip`), `.xlsx`/`.xls`/`.xlsm` ([OfflineSpreadsheetViewer], via
 ///    SheetJS), and `.pptx` ([OfflinePptxViewer], via PPTXjs) — see
-///    `assets/office_offline/README.md` for what's covered and what isn't
-///    (legacy `.doc`/`.ppt`, OpenDocument formats fall through to step 3+
-///    instead, for lack of a suitable dependency-free JS renderer). These
-///    need no network at all, so they win over Office Online below.
+///    `assets/office_offline/README.md` for what's covered and why legacy
+///    `.doc`/`.ppt` and OpenDocument formats deliberately aren't (no
+///    renderer exists for the former; the one option for the latter,
+///    WebODF, is AGPL-licensed and would force this whole package to be
+///    too) — those fall through to step 3+ instead. These formats need no
+///    network at all, so they win over Office Online below.
 /// 3. On Android otherwise (or if step 2 doesn't apply/fails): while the
 ///    device has a connection and the attachment has a public URL,
 ///    *Microsoft's own* Office Online viewer

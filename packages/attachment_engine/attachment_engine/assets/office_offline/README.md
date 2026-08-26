@@ -24,12 +24,22 @@ bytes Dart provides) rather than raw bytes, since PPTXjs only accepts a
 URL to fetch from — `blob:` URLs are resolved by the WebView itself with
 no network request.
 
-**Not yet covered by an offline renderer** (uses the Office
+**Not covered by an offline renderer** (uses the Office
 Online/conversion/external-open fallback chain in `office_renderer.dart`
-instead): legacy `.doc`/`.ppt` (binary OLE format, no browser-ready
-renderer was found for either) and OpenDocument formats
-(`.odt`/`.odp`/`.ods`, different XML schema, unsupported by the libraries
-above). Revisit if a suitable single-file/UMD library appears.
+instead) — deliberately, after investigation, not just "not yet":
+- Legacy `.doc`/`.ppt` (binary OLE format): no browser-ready JS renderer
+  exists for either — the only libraries found do text extraction, not
+  visual rendering.
+- OpenDocument formats (`.odt`/`.odp`/`.ods`): [WebODF](https://github.com/kogmbh/WebODF)
+  is the one real option, but it's **AGPL-licensed** (with a paid
+  commercial license as the only alternative) — bundling it would force
+  this entire package to be AGPL too (or require negotiating a commercial
+  license, a business decision, not an engineering one). Deliberately not
+  done here to keep `attachment_engine` permissively licensed
+  (MIT/Apache-2.0/BSD only, matching the table above).
+
+Revisit only if a suitable permissively-licensed, single-file/UMD library
+appears for either gap.
 
 To refresh a vendored file to a newer upstream release, re-download from
 the same URL and diff before replacing — these are not managed by pub or
