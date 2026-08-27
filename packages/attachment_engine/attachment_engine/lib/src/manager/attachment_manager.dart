@@ -154,6 +154,14 @@ class AttachmentManager {
   /// normal resolve() cache-hit check). Concurrent calls for the same
   /// [id] are deduplicated, same as [open].
   ///
+  /// Returns the [ResolvedAttachment] on success — inspect
+  /// [ResolvedAttachment.fromCache] to know whether this call actually
+  /// downloaded anything or the content was already cached, and
+  /// [ResolvedAttachment.localPath]/`.attachment` to display, share, or
+  /// hand off the now-cached file anywhere else in the app (e.g. a
+  /// "download complete" indicator, or opening it in a different screen)
+  /// without triggering a second download. Returns `null` on failure.
+  ///
   /// [id] should be a stable identifier for the underlying content,
   /// distinct from [url] itself whenever [url] is a short-lived signed
   /// URL — otherwise a later call (whether [prefetch] or [open]) for the
@@ -163,10 +171,15 @@ class AttachmentManager {
   /// correct for URLs that don't rotate.
   ///
   /// This is genuinely best-effort: a failed prefetch (network error, 404,
-  /// etc.) does not throw. It's still reported through the configured
-  /// [AttachmentDiagnosticsSink], same as a failed [open], so failures
-  /// remain observable without forcing every caller to handle them.
-  Future<void> prefetch(String url, {String? id, String? name}) async {
+  /// etc.) does not throw, it returns `null`. It's still reported through
+  /// the configured [AttachmentDiagnosticsSink], same as a failed [open],
+  /// so failures remain observable without forcing every caller to
+  /// handle them.
+  Future<ResolvedAttachment?> prefetch(
+    String url, {
+    String? id,
+    String? name,
+  }) async {
     final attachment = Attachment(
       id: id ?? url,
       name: name ?? url,
@@ -174,10 +187,11 @@ class AttachmentManager {
       remoteUrl: url,
     );
     try {
-      await _resolveWithDiagnostics(attachment);
+      return await _resolveWithDiagnostics(attachment);
     } catch (_) {
       // Swallowed deliberately — see dartdoc. _resolveWithDiagnostics
       // already reported the failure to diagnostics before rethrowing.
+      return null;
     }
   }
 

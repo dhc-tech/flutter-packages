@@ -2,13 +2,18 @@
 
 * New `AttachmentManager.prefetch(url, {id, name})` — warms the cache for a
   URL in the background without a caller having to build a full
-  `Attachment` or open/render anything. Best-effort: a failed prefetch
-  doesn't throw, but is still reported through the configured
-  `AttachmentDiagnosticsSink`. Reuses the existing resolve pipeline (cache
-  check → dedup via in-flight registry → download → cache write), so it
-  gets every fix above for free. **Caller must pass a stable `id` when
-  `url` is a short-lived signed URL** — otherwise each rotated URL is
-  treated as new content and never dedupes against a prior prefetch/open.
+  `Attachment` or open/render anything. Returns the `ResolvedAttachment`
+  on success (`null` on failure) — check `.fromCache` to know whether this
+  call actually downloaded anything or the content was already cached,
+  and use `.attachment`/`.localPath` to show, share, or open the
+  now-cached file anywhere else in the app without a second download.
+  Best-effort: a failed prefetch doesn't throw, but is still reported
+  through the configured `AttachmentDiagnosticsSink`. Reuses the existing
+  resolve pipeline (cache check → dedup via in-flight registry → download
+  → cache write), so it gets every fix above for free. **Caller must pass
+  a stable `id` when `url` is a short-lived signed URL** — otherwise each
+  rotated URL is treated as new content and never dedupes against a prior
+  prefetch/open.
 * **Perf**: downloads, previews and offline Office viewers now read files
   in 64 KB chunks (`RandomAccessFile`) instead of one large synchronous
   `readAsBytesSync()`/`readAsBytes()` call, keeping peak memory bounded
