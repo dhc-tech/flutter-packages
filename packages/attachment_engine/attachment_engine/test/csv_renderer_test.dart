@@ -300,5 +300,41 @@ void main() {
         throwsA(isA<AssertionError>()),
       );
     });
+
+    testWidgets('parses correctly for a file large enough to go through the '
+        'background-isolate (compute()) parsing path', (tester) async {
+      // Comfortably over the 100,000-character compute() threshold.
+      final buffer = StringBuffer('col\n');
+      for (var i = 0; i < 5000; i++) {
+        buffer.writeln('row-$i,some value here');
+      }
+      final content = buffer.toString();
+      expect(content.length, greaterThan(100000));
+      final file = File('${tempDir.path}/huge.csv');
+      file.writeAsStringSync(content);
+      // Capped rendering so this test builds a bounded widget tree — the
+      // point here is exercising the compute() *parsing* path (which
+      // runs against the full, uncapped content), not rendering 5,000
+      // table rows.
+      const renderer = CsvAttachmentRenderer(maxRenderedRows: 20);
+
+      await tester.runAsync(() async {
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) =>
+                  renderer.build(context, csvAttachment(file.path)),
+            ),
+          ),
+        );
+        // The isolate round-trip needs more than the usual short delay.
+        await Future<void>.delayed(const Duration(seconds: 2));
+        await tester.pump();
+      });
+
+      expect(find.text('Showing the first 20 of 5001 rows.'), findsOneWidget);
+      expect(find.text('row-18'), findsOneWidget);
+    });
   });
 }

@@ -4,12 +4,35 @@
 
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
 
 import '../models/attachment.dart';
 import '../models/attachment_type.dart';
 import 'renderer.dart';
 import 'text_renderer.dart' show CircularProgressIndicatorPlaceholder;
+
+/// Below this content length, [CsvAttachmentRenderer.parseCsv] runs
+/// inline — dispatching to a background isolate via [compute] has its own
+/// fixed overhead (isolate scheduling, copying the string across the
+/// isolate boundary) that isn't worth paying for a file small enough to
+/// parse instantly anyway.
+const _computeThreshold = 100000;
+
+/// Top-level (not a closure — required for [compute]) wrapper so
+/// [CsvAttachmentRenderer.parseCsv] can run on a background isolate for
+/// large files instead of blocking the UI thread while it parses.
+List<List<String>> _parseCsvInBackground(_CsvParseRequest request) =>
+    CsvAttachmentRenderer.parseCsv(
+      request.content,
+      delimiter: request.delimiter,
+    );
+
+class _CsvParseRequest {
+  const _CsvParseRequest(this.content, this.delimiter);
+  final String content;
+  final String delimiter;
+}
 
 /// Full-view CSV/TSV renderer: parses the resolved file and lays it out as
 /// a scrollable [Table] (row-and-column grid) rather than dumping raw
@@ -67,6 +90,12 @@ class CsvAttachmentRenderer extends AttachmentRenderer {
       throw const FileSystemException('No local file to read.');
     }
     final content = await File(path).readAsString();
+    if (content.length > _computeThreshold) {
+      return compute(
+        _parseCsvInBackground,
+        _CsvParseRequest(content, delimiter),
+      );
+    }
     return parseCsv(content, delimiter: delimiter);
   }
 

@@ -65,10 +65,54 @@ void main() {
       await pumpTextView(tester, 'apple pie\nbanana split\napple crumble\n');
 
       await tester.enterText(find.byType(TextField), 'apple');
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200)); // past debounce
 
       expect(find.text('1/2'), findsOneWidget);
     });
+
+    testWidgets(
+      'the match count does not update immediately after a keystroke — '
+      'only once the debounce delay has actually elapsed',
+      (tester) async {
+        await pumpTextView(tester, 'apple pie\nbanana split\napple crumble\n');
+
+        await tester.enterText(find.byType(TextField), 'apple');
+        await tester.pump(); // no delay — well under the debounce window
+
+        // Search hasn't run yet: no match-count indicator showing "1/2".
+        expect(find.text('1/2'), findsNothing);
+
+        await tester.pump(const Duration(milliseconds: 200));
+
+        expect(find.text('1/2'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'a burst of keystrokes within the debounce window only searches '
+      'once, for the final query — not once per keystroke',
+      (tester) async {
+        await pumpTextView(tester, 'apple pie\nbanana split\n');
+
+        // Simulates fast typing: each partial query arrives well within
+        // the 150ms debounce window of the previous one.
+        await tester.enterText(find.byType(TextField), 'a');
+        await tester.pump(const Duration(milliseconds: 30));
+        await tester.enterText(find.byType(TextField), 'ap');
+        await tester.pump(const Duration(milliseconds: 30));
+        await tester.enterText(find.byType(TextField), 'app');
+        await tester.pump(const Duration(milliseconds: 30));
+        await tester.enterText(find.byType(TextField), 'appl');
+        await tester.pump(const Duration(milliseconds: 30));
+        await tester.enterText(find.byType(TextField), 'apple');
+
+        // None of the intermediate partial queries ever got far enough
+        // into their own debounce window to actually run a search.
+        await tester.pump(const Duration(milliseconds: 200));
+
+        expect(find.text('1/1'), findsOneWidget); // final query: "apple"
+      },
+    );
 
     testWidgets('next/previous navigation cycles through matches', (
       tester,
@@ -76,7 +120,7 @@ void main() {
       await pumpTextView(tester, 'foo\nfoo\nfoo\n');
 
       await tester.enterText(find.byType(TextField), 'foo');
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200)); // past debounce
       expect(find.text('1/3'), findsOneWidget);
 
       await tester.tap(find.byTooltip('Next match'));
@@ -97,7 +141,7 @@ void main() {
       await pumpTextView(tester, 'hello world\n');
 
       await tester.enterText(find.byType(TextField), 'nope');
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200)); // past debounce
 
       expect(find.text('0/0'), findsOneWidget);
     });
@@ -115,7 +159,7 @@ void main() {
         await pumpTextView(tester, 'İ abc\n');
 
         await tester.enterText(find.byType(TextField), 'abc');
-        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200)); // past debounce
 
         expect(tester.takeException(), isNull);
         expect(find.text('1/1'), findsOneWidget);
@@ -177,7 +221,7 @@ void main() {
         // before clearing the query — the stale match count/lines must
         // not survive the swap.
         await tester.enterText(find.byType(TextField), 'apple');
-        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200)); // past debounce
         expect(find.text('1/1'), findsOneWidget);
 
         await tester.runAsync(() async {

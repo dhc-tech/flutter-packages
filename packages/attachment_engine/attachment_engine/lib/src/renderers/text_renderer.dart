@@ -2,6 +2,7 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -137,14 +138,32 @@ class _SearchableTextViewState extends State<_SearchableTextView> {
     }
   }
 
+  /// Debounces [_onQueryChanged]: re-scanning every line on every single
+  /// keystroke (this runs on the main isolate — see [_findMatches]'s
+  /// dartdoc for why it isn't dispatched to a background one) is wasted
+  /// work for a fast typist, whose intermediate partial queries are never
+  /// actually seen. A short pause after the last keystroke is enough to
+  /// feel instant while cutting redundant full-document scans during
+  /// active typing.
+  Timer? _searchDebounce;
+
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
   void _onQueryChanged(String query) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 150),
+      () => _runSearch(query),
+    );
+  }
+
+  void _runSearch(String query) {
     setState(() {
       _matches = _findMatches(query);
       _currentMatch = _matches.isEmpty ? -1 : 0;
@@ -152,6 +171,13 @@ class _SearchableTextViewState extends State<_SearchableTextView> {
     if (_currentMatch >= 0) _scrollToCurrentMatch();
   }
 
+  /// Deliberately not dispatched to a background isolate (unlike, say,
+  /// CsvAttachmentRenderer's large-file parsing): this runs on essentially
+  /// every keystroke (debounced — see [_onQueryChanged]), and an isolate
+  /// round-trip has its own fixed latency (message passing, scheduling)
+  /// that would make search feel laggier for the common case of a
+  /// reasonably-sized document, not smoother. Debouncing already avoids
+  /// the redundant-work problem an isolate would otherwise be solving.
   List<_Match> _findMatches(String query) {
     if (query.isEmpty) return const [];
     // Matched against the original (non-lowercased) line via a
