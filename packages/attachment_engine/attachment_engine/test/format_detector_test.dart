@@ -137,5 +137,84 @@ void main() {
       expect(detector.detect(bytes: wavBytes), AttachmentType.audio);
       expect(detector.detect(bytes: webpBytes), AttachmentType.image);
     });
+
+    test('detects csv extension as csv, not text', () {
+      final type = detector.detect(extension: 'csv');
+      expect(type, AttachmentType.csv);
+    });
+
+    test('detects text/csv mime type as csv, not text', () {
+      final type = detector.detect(explicitMimeType: 'text/csv');
+      expect(type, AttachmentType.csv);
+    });
+
+    test('detects csv via url extension', () {
+      final type = detector.detect(
+        url: 'https://example.com/export.csv?sig=abc',
+      );
+      expect(type, AttachmentType.csv);
+    });
+
+    test('detects tsv extension as csv, not text', () {
+      final type = detector.detect(extension: 'tsv');
+      expect(type, AttachmentType.csv);
+    });
+
+    test('detects text/tab-separated-values mime type as csv', () {
+      final type = detector.detect(
+        explicitMimeType: 'text/tab-separated-values',
+      );
+      expect(type, AttachmentType.csv);
+    });
+
+    test('detects xlsm extension as office, not archive', () {
+      final type = detector.detect(extension: 'xlsm');
+      expect(type, AttachmentType.office);
+    });
+
+    test('a .csv extension wins over a generic text/plain mime type '
+        '(servers often send text/plain for any text-ish file)', () {
+      final type = detector.detect(
+        explicitMimeType: 'text/plain',
+        extension: 'csv',
+      );
+      expect(type, AttachmentType.csv);
+    });
+
+    test('a .tsv url extension wins over a generic text/plain mime type', () {
+      final type = detector.detect(
+        explicitMimeType: 'text/plain',
+        url: 'https://example.com/export.tsv',
+      );
+      expect(type, AttachmentType.csv);
+    });
+
+    test('a generic text/plain mime type is still used as a fallback when '
+        'nothing more specific is available', () {
+      final type = detector.detect(explicitMimeType: 'text/plain');
+      expect(type, AttachmentType.text);
+    });
+
+    test('a specific mime type (e.g. application/pdf) still wins immediately, '
+        'unaffected by the text/plain deferral', () {
+      final type = detector.detect(
+        explicitMimeType: 'application/pdf',
+        extension: 'csv',
+      );
+      expect(type, AttachmentType.pdf);
+    });
+
+    test('a parameterized mime type (e.g. "text/csv; charset=utf-8") still '
+        'matches exactly, instead of falling through to generic text', () {
+      final type = detector.detect(explicitMimeType: 'text/csv; charset=utf-8');
+      expect(type, AttachmentType.csv);
+    });
+
+    test('a parameterized application/pdf mime type still matches', () {
+      final type = detector.detect(
+        explicitMimeType: 'application/pdf;charset=binary',
+      );
+      expect(type, AttachmentType.pdf);
+    });
   });
 }

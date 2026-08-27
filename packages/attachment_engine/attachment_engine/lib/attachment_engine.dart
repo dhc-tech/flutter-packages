@@ -46,7 +46,6 @@ export 'src/cache/cache_policy.dart';
 
 // Download
 export 'src/download/download_manager.dart';
-export 'src/download/download_queue.dart';
 
 // Concurrency
 export 'src/concurrency/in_flight_registry.dart';
@@ -60,9 +59,13 @@ export 'src/capability/capability_engine.dart';
 // Renderers
 export 'src/renderers/archive_renderer.dart';
 export 'src/renderers/audio_renderer.dart';
+export 'src/renderers/csv_renderer.dart';
 export 'src/renderers/html_renderer.dart';
 export 'src/renderers/image_renderer.dart';
 export 'src/renderers/office_renderer.dart';
+export 'src/renderers/offline_docx_viewer.dart';
+export 'src/renderers/offline_pptx_viewer.dart';
+export 'src/renderers/offline_spreadsheet_viewer.dart';
 export 'src/renderers/pdf_renderer.dart';
 export 'src/renderers/renderer.dart';
 export 'src/renderers/scorm_renderer.dart';

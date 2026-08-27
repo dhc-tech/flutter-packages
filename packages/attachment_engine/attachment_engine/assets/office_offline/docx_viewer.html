@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!-- Copyright 2026 DHC Tech
+Use of this source code is governed by an MIT-style license that can be
+found in the LICENSE file. -->
+<!--
+  Fully offline DOCX viewer shell. Bundled as a package asset and loaded
+  via WebViewController.loadFlutterAsset — no network access, ever. The
+  Dart side hands the document over as base64 through a JavaScript channel
+  (avoids any file:// URL / same-origin complications) and calls
+  `renderDocx()` once this page has finished loading its scripts.
+
+  Third-party code bundled alongside this file, unmodified:
+  - docx-preview.min.js (Apache-2.0) https://github.com/VolodymyrBaydalka/docxjs
+  - jszip.min.js (MIT/GPLv3 dual) https://github.com/Stuk/jszip
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  html, body { margin: 0; padding: 0; background: #ffffff; }
+  #status { font-family: -apple-system, Roboto, sans-serif; color: #666; padding: 24px; text-align: center; }
+  #container { width: 100%; }
+  #container .docx-wrapper { background: #ffffff; padding: 0; }
+</style>
+<script src="jszip.min.js"></script>
+<script src="docx-preview.min.js"></script>
+</head>
+<body>
+<div id="status">Loading…</div>
+<div id="container"></div>
+<script>
+  function base64ToUint8Array(base64) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  // Called from Dart once the document's bytes are ready. Kept as a plain
+  // global function (rather than only reacting to a JS channel message) so
+  // Dart can call it directly via runJavaScript after confirming the page
+  // has finished loading.
+  window.renderDocx = function(base64) {
+    const status = document.getElementById('status');
+    const container = document.getElementById('container');
+    try {
+      const bytes = base64ToUint8Array(base64);
+      docx.renderAsync(bytes, container, undefined, {
+        inWrapper: true,
+        ignoreWidth: false,
+        ignoreHeight: false,
+        experimental: true,
+      }).then(function () {
+        status.style.display = 'none';
+      }).catch(function (err) {
+        status.textContent = 'Unable to render this document.';
+        if (window.OfflineDocViewer) {
+          window.OfflineDocViewer.postMessage('error:' + err);
+        }
+      });
+    } catch (err) {
+      status.textContent = 'Unable to render this document.';
+      if (window.OfflineDocViewer) {
+        window.OfflineDocViewer.postMessage('error:' + err);
+      }
+    }
+  };
+</script>
+</body>
+</html>

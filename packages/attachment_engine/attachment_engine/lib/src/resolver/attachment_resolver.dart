@@ -16,6 +16,7 @@ import '../models/attachment.dart';
 import '../models/attachment_failure.dart';
 import '../models/attachment_source.dart';
 import '../models/attachment_status.dart';
+import '../models/attachment_type.dart';
 import '../models/resolved_attachment.dart';
 
 /// Hook for checking network reachability. Default implementation performs
@@ -86,6 +87,20 @@ class AttachmentResolver {
     return _inFlight.run(attachment.stableIdentity, () => _resolve(attachment));
   }
 
+  /// Releases resources held by this resolver's collaborators:
+  /// [DownloadManager.dispose] (per-key progress controllers), and, if the
+  /// download client is a [NativeDownloadClient] (holds a platform-channel
+  /// event subscription), that too. Call this before discarding a resolver
+  /// instance — e.g. [AttachmentManager.dispose] does, and
+  /// [AttachmentManager.initializeDefault] does when replacing an existing
+  /// singleton.
+  void dispose() {
+    _downloadManager.dispose();
+    if (_downloadManager.client case final NativeDownloadClient native) {
+      native.dispose();
+    }
+  }
+
   Future<ResolvedAttachment> _resolve(Attachment attachment) async {
     final source = attachment.source;
 
@@ -101,7 +116,10 @@ class AttachmentResolver {
     // 2. In-memory bytes: write straight to cache so we have a stable path.
     if (source is BytesAttachmentSource) {
       final path = await _cacheManager.write(attachment, source.bytes);
-      return _finish(attachment, path, fromCache: false);
+      // Pass the bytes through so _finish's attachmentType auto-detection
+      // can use magic-byte sniffing too, same as the downloaded-bytes
+      // path below — not just extension/mime/url.
+      return _finish(attachment, path, fromCache: false, bytes: source.bytes);
     }
 
     // 3. Cache lookup by stable logical identity (never by signed URL).
@@ -134,7 +152,7 @@ class AttachmentResolver {
         result.bytes,
         expiresAt: attachment.expiresAt,
       );
-      return _finish(attachment, path, fromCache: false);
+      return _finish(attachment, path, fromCache: false, bytes: result.bytes);
     } on AttachmentResolutionException {
       rethrow;
     } catch (e) {
@@ -164,11 +182,33 @@ class AttachmentResolver {
     Attachment attachment,
     String localPath, {
     required bool fromCache,
+    Uint8List? bytes,
   }) {
-    final resolvedAttachment = attachment.copyWith(
+    var resolvedAttachment = attachment.copyWith(
       localPath: localPath,
       status: AttachmentStatus.ready,
     );
+    // Populate attachmentType when the caller left it unset: without this,
+    // an Attachment built with only id/name/source (the documented,
+    // minimal-required-fields usage) would resolve successfully but stay
+    // permanently `unknown`, so RendererRegistry would always fall through
+    // to UnknownAttachmentRenderer instead of picking a real renderer.
+    if (resolvedAttachment.attachmentType == AttachmentType.unknown) {
+      final source = resolvedAttachment.source;
+      final detected = _formatDetector.detect(
+        explicitMimeType: resolvedAttachment.mimeType,
+        bytes: bytes,
+        extension: resolvedAttachment.extension,
+        url:
+            resolvedAttachment.remoteUrl ??
+            (source is UrlAttachmentSource ? source.url : null),
+      );
+      if (detected != AttachmentType.unknown) {
+        resolvedAttachment = resolvedAttachment.copyWith(
+          attachmentType: detected,
+        );
+      }
+    }
     final capabilities = _capabilityEngine.derive(resolvedAttachment);
     return ResolvedAttachment(
       attachment: resolvedAttachment.copyWith(capabilities: capabilities),

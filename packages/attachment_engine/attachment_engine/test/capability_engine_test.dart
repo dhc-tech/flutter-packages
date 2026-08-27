@@ -38,18 +38,15 @@ void main() {
   }
 
   group('CapabilityEngine per status', () {
-    test(
-      'ready attachment can preview/open/share/cache/openExternally/deleteCache',
-      () {
-        final caps = engine.derive(build(status: AttachmentStatus.ready));
-        expect(caps.canPreview, isTrue);
-        expect(caps.canOpen, isTrue);
-        expect(caps.canShare, isTrue);
-        expect(caps.canCache, isTrue);
-        expect(caps.canOpenExternally, isTrue);
-        expect(caps.canDeleteCache, isTrue);
-      },
-    );
+    test('ready attachment can preview/open/share/cache/openExternally/deleteCache', () {
+      final caps = engine.derive(build(status: AttachmentStatus.ready));
+      expect(caps.canPreview, isTrue);
+      expect(caps.canOpen, isTrue);
+      expect(caps.canShare, isTrue);
+      expect(caps.canCache, isTrue);
+      expect(caps.canOpenExternally, isTrue);
+      expect(caps.canDeleteCache, isTrue);
+    });
 
     test('failed attachment has no preview/open/share/cache capability', () {
       final caps = engine.derive(build(status: AttachmentStatus.failed));

@@ -40,6 +40,44 @@ class AttachmentCacheManager {
 
   Directory? _cacheDir;
 
+  /// Serializes every mutation of [_cachedTotalSize] — [write] (and the
+  /// eviction check it runs first), and every `clear*`/[deleteAttachment]
+  /// method — against each other. Each of those methods has an `await` in
+  /// the middle of a read-decide-mutate sequence over the same shared
+  /// [_cachedTotalSize], so two of them running concurrently (e.g. a grid
+  /// resolving/downloading several uncached attachments at once via
+  /// [write], while the user removes a different one already showing via
+  /// [clearAttachment]) could each act on a stale pre-mutation snapshot —
+  /// letting the cache silently exceed [CachePolicy.maxTotalSizeBytes], or
+  /// [_cachedTotalSize] drift from the true on-disk total entirely.
+  /// ([InFlightRegistry] in AttachmentResolver only dedupes concurrent
+  /// resolutions of the *same* attachment; it does nothing for different
+  /// ones happening at the same time, which is the normal case for a
+  /// grid/list.) A queued Future chain, not a real lock — Dart is
+  /// single-threaded, so this only needs to ensure one mutation's full
+  /// sequence completes before the next one's begins.
+  Future<void> _mutationQueue = Future<void>.value();
+
+  /// Runs [action] behind [_mutationQueue], returning its result. The
+  /// queue advances (even on failure, via the `onError` handler) so one
+  /// failed mutation doesn't permanently wedge every later one behind it.
+  Future<T> _serialized<T>(Future<T> Function() action) {
+    final result = _mutationQueue.then((_) => action());
+    _mutationQueue = result.then((_) {}, onError: (_) {});
+    return result;
+  }
+
+  /// Running total of cached bytes, so [_evictIfNeeded] doesn't have to
+  /// call [AttachmentMetadataStore.getAll] (deserializing and summing
+  /// every entry) on every single write just to check whether the cache
+  /// is anywhere near its size cap. Lazily established from a real
+  /// [totalSizeBytes] scan on first use each session (this is
+  /// intentionally not persisted across app restarts — a fresh session
+  /// just recomputes it once, which is far cheaper than keeping a
+  /// separate on-disk counter in sync with the metadata store), then
+  /// maintained incrementally by [write]/[_deleteEntry].
+  int? _cachedTotalSize;
+
   static Future<Directory> _defaultDirectoryProvider() {
     return NativePathsChannel.applicationCacheDirectory();
   }
@@ -80,6 +118,11 @@ class AttachmentCacheManager {
     if (entry.isExpired || _isPastRetention(entry)) return null;
     final file = File(entry.localPath);
     if (!await file.exists()) return null;
+    // Runs on every cache hit (e.g. every tile in a grid resolving its
+    // attachment) — cheap for FileBasedMetadataStore, whose put() only
+    // updates its in-memory index synchronously and debounces the actual
+    // disk write (see its dartdoc); a custom AttachmentMetadataStore is
+    // responsible for its own put() cost.
     await _store.put(entry.copyWith(lastAccessedAt: DateTime.now()));
     return entry.localPath;
   }
@@ -118,9 +161,30 @@ class AttachmentCacheManager {
             !_config.previewCachingEnabled);
 
     if (!_config.enabled || tooLargeToCache || categoryDisabled) {
+      // Doesn't touch _cachedTotalSize/the metadata store at all — no
+      // need to serialize it against other mutations.
       return _writeUnmanaged(attachment, bytes);
     }
 
+    // See _mutationQueue's dartdoc for why the evict-check-then-persist
+    // sequence below needs to run as one uninterrupted unit against every
+    // other cache mutation, not just other writes.
+    return _serialized(
+      () => _writeManaged(
+        attachment,
+        bytes,
+        expiresAt: expiresAt,
+        category: category,
+      ),
+    );
+  }
+
+  Future<String> _writeManaged(
+    Attachment attachment,
+    Uint8List bytes, {
+    DateTime? expiresAt,
+    required CacheEntryCategory category,
+  }) async {
     await _evictIfNeeded(incomingBytes: bytes.length);
 
     final dir = await _dir;
@@ -145,6 +209,22 @@ class AttachmentCacheManager {
         checksum: sha256.convert(bytes).toString(),
       ),
     );
+    // Force this new entry's metadata durably to disk right away, rather
+    // than leaving it to FileBasedMetadataStore's debounce: this is
+    // genuinely new content someone just fetched specifically to have
+    // available (often for offline use) — if the app were force-quit
+    // within the debounce window, the file itself would be safe on disk,
+    // but the metadata index wouldn't know about it yet, so the next
+    // launch's cache lookup would miss it and treat it as never cached at
+    // all. LRU-touch bumps from lookup() don't get this treatment: losing
+    // one only means slightly stale eviction ordering, not "this
+    // attachment silently isn't available offline anymore."
+    if (_store case final FileBasedMetadataStore fileStore) {
+      await fileStore.flushPending();
+    }
+    if (_cachedTotalSize != null) {
+      _cachedTotalSize = _cachedTotalSize! + bytes.length;
+    }
     return file.path;
   }
 
@@ -161,6 +241,14 @@ class AttachmentCacheManager {
   }
 
   Future<void> _evictIfNeeded({int incomingBytes = 0}) async {
+    // Cheap path: skip the full getAll()-deserialize-everything-and-sort
+    // scan entirely when nowhere near the cap, which is the common case
+    // for most writes in a session (eviction is rare; writes aren't).
+    _cachedTotalSize ??= await totalSizeBytes();
+    if (_cachedTotalSize! + incomingBytes <= _policy.maxTotalSizeBytes) {
+      return;
+    }
+
     final entries = await _store.getAll();
     final toEvict = _policy.selectEntriesToEvict(
       entries,
@@ -177,20 +265,28 @@ class AttachmentCacheManager {
       await file.delete();
     }
     await _store.delete(entry.key);
+    if (_cachedTotalSize != null) {
+      final updated = _cachedTotalSize! - entry.sizeBytes;
+      _cachedTotalSize = updated < 0 ? 0 : updated;
+    }
   }
 
   Future<void> clearExpired() async {
     if (!_config.enabled) return;
-    final entries = await _store.getAll();
-    for (final entry in _policy.selectExpired(entries)) {
-      await _deleteEntry(entry);
-    }
+    await _serialized(() async {
+      final entries = await _store.getAll();
+      for (final entry in _policy.selectExpired(entries)) {
+        await _deleteEntry(entry);
+      }
+    });
   }
 
   Future<void> clearAttachment(Attachment attachment) async {
     if (!_config.enabled) return;
-    final entry = await _store.get(attachment.stableIdentity);
-    if (entry != null) await _deleteEntry(entry);
+    await _serialized(() async {
+      final entry = await _store.get(attachment.stableIdentity);
+      if (entry != null) await _deleteEntry(entry);
+    });
   }
 
   /// Clears cache entries that have not been accessed within [unusedFor]
@@ -199,20 +295,39 @@ class AttachmentCacheManager {
     Duration unusedFor = const Duration(days: 30),
   }) async {
     if (!_config.enabled) return;
-    final cutoff = DateTime.now().subtract(unusedFor);
-    final entries = await _store.getAll();
-    for (final entry in entries.where(
-      (e) => e.lastAccessedAt.isBefore(cutoff),
-    )) {
-      await _deleteEntry(entry);
-    }
+    await _serialized(() async {
+      final cutoff = DateTime.now().subtract(unusedFor);
+      final entries = await _store.getAll();
+      for (final entry in entries.where(
+        (e) => e.lastAccessedAt.isBefore(cutoff),
+      )) {
+        await _deleteEntry(entry);
+      }
+    });
   }
 
   Future<void> clearAll() async {
     if (!_config.enabled) return;
-    final entries = await _store.getAll();
-    for (final entry in entries) {
-      await _deleteEntry(entry);
+    await _serialized(() async {
+      final entries = await _store.getAll();
+      for (final entry in entries) {
+        await _deleteEntry(entry);
+      }
+    });
+  }
+
+  /// Releases resources and, for the default [FileBasedMetadataStore],
+  /// forces any debounced-but-not-yet-written metadata update
+  /// ([FileBasedMetadataStore.put]/`delete` both debounce their actual
+  /// disk write — see its dartdoc) out to disk immediately, so a pending
+  /// eviction/removal isn't silently lost if the process exits before the
+  /// debounce timer fires. Call this on host-app shutdown/logout, or
+  /// before discarding an [AttachmentCacheManager] instance (e.g. before
+  /// constructing a new one, as [AttachmentManager.initializeDefault]
+  /// does).
+  Future<void> dispose() async {
+    if (_store case final FileBasedMetadataStore fileStore) {
+      await fileStore.flushPending();
     }
   }
 

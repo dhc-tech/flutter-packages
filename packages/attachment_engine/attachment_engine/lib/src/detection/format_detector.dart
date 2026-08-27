@@ -15,6 +15,7 @@ const _officeExtensions = {
   'docx',
   'xls',
   'xlsx',
+  'xlsm',
   'ppt',
   'pptx',
   'odt',
@@ -23,16 +24,8 @@ const _officeExtensions = {
   'rtf',
 };
 
-const _textExtensions = {
-  'txt',
-  'md',
-  'csv',
-  'json',
-  'log',
-  'xml',
-  'yaml',
-  'yml',
-};
+const _textExtensions = {'txt', 'md', 'json', 'log', 'xml', 'yaml', 'yml'};
+const _csvExtensions = {'csv', 'tsv'};
 const _htmlExtensions = {'html', 'htm'};
 const _archiveExtensions = {'zip', 'rar', '7z', 'tar', 'gz'};
 
@@ -55,9 +48,22 @@ class FormatDetector {
     String? url,
     String? httpContentType,
   }) {
+    // A generic `text/*` mime (most commonly `text/plain`, which servers
+    // often send for any text-ish file regardless of its real format) is
+    // deliberately *not* returned immediately: it would otherwise always
+    // win over a more specific extension-based match (e.g. `.csv`/`.tsv`
+    // served as `text/plain`). It's kept as a fallback, used only if
+    // nothing more specific is found below.
+    AttachmentType? genericTextMimeFallback;
     if (explicitMimeType != null) {
       final fromMime = _typeFromMime(explicitMimeType);
-      if (fromMime != null) return fromMime;
+      if (fromMime != null) {
+        if (fromMime == AttachmentType.text) {
+          genericTextMimeFallback = fromMime;
+        } else {
+          return fromMime;
+        }
+      }
     }
 
     if (bytes != null && bytes.isNotEmpty) {
@@ -94,6 +100,8 @@ class FormatDetector {
       if (fromMime != null) return fromMime;
     }
 
+    if (genericTextMimeFallback != null) return genericTextMimeFallback;
+
     return AttachmentType.unknown;
   }
 
@@ -112,6 +120,7 @@ class FormatDetector {
     if (ext == 'h5p') return AttachmentType.h5p;
     if (_officeExtensions.contains(ext)) return AttachmentType.office;
     if (ext == 'pdf') return AttachmentType.pdf;
+    if (_csvExtensions.contains(ext)) return AttachmentType.csv;
     if (_textExtensions.contains(ext)) return AttachmentType.text;
     if (_htmlExtensions.contains(ext)) return AttachmentType.html;
     if (_archiveExtensions.contains(ext)) return AttachmentType.archive;
@@ -122,12 +131,22 @@ class FormatDetector {
   }
 
   AttachmentType? _typeFromMime(String mimeType) {
-    final lower = mimeType.toLowerCase();
+    // Strip parameters (e.g. `; charset=utf-8` in `text/csv; charset=utf-8`,
+    // which servers commonly append) before matching — otherwise an exact
+    // match like `lower == 'text/csv'` would never fire for a
+    // parameterized mime type, silently falling through to the generic
+    // `text/*` handling below instead.
+    final lower = mimeType.split(';').first.trim().toLowerCase();
     if (lower.startsWith('image/')) return AttachmentType.image;
     if (lower.startsWith('video/')) return AttachmentType.video;
     if (lower.startsWith('audio/')) return AttachmentType.audio;
     if (lower == 'application/pdf') return AttachmentType.pdf;
     if (lower.startsWith('text/html')) return AttachmentType.html;
+    if (lower == 'text/csv' ||
+        lower == 'application/csv' ||
+        lower == 'text/tab-separated-values') {
+      return AttachmentType.csv;
+    }
     if (lower.startsWith('text/')) return AttachmentType.text;
     if (lower == 'application/zip' ||
         lower == 'application/x-zip-compressed' ||

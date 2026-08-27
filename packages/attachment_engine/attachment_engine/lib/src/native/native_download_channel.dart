@@ -9,6 +9,7 @@ import 'package:attachment_engine_platform_interface/attachment_engine_platform_
 import 'package:flutter/foundation.dart';
 
 import '../download/download_manager.dart';
+import '../util/chunked_file_reader.dart';
 
 /// Replaces `dio`: downloads over a hand-written native transport
 /// (`URLSessionDownloadTask` on iOS, `HttpURLConnection` on Android) owned
@@ -58,7 +59,14 @@ class NativeDownloadClient implements DownloadClient {
               StateError('Download completed with no path'),
             );
           } else {
-            completer.complete(File(path).readAsBytesSync());
+            // Chunked (64 KB at a time) and asynchronous, unlike
+            // readAsBytesSync() — a large downloaded file no longer blocks
+            // the event loop for one big synchronous read.
+            readFileInChunks(path)
+                .then(completer.complete)
+                .catchError((Object e) {
+                  if (!completer.isCompleted) completer.completeError(e);
+                });
           }
         }
       case 'error':
@@ -133,9 +141,19 @@ class NativeDownloadClient implements DownloadClient {
   @override
   void cancel(Object cancelToken) {
     if (cancelToken is _NativeCancelToken && cancelToken._downloadId != null) {
-      AttachmentEnginePlatform.instance.cancelDownload(
-        cancelToken._downloadId!,
-      );
+      final downloadId = cancelToken._downloadId!;
+      AttachmentEnginePlatform.instance.cancelDownload(downloadId);
+      // The platform interface makes no guarantee that cancelDownload()
+      // is always followed by a corresponding event on downloadEvents()
+      // (see the class dartdoc) — resolve the pending completer directly
+      // instead of leaving download() blocked until DownloadManager's
+      // outer timeout (up to 45s by default) eventually fires. This also
+      // triggers download()'s own `finally` cleanup of
+      // _progressControllers/_destPathByDownloadId for this downloadId.
+      final completer = _completers.remove(downloadId);
+      if (completer != null && !completer.isCompleted) {
+        completer.completeError(const DownloadCancelledException());
+      }
     }
   }
 
@@ -145,6 +163,16 @@ class NativeDownloadClient implements DownloadClient {
       c.close();
     }
     _progressControllers.clear();
+    // Any download still in flight when the client is disposed would
+    // otherwise hang forever (its native event, if one ever arrives, has
+    // nowhere left to be delivered) — reject it explicitly instead.
+    for (final completer in _completers.values) {
+      if (!completer.isCompleted) {
+        completer.completeError(const DownloadCancelledException());
+      }
+    }
+    _completers.clear();
+    _destPathByDownloadId.clear();
   }
 }
 

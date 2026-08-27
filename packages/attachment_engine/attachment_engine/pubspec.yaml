@@ -1,6 +1,6 @@
 name: attachment_engine
 description: "Universal attachment engine for Flutter to resolve, cache, download, preview, and render documents, media, and web content using native platform APIs."
-version: 0.0.1-dev.1
+version: 0.0.1-dev.2
 homepage: "https://github.com/dhc-tech/flutter-packages/tree/main/packages/attachment_engine/attachment_engine"
 repository: "https://github.com/dhc-tech/flutter-packages"
 issue_tracker: "https://github.com/dhc-tech/flutter-packages/issues"
@@ -12,7 +12,10 @@ topics:
   - downloader
 
 environment:
-  sdk: ^3.12.2
+  # 3.13.0 lower bound: this package's source uses dot-shorthand enum/
+  # constant literals (e.g. `.docx` where `AttachmentType` is inferred),
+  # which need a Dart SDK new enough to parse them.
+  sdk: ^3.13.0
   flutter: '>=3.3.0'
 
 dependencies:
@@ -34,6 +37,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^6.0.0
   test: ^1.25.8
+  webview_flutter_platform_interface: ^2.10.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -62,10 +66,23 @@ flutter:
       web:
         default_package: attachment_engine_web
 
-  # To add assets to your plugin package, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  # Bundled, unmodified third-party JS libraries backing the fully-offline
+  # DOCX renderer (OfflineDocxViewer) — see assets/office_offline/README.md
+  # for licenses/provenance. No CDN, no network: these ship in the app.
+  assets:
+    - assets/office_offline/docx_viewer.html
+    - assets/office_offline/docx-preview.min.js
+    - assets/office_offline/jszip.min.js
+    - assets/office_offline/xlsx_viewer.html
+    - assets/office_offline/xlsx.full.min.js
+    - assets/office_offline/pptx_viewer.html
+    - assets/office_offline/pptxjs.min.js
+    - assets/office_offline/pptxjs.css
+    - assets/office_offline/jquery-1.11.3.min.js
+    - assets/office_offline/filereader.js
+    - assets/office_offline/d3.min.js
+    - assets/office_offline/nv.d3.min.js
+    - assets/office_offline/nv.d3.min.css
   #
   # For details regarding assets in packages, see
   # https://flutter.dev/to/asset-from-package

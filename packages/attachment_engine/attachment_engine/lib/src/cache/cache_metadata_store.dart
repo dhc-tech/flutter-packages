@@ -2,6 +2,7 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -112,14 +113,36 @@ class FileBasedMetadataStore implements AttachmentMetadataStore {
   FileBasedMetadataStore({
     this.fileName = 'attachment_engine_cache_metadata.json',
     Future<Directory> Function()? directoryProvider,
+    this.flushDebounce = const Duration(seconds: 2),
   }) : _directoryProvider =
            directoryProvider ?? NativePathsChannel.applicationSupportDirectory;
 
   final String fileName;
   final Future<Directory> Function() _directoryProvider;
 
+  /// How long [put]/[delete] wait, coalescing further calls, before
+  /// actually persisting the in-memory index to disk. See [_pendingFlush]
+  /// for why. Exposed mainly so tests don't have to wait out a real
+  /// multi-second delay to observe a flush.
+  final Duration flushDebounce;
+
   File? _file;
   Map<String, Map<String, Object?>> _index = {};
+
+  /// Coalesces a burst of [put]/[delete] calls in quick succession (e.g.
+  /// every tile in a grid/list bumping its `lastAccessedAt` on the same
+  /// frame) into a single index rewrite instead of one full-index
+  /// `jsonEncode` + disk write per call. `put`/`delete` already keep
+  /// `_index` itself immediately up to date in memory — this only defers
+  /// *persisting* that to disk.
+  ///
+  /// This trades a small durability window (a crash within the debounce
+  /// delay loses the pending metadata update) for avoiding an O(index
+  /// size) disk write on every single cache hit — consistent with this
+  /// store's existing corruption-recovery stance: losing/corrupting the
+  /// metadata index degrades the cache to cold (safe, if slower), it
+  /// never loses the actual cached files or corrupts host app data.
+  Timer? _pendingFlush;
 
   @override
   Future<void> init() async {
@@ -162,6 +185,13 @@ class FileBasedMetadataStore implements AttachmentMetadataStore {
     await _requireFile.writeAsString(jsonEncode(_index), flush: true);
   }
 
+  void _scheduleFlush() {
+    _pendingFlush ??= Timer(flushDebounce, () {
+      _pendingFlush = null;
+      unawaited(_flush());
+    });
+  }
+
   @override
   Future<CacheEntry?> get(String key) async {
     final map = _index[key];
@@ -177,18 +207,32 @@ class FileBasedMetadataStore implements AttachmentMetadataStore {
   @override
   Future<void> put(CacheEntry entry) async {
     _index[entry.key] = entry.toMap();
-    await _flush();
+    _scheduleFlush();
   }
 
   @override
   Future<void> delete(String key) async {
     _index.remove(key);
-    await _flush();
+    _scheduleFlush();
   }
 
   @override
   Future<void> clear() async {
     _index = {};
+    _pendingFlush?.cancel();
+    _pendingFlush = null;
+    await _flush(); // Immediate — a rare, deliberate wipe, not a hot path.
+  }
+
+  /// Flushes a pending debounced write immediately instead of waiting out
+  /// its timer. Not required for correctness (the timer fires on its
+  /// own), but callers that control the app/isolate lifecycle (e.g. on
+  /// pause/shutdown) can call this so a pending metadata update isn't
+  /// lost if the process exits before the timer fires.
+  Future<void> flushPending() async {
+    if (_pendingFlush == null) return;
+    _pendingFlush!.cancel();
+    _pendingFlush = null;
     await _flush();
   }
 }

@@ -49,7 +49,7 @@ class VideoAttachmentRenderer extends AttachmentRenderer {
   const VideoAttachmentRenderer();
 
   @override
-  AttachmentType get type => AttachmentType.video;
+  AttachmentType get type => .video;
 
   @override
   Widget build(BuildContext context, Attachment attachment) {

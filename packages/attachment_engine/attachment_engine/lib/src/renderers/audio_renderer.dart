@@ -46,7 +46,7 @@ class AudioAttachmentRenderer extends AttachmentRenderer {
   const AudioAttachmentRenderer();
 
   @override
-  AttachmentType get type => AttachmentType.audio;
+  AttachmentType get type => .audio;
 
   @override
   Widget build(BuildContext context, Attachment attachment) {

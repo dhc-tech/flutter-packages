@@ -6,6 +6,7 @@ import '../cache/attachment_cache_manager.dart';
 import '../cache/cache_metadata_store.dart';
 import '../capability/capability_engine.dart';
 import '../config/attachment_engine_config.dart';
+import '../download/download_manager.dart';
 import '../models/attachment.dart';
 import '../models/attachment_capabilities.dart';
 import '../models/attachment_failure.dart';
@@ -74,8 +75,17 @@ class AttachmentManager {
   static Future<AttachmentManager> initializeDefault({
     AttachmentDiagnosticsSink? diagnostics,
     AttachmentEngineConfig config = const AttachmentEngineConfig.defaults(),
+    DownloadClient? downloadClient,
+    ConnectivityChecker? connectivityChecker,
   }) async {
     config.validate();
+    // Calling this a second time (e.g. on logout/re-login, or a test
+    // harness that doesn't reset _instance between tests) would otherwise
+    // silently leak the previous instance's resources — most notably a
+    // NativeDownloadClient's platform-channel event subscription, which
+    // would keep running (now duplicated by the new instance's own
+    // subscription) for the rest of the process's lifetime.
+    await _instance?.dispose();
     final cacheManager = AttachmentCacheManager(
       metadataStore: FileBasedMetadataStore(),
       config: config.cache,
@@ -84,6 +94,16 @@ class AttachmentManager {
     final resolver = AttachmentResolver(
       cacheManager: cacheManager,
       downloadConfig: config.download,
+      // A caller-supplied client lets the host app route every attachment
+      // download through its own HTTP stack (e.g. a `dio`/`ApiClient`
+      // instance with auth interceptors already attached), instead of the
+      // package's native client which knows nothing about app-level auth.
+      // Omit to keep the package's own native download path.
+      downloadManager: downloadClient == null
+          ? null
+          : DownloadManager(client: downloadClient, config: config.download),
+      connectivityChecker:
+          connectivityChecker ?? const DefaultConnectivityChecker(),
       capabilityEngine: CapabilityEngine(
         rendererConfig: config.renderers,
         externalOpenConfig: config.externalOpen,
@@ -192,5 +212,18 @@ class AttachmentManager {
       rendererConfig: _config.renderers,
       externalOpenConfig: _config.externalOpen,
     ).derive(attachment);
+  }
+
+  /// Releases resources held by this manager's collaborators: flushes any
+  /// pending (debounced) cache metadata write via
+  /// [AttachmentCacheManager.dispose], and disposes the resolver's download
+  /// resources via [AttachmentResolver.dispose] (progress controllers, and
+  /// a `NativeDownloadClient`'s platform-channel event subscription, if
+  /// that's the download client in use). Call this when the manager is no
+  /// longer needed — e.g. on app teardown, or automatically via
+  /// [initializeDefault] when replacing an existing singleton.
+  Future<void> dispose() async {
+    _resolver.dispose();
+    await _cacheManager.dispose();
   }
 }

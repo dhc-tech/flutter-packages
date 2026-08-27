@@ -16,7 +16,7 @@ class ImageAttachmentRenderer extends AttachmentRenderer {
   const ImageAttachmentRenderer();
 
   @override
-  AttachmentType get type => AttachmentType.image;
+  AttachmentType get type => .image;
 
   @override
   Widget build(BuildContext context, Attachment attachment) {

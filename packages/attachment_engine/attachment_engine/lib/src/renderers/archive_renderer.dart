@@ -18,12 +18,19 @@ import 'renderer.dart';
 /// This guard is security-critical: without it, a malicious archive could
 /// write files anywhere on disk the app process has access to
 /// ("zip slip").
+///
+/// Pass an already-decoded [reader] (e.g. one built for an earlier check
+/// against the same file, such as [archiveContainsScormManifest]'s reader
+/// via [archiveReaderContainsScormManifest]) to avoid re-reading and
+/// re-decoding the whole archive here — otherwise it's read fresh from
+/// [archiveFile].
 Future<List<String>> extractArchiveSafely(
   File archiveFile,
-  Directory targetDir,
-) async {
-  final bytes = await archiveFile.readAsBytes();
-  final reader = ZipReader.decodeBytes(bytes);
+  Directory targetDir, {
+  ZipReader? reader,
+}) async {
+  final zipReader =
+      reader ?? ZipReader.decodeBytes(await archiveFile.readAsBytes());
   final targetRoot = targetDir.absolute.path;
   final extracted = <String>[];
 
@@ -31,7 +38,7 @@ Future<List<String>> extractArchiveSafely(
     await targetDir.create(recursive: true);
   }
 
-  for (final entry in reader.entries) {
+  for (final entry in zipReader.entries) {
     if (entry.isSymlink) {
       continue; // Reject symlink entries outright.
     }
@@ -51,21 +58,30 @@ Future<List<String>> extractArchiveSafely(
     } else {
       final outFile = File(normalized);
       await outFile.create(recursive: true);
-      await outFile.writeAsBytes(reader.readBytes(entry));
+      await outFile.writeAsBytes(zipReader.readBytes(entry));
       extracted.add(normalized);
     }
   }
   return extracted;
 }
 
+/// Returns true if [reader]'s archive contains an `imsmanifest.xml` at
+/// (or near) its root, indicating a SCORM package. Use this (rather than
+/// [archiveContainsScormManifest]) when you already have a decoded
+/// [ZipReader] for the file — e.g. because you're about to pass it to
+/// [extractArchiveSafely] too — to avoid reading and decoding the whole
+/// archive a second time.
+bool archiveReaderContainsScormManifest(ZipReader reader) {
+  return reader.entries.any(
+    (e) => e.name.toLowerCase().endsWith('imsmanifest.xml'),
+  );
+}
+
 /// Returns true if [archiveFile] contains an `imsmanifest.xml` at (or near)
 /// its root, indicating a SCORM package.
 Future<bool> archiveContainsScormManifest(File archiveFile) async {
   final bytes = await archiveFile.readAsBytes();
-  final reader = ZipReader.decodeBytes(bytes);
-  return reader.entries.any(
-    (e) => e.name.toLowerCase().endsWith('imsmanifest.xml'),
-  );
+  return archiveReaderContainsScormManifest(ZipReader.decodeBytes(bytes));
 }
 
 /// Inspects a zip archive's contents and routes to SCORM/H5P handling, or
@@ -74,7 +90,7 @@ class ArchiveAttachmentRenderer extends AttachmentRenderer {
   const ArchiveAttachmentRenderer();
 
   @override
-  AttachmentType get type => AttachmentType.archive;
+  AttachmentType get type => .archive;
 
   @override
   Widget build(BuildContext context, Attachment attachment) {
@@ -98,7 +114,9 @@ class ArchiveAttachmentRenderer extends AttachmentRenderer {
   }
 
   Future<List<ZipEntry>> _listEntries(String path) async {
-    final bytes = await File(path).readAsBytes();
-    return ZipReader.decodeBytes(bytes).entries;
+    // Only entry names are shown here, never content — ZipReader.listEntries
+    // reads just the archive's tail (End-Of-Central-Directory + Central
+    // Directory), not the whole file, unlike decodeBytes.
+    return ZipReader.listEntries(File(path));
   }
 }
