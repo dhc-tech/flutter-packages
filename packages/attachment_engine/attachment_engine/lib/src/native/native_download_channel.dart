@@ -9,6 +9,7 @@ import 'package:attachment_engine_platform_interface/attachment_engine_platform_
 import 'package:flutter/foundation.dart';
 
 import '../download/download_manager.dart';
+import '../util/chunked_file_reader.dart';
 
 /// Replaces `dio`: downloads over a hand-written native transport
 /// (`URLSessionDownloadTask` on iOS, `HttpURLConnection` on Android) owned
@@ -58,7 +59,14 @@ class NativeDownloadClient implements DownloadClient {
               StateError('Download completed with no path'),
             );
           } else {
-            completer.complete(File(path).readAsBytesSync());
+            // Chunked (64 KB at a time) and asynchronous, unlike
+            // readAsBytesSync() — a large downloaded file no longer blocks
+            // the event loop for one big synchronous read.
+            readFileInChunks(path)
+                .then(completer.complete)
+                .catchError((Object e) {
+                  if (!completer.isCompleted) completer.completeError(e);
+                });
           }
         }
       case 'error':

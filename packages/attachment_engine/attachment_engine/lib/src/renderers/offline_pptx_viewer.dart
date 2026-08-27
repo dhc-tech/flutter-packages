@@ -2,11 +2,10 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/widgets.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+
+import '../util/chunked_file_reader.dart';
 
 /// Fully offline PPTX renderer — no network access at any point.
 ///
@@ -90,8 +89,9 @@ class _OfflinePptxViewerState extends State<OfflinePptxViewer> {
     if (_renderRequested) return;
     _renderRequested = true;
     try {
-      final bytes = await File(widget.localPath).readAsBytes();
-      final base64Data = base64Encode(bytes);
+      // See OfflineDocxViewer._renderDocument for why this is chunked
+      // rather than base64Encode(await file.readAsBytes()).
+      final base64Data = await readFileAsBase64Chunked(widget.localPath);
       await _controller.runJavaScript('renderPptx("$base64Data")');
     } catch (_) {
       _reportFailure();

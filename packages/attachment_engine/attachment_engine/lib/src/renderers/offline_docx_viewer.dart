@@ -2,11 +2,10 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/widgets.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+
+import '../util/chunked_file_reader.dart';
 
 /// Fully offline DOCX renderer — no network access at any point.
 ///
@@ -96,8 +95,11 @@ class _OfflineDocxViewerState extends State<OfflineDocxViewer> {
     if (_renderRequested) return;
     _renderRequested = true;
     try {
-      final bytes = await File(widget.localPath).readAsBytes();
-      final base64Data = base64Encode(bytes);
+      // Read + base64-encode in 64 KB chunks rather than
+      // base64Encode(await file.readAsBytes()) — avoids holding both the
+      // full raw byte buffer and the full encoded string in memory at
+      // once for a large document.
+      final base64Data = await readFileAsBase64Chunked(widget.localPath);
       await _controller.runJavaScript('renderDocx("$base64Data")');
     } catch (_) {
       _reportFailure();
