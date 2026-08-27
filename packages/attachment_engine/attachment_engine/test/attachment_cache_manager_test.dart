@@ -177,6 +177,117 @@ void main() {
       expect(await manager.totalSizeBytes(), 3000); // 30 * 100
     });
   });
+
+  group('AttachmentCacheManager pinning (offline availability)', () {
+    test('a pinned attachment survives eviction that would otherwise remove '
+        'it as the least-recently-used entry', () async {
+      final store = _CountingStore();
+      final manager = AttachmentCacheManager(
+        metadataStore: store,
+        policy: const CachePolicy(maxTotalSizeBytes: 250),
+        directoryProvider: () async => tempDir,
+      );
+      await manager.init();
+
+      final keep = attachment('keep');
+      await manager.write(keep, Uint8List(100));
+      await manager.pin(keep);
+
+      // Two more writes that, combined with 'keep', would exceed the
+      // 250-byte cap and normally evict 'keep' first (oldest).
+      await manager.write(attachment('b'), Uint8List(100));
+      await manager.write(attachment('c'), Uint8List(100));
+
+      expect(
+        await manager.lookup(keep),
+        isNotNull,
+        reason: 'pinned entry must not be evicted despite being oldest',
+      );
+    });
+
+    test('pin() throws for an attachment that is not cached', () async {
+      final manager = AttachmentCacheManager(
+        metadataStore: _CountingStore(),
+        directoryProvider: () async => tempDir,
+      );
+      await manager.init();
+
+      expect(
+        () => manager.pin(attachment('never-cached')),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('unpin() makes a previously-pinned entry evictable again', () async {
+      final manager = AttachmentCacheManager(
+        metadataStore: _CountingStore(),
+        policy: const CachePolicy(maxTotalSizeBytes: 250),
+        directoryProvider: () async => tempDir,
+      );
+      await manager.init();
+
+      final a = attachment('a');
+      await manager.write(a, Uint8List(100));
+      await manager.pin(a);
+      expect(await manager.isPinned(a), isTrue);
+
+      await manager.unpin(a);
+      expect(await manager.isPinned(a), isFalse);
+
+      await manager.write(attachment('b'), Uint8List(100));
+      await manager.write(attachment('c'), Uint8List(100));
+
+      expect(
+        await manager.lookup(a),
+        isNull,
+        reason: 'no longer pinned, so ordinary LRU eviction applies to it',
+      );
+    });
+
+    test('isPinned() is false for content that is not cached at all', () async {
+      final manager = AttachmentCacheManager(
+        metadataStore: _CountingStore(),
+        directoryProvider: () async => tempDir,
+      );
+      await manager.init();
+
+      expect(await manager.isPinned(attachment('unknown')), isFalse);
+    });
+
+    test('clearAttachment() still removes a pinned entry — explicit delete '
+        'always works', () async {
+      final manager = AttachmentCacheManager(
+        metadataStore: _CountingStore(),
+        directoryProvider: () async => tempDir,
+      );
+      await manager.init();
+
+      final a = attachment('a');
+      await manager.write(a, Uint8List(100));
+      await manager.pin(a);
+
+      await manager.clearAttachment(a);
+
+      expect(await manager.lookup(a), isNull);
+    });
+
+    test('clearUnused() skips a pinned entry even when it is well past the '
+        'unused-for cutoff', () async {
+      final manager = AttachmentCacheManager(
+        metadataStore: _CountingStore(),
+        directoryProvider: () async => tempDir,
+      );
+      await manager.init();
+
+      final a = attachment('a');
+      await manager.write(a, Uint8List(100));
+      await manager.pin(a);
+
+      await manager.clearUnused(unusedFor: Duration.zero);
+
+      expect(await manager.lookup(a), isNotNull);
+    });
+  });
 }
 
 /// Wraps a real in-memory-ish store, counting getAll() calls so tests can

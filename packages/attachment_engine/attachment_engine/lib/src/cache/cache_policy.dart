@@ -16,6 +16,13 @@ class CachePolicy {
   /// evicted (oldest-accessed first) to bring total size at or under
   /// [maxTotalSizeBytes], optionally after also making room for
   /// [incomingBytes] of new content.
+  ///
+  /// [CacheEntry.pinned] entries are never selected — a file the host app
+  /// marked "keep available offline" survives cache pressure. Their bytes
+  /// still count toward the current total, so if enough content is
+  /// pinned, the cache can end up genuinely over [maxTotalSizeBytes] with
+  /// nothing left evictable; that's the deliberate tradeoff of pinning,
+  /// not a bug.
   List<CacheEntry> selectEntriesToEvict(
     List<CacheEntry> entries, {
     int incomingBytes = 0,
@@ -27,13 +34,17 @@ class CachePolicy {
     final toEvict = <CacheEntry>[];
     for (final entry in sorted) {
       if (total <= maxTotalSizeBytes) break;
+      if (entry.pinned) continue;
       toEvict.add(entry);
       total -= entry.sizeBytes;
     }
     return toEvict;
   }
 
+  /// Entries whose [CacheEntry.expiresAt] has passed — excluding
+  /// [CacheEntry.pinned] ones, for the same "automatic cleanup never
+  /// removes a pinned file" reason as [selectEntriesToEvict].
   List<CacheEntry> selectExpired(List<CacheEntry> entries) {
-    return entries.where((e) => e.isExpired).toList();
+    return entries.where((e) => e.isExpired && !e.pinned).toList();
   }
 }

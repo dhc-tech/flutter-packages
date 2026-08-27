@@ -1,5 +1,34 @@
 ## 0.0.1-dev.2
 
+* New "keep available offline" pinning: `AttachmentManager.pinForOffline(attachment)`
+  caches (if needed) and exempts an attachment from every *automatic*
+  cache-cleanup path — size-cap LRU eviction, `AttachmentCacheManager.clearUnused`,
+  and `.clearExpired` — so a file the user explicitly marked "save for
+  offline"/"keep downloaded" survives storage pressure and won't quietly
+  disappear. `unpinFromOffline`/`isPinnedForOffline` reverse/query it.
+  Pinning only exempts a file from automatic cleanup, not from an
+  explicit, targeted removal: `AttachmentManager.deleteCache` (and
+  `AttachmentCacheManager.clearAttachment`/`.clearAll`) still remove a
+  pinned file when the host app genuinely needs to. A pinned entry also
+  stays servable from `lookup()` (cache hit) even past its remote
+  `expiresAt`/retention window, since a signed URL's expiry describes the
+  *remote* source, not whether the already-downloaded bytes are usable
+  offline. New `CacheEntry.pinned` field (defaults to `false`; absent in
+  metadata written before this release, read back as `false`).
+* New `AttachmentManager.prefetch(url, {id, name})` — warms the cache for a
+  URL in the background without a caller having to build a full
+  `Attachment` or open/render anything. Returns the `ResolvedAttachment`
+  on success (`null` on failure) — check `.fromCache` to know whether this
+  call actually downloaded anything or the content was already cached,
+  and use `.attachment`/`.localPath` to show, share, or open the
+  now-cached file anywhere else in the app without a second download.
+  Best-effort: a failed prefetch doesn't throw, but is still reported
+  through the configured `AttachmentDiagnosticsSink`. Reuses the existing
+  resolve pipeline (cache check → dedup via in-flight registry → download
+  → cache write), so it gets every fix above for free. **Caller must pass
+  a stable `id` when `url` is a short-lived signed URL** — otherwise each
+  rotated URL is treated as new content and never dedupes against a prior
+  prefetch/open.
 * **Perf**: downloads, previews and offline Office viewers now read files
   in 64 KB chunks (`RandomAccessFile`) instead of one large synchronous
   `readAsBytesSync()`/`readAsBytes()` call, keeping peak memory bounded

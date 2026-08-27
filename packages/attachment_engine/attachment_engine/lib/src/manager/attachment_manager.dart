@@ -10,6 +10,7 @@ import '../download/download_manager.dart';
 import '../models/attachment.dart';
 import '../models/attachment_capabilities.dart';
 import '../models/attachment_failure.dart';
+import '../models/attachment_source.dart';
 import '../models/resolved_attachment.dart';
 import '../native/native_open_channel.dart';
 import '../native/native_share_channel.dart';
@@ -147,6 +148,53 @@ class AttachmentManager {
   Future<ResolvedAttachment> retry(Attachment attachment) =>
       _resolveWithDiagnostics(attachment);
 
+  /// Warms the cache for [url] in the background — the caller supplies
+  /// only a URL (and optionally [id]/[name]); no pre-built [Attachment],
+  /// no UI needs to open it. Already-cached content is a fast no-op (the
+  /// normal resolve() cache-hit check). Concurrent calls for the same
+  /// [id] are deduplicated, same as [open].
+  ///
+  /// Returns the [ResolvedAttachment] on success — inspect
+  /// [ResolvedAttachment.fromCache] to know whether this call actually
+  /// downloaded anything or the content was already cached, and
+  /// [ResolvedAttachment.localPath]/`.attachment` to display, share, or
+  /// hand off the now-cached file anywhere else in the app (e.g. a
+  /// "download complete" indicator, or opening it in a different screen)
+  /// without triggering a second download. Returns `null` on failure.
+  ///
+  /// [id] should be a stable identifier for the underlying content,
+  /// distinct from [url] itself whenever [url] is a short-lived signed
+  /// URL — otherwise a later call (whether [prefetch] or [open]) for the
+  /// same logical file but a freshly-rotated URL won't be recognized as
+  /// the same cache entry, and this download happens again for nothing.
+  /// When omitted, [url] itself is used as the identity, which is only
+  /// correct for URLs that don't rotate.
+  ///
+  /// This is genuinely best-effort: a failed prefetch (network error, 404,
+  /// etc.) does not throw, it returns `null`. It's still reported through
+  /// the configured [AttachmentDiagnosticsSink], same as a failed [open],
+  /// so failures remain observable without forcing every caller to
+  /// handle them.
+  Future<ResolvedAttachment?> prefetch(
+    String url, {
+    String? id,
+    String? name,
+  }) async {
+    final attachment = Attachment(
+      id: id ?? url,
+      name: name ?? url,
+      source: AttachmentSource.url(url),
+      remoteUrl: url,
+    );
+    try {
+      return await _resolveWithDiagnostics(attachment);
+    } catch (_) {
+      // Swallowed deliberately — see dartdoc. _resolveWithDiagnostics
+      // already reported the failure to diagnostics before rethrowing.
+      return null;
+    }
+  }
+
   Future<ResolvedAttachment> _resolveWithDiagnostics(
     Attachment attachment,
   ) async {
@@ -202,9 +250,33 @@ class AttachmentManager {
     }
   }
 
-  /// Removes any cached copy of [attachment].
+  /// Removes any cached copy of [attachment] — including a [pinForOffline]d
+  /// one; this is a deliberate, explicit delete, not automatic cleanup.
   Future<void> deleteCache(Attachment attachment) =>
       _cacheManager.clearAttachment(attachment);
+
+  /// Ensures [attachment] is cached (resolving/downloading it first if
+  /// needed, same as [open]) and marks it exempt from automatic cache
+  /// cleanup — size-cap eviction won't touch it even under storage
+  /// pressure, so it stays available offline until explicitly removed via
+  /// [unpinFromOffline] + cleanup, or [deleteCache]. Use this for a
+  /// user-facing "keep available offline"/"save for offline" action.
+  Future<ResolvedAttachment> pinForOffline(Attachment attachment) async {
+    final resolved = await _resolveWithDiagnostics(attachment);
+    await _cacheManager.pin(resolved.attachment);
+    return resolved;
+  }
+
+  /// Reverses [pinForOffline]: [attachment]'s cached content (if any)
+  /// becomes eligible for automatic cleanup again. Does not itself delete
+  /// anything — the file is removed later by ordinary cache pressure, or
+  /// immediately via [deleteCache].
+  Future<void> unpinFromOffline(Attachment attachment) =>
+      _cacheManager.unpin(attachment);
+
+  /// Whether [attachment] is currently cached and [pinForOffline]d.
+  Future<bool> isPinnedForOffline(Attachment attachment) =>
+      _cacheManager.isPinned(attachment);
 
   /// Recomputes capabilities for [attachment] in its current state.
   AttachmentCapabilities capabilitiesFor(Attachment attachment) {

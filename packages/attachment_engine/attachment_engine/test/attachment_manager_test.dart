@@ -97,6 +97,208 @@ void main() {
     );
   });
 
+  group('AttachmentManager.pinForOffline', () {
+    Attachment urlAttachment(String id) => Attachment(
+      id: id,
+      name: '$id.bin',
+      source: AttachmentSource.url('https://example.com/$id'),
+    );
+
+    test('caches and pins an attachment so it survives eviction under '
+        'storage pressure', () async {
+      final cacheManager = AttachmentCacheManager(
+        metadataStore: FileBasedMetadataStore(
+          directoryProvider: () async => tempDir,
+        ),
+        // The fake download client below returns a fixed 4-byte payload
+        // per attachment — an 8-byte cap means the 3rd attachment's
+        // download genuinely forces eviction of an older, non-pinned
+        // entry.
+        policy: const CachePolicy(maxTotalSizeBytes: 8),
+        directoryProvider: () async => tempDir,
+      );
+      await cacheManager.init();
+      final resolver = AttachmentResolver(
+        cacheManager: cacheManager,
+        downloadManager: DownloadManager(client: _FakePrefetchDownloadClient()),
+        connectivityChecker: _AlwaysOnline(),
+      );
+      final manager = AttachmentManager(
+        resolver: resolver,
+        cacheManager: cacheManager,
+      );
+
+      final keep = urlAttachment('keep');
+      await manager.pinForOffline(keep);
+      expect(await manager.isPinnedForOffline(keep), isTrue);
+
+      // Two more downloads that, combined with 'keep', exceed the
+      // 8-byte cap and would normally evict 'keep' first (oldest).
+      await manager.open(urlAttachment('b'));
+      await manager.open(urlAttachment('c'));
+
+      final reopened = await manager.open(keep);
+      expect(
+        reopened.fromCache,
+        isTrue,
+        reason:
+            'pinned entry must still be served from cache, not '
+            're-downloaded because it was evicted',
+      );
+    });
+
+    test('unpinFromOffline() reverses pinForOffline()', () async {
+      final cacheManager = AttachmentCacheManager(
+        metadataStore: FileBasedMetadataStore(
+          directoryProvider: () async => tempDir,
+        ),
+        directoryProvider: () async => tempDir,
+      );
+      await cacheManager.init();
+      final resolver = AttachmentResolver(
+        cacheManager: cacheManager,
+        downloadManager: DownloadManager(client: _FakePrefetchDownloadClient()),
+        connectivityChecker: _AlwaysOnline(),
+      );
+      final manager = AttachmentManager(
+        resolver: resolver,
+        cacheManager: cacheManager,
+      );
+
+      final a = urlAttachment('a');
+      await manager.pinForOffline(a);
+      expect(await manager.isPinnedForOffline(a), isTrue);
+
+      await manager.unpinFromOffline(a);
+      expect(await manager.isPinnedForOffline(a), isFalse);
+    });
+  });
+
+  group('AttachmentManager.prefetch', () {
+    test('downloads and caches content for a bare URL, with no pre-built '
+        'Attachment and no render/open', () async {
+      final cacheManager = AttachmentCacheManager(
+        metadataStore: FileBasedMetadataStore(
+          directoryProvider: () async => tempDir,
+        ),
+        directoryProvider: () async => tempDir,
+      );
+      await cacheManager.init();
+      final client = _FakePrefetchDownloadClient();
+      final resolver = AttachmentResolver(
+        cacheManager: cacheManager,
+        downloadManager: DownloadManager(client: client),
+        connectivityChecker: _AlwaysOnline(),
+      );
+      final manager = AttachmentManager(
+        resolver: resolver,
+        cacheManager: cacheManager,
+      );
+
+      final result = await manager.prefetch('https://example.com/report.pdf');
+
+      expect(client.callCount, 1);
+      expect(
+        result,
+        isNotNull,
+        reason:
+            'a successful prefetch must hand back a ResolvedAttachment '
+            '(localPath + fromCache) so callers can show/use the now-cached '
+            'file elsewhere without a second download',
+      );
+      expect(
+        result!.fromCache,
+        isFalse,
+        reason: 'this was a fresh download, not a cache hit',
+      );
+      expect(File(result.localPath).existsSync(), isTrue);
+      expect(
+        await cacheManager.lookup(
+          Attachment(
+            // Same id the URL was prefetched under (url itself, since no
+            // explicit id was given) — lookup() keys purely on
+            // stableIdentity, name/source here are irrelevant.
+            id: 'https://example.com/report.pdf',
+            name: 'x',
+            source: const AttachmentSource.url('https://example.com/x'),
+          ),
+        ),
+        isNotNull,
+        reason:
+            'the URL itself is used as the cache identity when no id '
+            'is supplied',
+      );
+    });
+
+    test('a second prefetch() for an already-cached URL does not '
+        're-download', () async {
+      final cacheManager = AttachmentCacheManager(
+        metadataStore: FileBasedMetadataStore(
+          directoryProvider: () async => tempDir,
+        ),
+        directoryProvider: () async => tempDir,
+      );
+      await cacheManager.init();
+      final client = _FakePrefetchDownloadClient();
+      final resolver = AttachmentResolver(
+        cacheManager: cacheManager,
+        downloadManager: DownloadManager(client: client),
+        connectivityChecker: _AlwaysOnline(),
+      );
+      final manager = AttachmentManager(
+        resolver: resolver,
+        cacheManager: cacheManager,
+      );
+
+      final first = await manager.prefetch(
+        'https://example.com/report.pdf',
+        id: 'r1',
+      );
+      final second = await manager.prefetch(
+        'https://example.com/report.pdf',
+        id: 'r1',
+      );
+
+      expect(client.callCount, 1);
+      expect(first!.fromCache, isFalse);
+      expect(
+        second!.fromCache,
+        isTrue,
+        reason:
+            'the second call must be told it was served from cache, so '
+            'a caller can distinguish "just downloaded" from "already had '
+            'it" — e.g. to skip showing a download progress indicator',
+      );
+    });
+
+    test('a failed prefetch() does not throw (best-effort)', () async {
+      final cacheManager = AttachmentCacheManager(
+        metadataStore: _NoopStore(),
+        directoryProvider: () async => tempDir,
+      );
+      await cacheManager.init();
+      final resolver = AttachmentResolver(
+        cacheManager: cacheManager,
+        // maxRetries: 1 (fail fast) — this test only cares that prefetch()
+        // doesn't throw, not about retry timing/backoff.
+        downloadManager: DownloadManager(
+          client: _AlwaysFailingClient(),
+          maxRetries: 1,
+        ),
+        connectivityChecker: _AlwaysOnline(),
+      );
+      final manager = AttachmentManager(
+        resolver: resolver,
+        cacheManager: cacheManager,
+      );
+
+      // Must complete without throwing, and signal failure via a null
+      // result rather than an exception the caller has to catch.
+      final result = await manager.prefetch('https://example.com/broken.bin');
+      expect(result, isNull);
+    });
+  });
+
   group('AttachmentManager.initializeDefault re-initialization', () {
     test('disposes the previous singleton instance before replacing it '
         '(no leaked download-progress resources across re-init)', () async {
@@ -143,6 +345,47 @@ class _UnusedDownloadClient implements DownloadClient {
     String? destinationHint,
     bool resume = false,
   }) => throw StateError('should never be called in these tests');
+  @override
+  Object createCancelToken() => Object();
+  @override
+  void cancel(Object cancelToken) {}
+}
+
+class _AlwaysOnline implements ConnectivityChecker {
+  @override
+  Future<bool> hasConnection() async => true;
+}
+
+class _FakePrefetchDownloadClient implements DownloadClient {
+  int callCount = 0;
+
+  @override
+  Future<Uint8List> download(
+    String url, {
+    void Function(DownloadProgress progress)? onProgress,
+    Object? cancelToken,
+    String? destinationHint,
+    bool resume = false,
+  }) async {
+    callCount++;
+    return Uint8List.fromList([1, 2, 3, 4]);
+  }
+
+  @override
+  Object createCancelToken() => Object();
+  @override
+  void cancel(Object cancelToken) {}
+}
+
+class _AlwaysFailingClient implements DownloadClient {
+  @override
+  Future<Uint8List> download(
+    String url, {
+    void Function(DownloadProgress progress)? onProgress,
+    Object? cancelToken,
+    String? destinationHint,
+    bool resume = false,
+  }) => throw Exception('simulated network failure');
   @override
   Object createCancelToken() => Object();
   @override

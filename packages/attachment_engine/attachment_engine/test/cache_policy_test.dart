@@ -10,6 +10,7 @@ CacheEntry _entry(
   int size,
   DateTime lastAccessed, {
   DateTime? expiresAt,
+  bool pinned = false,
 }) {
   return CacheEntry(
     key: key,
@@ -18,6 +19,7 @@ CacheEntry _entry(
     createdAt: lastAccessed,
     lastAccessedAt: lastAccessed,
     expiresAt: expiresAt,
+    pinned: pinned,
   );
 }
 
@@ -79,6 +81,61 @@ void main() {
       final expired = policy.selectExpired(entries);
 
       expect(expired.map((e) => e.key), ['expired']);
+    });
+
+    test('never selects a pinned entry for eviction, even as the oldest '
+        'and over the size cap', () {
+      const policy = CachePolicy(maxTotalSizeBytes: 100);
+      final now = DateTime(2024, 1, 10);
+      final entries = [
+        _entry(
+          'oldest-pinned',
+          40,
+          now.subtract(const Duration(days: 3)),
+          pinned: true,
+        ),
+        _entry('middle', 40, now.subtract(const Duration(days: 2))),
+        _entry('newest', 40, now.subtract(const Duration(days: 1))),
+      ];
+
+      final toEvict = policy.selectEntriesToEvict(entries);
+
+      // 'oldest-pinned' would normally be evicted first (LRU) but is
+      // exempt; 'middle' is the next-oldest non-pinned entry instead.
+      expect(toEvict.map((e) => e.key), ['middle']);
+    });
+
+    test('a pinned entry can leave the cache genuinely over the cap when '
+        'nothing evictable remains — deliberate, not a bug', () {
+      const policy = CachePolicy(maxTotalSizeBytes: 10);
+      final now = DateTime(2024, 1, 10);
+      final entries = [_entry('only-entry-pinned', 40, now, pinned: true)];
+
+      expect(policy.selectEntriesToEvict(entries), isEmpty);
+    });
+
+    test('selectExpired excludes pinned entries even past expiresAt', () {
+      const policy = CachePolicy(maxTotalSizeBytes: 1000000);
+      final now = DateTime.now();
+      final entries = [
+        _entry(
+          'expired-pinned',
+          1,
+          now,
+          expiresAt: now.subtract(const Duration(days: 1)),
+          pinned: true,
+        ),
+        _entry(
+          'expired-unpinned',
+          1,
+          now,
+          expiresAt: now.subtract(const Duration(days: 1)),
+        ),
+      ];
+
+      final expired = policy.selectExpired(entries);
+
+      expect(expired.map((e) => e.key), ['expired-unpinned']);
     });
   });
 }
