@@ -97,6 +97,100 @@ void main() {
     );
   });
 
+  group('AttachmentManager.prefetch', () {
+    test('downloads and caches content for a bare URL, with no pre-built '
+        'Attachment and no render/open', () async {
+      final cacheManager = AttachmentCacheManager(
+        metadataStore: FileBasedMetadataStore(
+          directoryProvider: () async => tempDir,
+        ),
+        directoryProvider: () async => tempDir,
+      );
+      await cacheManager.init();
+      final client = _FakePrefetchDownloadClient();
+      final resolver = AttachmentResolver(
+        cacheManager: cacheManager,
+        downloadManager: DownloadManager(client: client),
+        connectivityChecker: _AlwaysOnline(),
+      );
+      final manager = AttachmentManager(
+        resolver: resolver,
+        cacheManager: cacheManager,
+      );
+
+      await manager.prefetch('https://example.com/report.pdf');
+
+      expect(client.callCount, 1);
+      expect(
+        await cacheManager.lookup(
+          Attachment(
+            // Same id the URL was prefetched under (url itself, since no
+            // explicit id was given) — lookup() keys purely on
+            // stableIdentity, name/source here are irrelevant.
+            id: 'https://example.com/report.pdf',
+            name: 'x',
+            source: const AttachmentSource.url('https://example.com/x'),
+          ),
+        ),
+        isNotNull,
+        reason:
+            'the URL itself is used as the cache identity when no id '
+            'is supplied',
+      );
+    });
+
+    test('a second prefetch() for an already-cached URL does not '
+        're-download', () async {
+      final cacheManager = AttachmentCacheManager(
+        metadataStore: FileBasedMetadataStore(
+          directoryProvider: () async => tempDir,
+        ),
+        directoryProvider: () async => tempDir,
+      );
+      await cacheManager.init();
+      final client = _FakePrefetchDownloadClient();
+      final resolver = AttachmentResolver(
+        cacheManager: cacheManager,
+        downloadManager: DownloadManager(client: client),
+        connectivityChecker: _AlwaysOnline(),
+      );
+      final manager = AttachmentManager(
+        resolver: resolver,
+        cacheManager: cacheManager,
+      );
+
+      await manager.prefetch('https://example.com/report.pdf', id: 'r1');
+      await manager.prefetch('https://example.com/report.pdf', id: 'r1');
+
+      expect(client.callCount, 1);
+    });
+
+    test('a failed prefetch() does not throw (best-effort)', () async {
+      final cacheManager = AttachmentCacheManager(
+        metadataStore: _NoopStore(),
+        directoryProvider: () async => tempDir,
+      );
+      await cacheManager.init();
+      final resolver = AttachmentResolver(
+        cacheManager: cacheManager,
+        // maxRetries: 1 (fail fast) — this test only cares that prefetch()
+        // doesn't throw, not about retry timing/backoff.
+        downloadManager: DownloadManager(
+          client: _AlwaysFailingClient(),
+          maxRetries: 1,
+        ),
+        connectivityChecker: _AlwaysOnline(),
+      );
+      final manager = AttachmentManager(
+        resolver: resolver,
+        cacheManager: cacheManager,
+      );
+
+      // Must complete without throwing.
+      await manager.prefetch('https://example.com/broken.bin');
+    });
+  });
+
   group('AttachmentManager.initializeDefault re-initialization', () {
     test('disposes the previous singleton instance before replacing it '
         '(no leaked download-progress resources across re-init)', () async {
@@ -143,6 +237,47 @@ class _UnusedDownloadClient implements DownloadClient {
     String? destinationHint,
     bool resume = false,
   }) => throw StateError('should never be called in these tests');
+  @override
+  Object createCancelToken() => Object();
+  @override
+  void cancel(Object cancelToken) {}
+}
+
+class _AlwaysOnline implements ConnectivityChecker {
+  @override
+  Future<bool> hasConnection() async => true;
+}
+
+class _FakePrefetchDownloadClient implements DownloadClient {
+  int callCount = 0;
+
+  @override
+  Future<Uint8List> download(
+    String url, {
+    void Function(DownloadProgress progress)? onProgress,
+    Object? cancelToken,
+    String? destinationHint,
+    bool resume = false,
+  }) async {
+    callCount++;
+    return Uint8List.fromList([1, 2, 3, 4]);
+  }
+
+  @override
+  Object createCancelToken() => Object();
+  @override
+  void cancel(Object cancelToken) {}
+}
+
+class _AlwaysFailingClient implements DownloadClient {
+  @override
+  Future<Uint8List> download(
+    String url, {
+    void Function(DownloadProgress progress)? onProgress,
+    Object? cancelToken,
+    String? destinationHint,
+    bool resume = false,
+  }) => throw Exception('simulated network failure');
   @override
   Object createCancelToken() => Object();
   @override

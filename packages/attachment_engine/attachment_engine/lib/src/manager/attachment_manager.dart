@@ -10,6 +10,7 @@ import '../download/download_manager.dart';
 import '../models/attachment.dart';
 import '../models/attachment_capabilities.dart';
 import '../models/attachment_failure.dart';
+import '../models/attachment_source.dart';
 import '../models/resolved_attachment.dart';
 import '../native/native_open_channel.dart';
 import '../native/native_share_channel.dart';
@@ -146,6 +147,39 @@ class AttachmentManager {
   /// Retries a previously failed resolution.
   Future<ResolvedAttachment> retry(Attachment attachment) =>
       _resolveWithDiagnostics(attachment);
+
+  /// Warms the cache for [url] in the background — the caller supplies
+  /// only a URL (and optionally [id]/[name]); no pre-built [Attachment],
+  /// no UI needs to open it. Already-cached content is a fast no-op (the
+  /// normal resolve() cache-hit check). Concurrent calls for the same
+  /// [id] are deduplicated, same as [open].
+  ///
+  /// [id] should be a stable identifier for the underlying content,
+  /// distinct from [url] itself whenever [url] is a short-lived signed
+  /// URL — otherwise a later call (whether [prefetch] or [open]) for the
+  /// same logical file but a freshly-rotated URL won't be recognized as
+  /// the same cache entry, and this download happens again for nothing.
+  /// When omitted, [url] itself is used as the identity, which is only
+  /// correct for URLs that don't rotate.
+  ///
+  /// This is genuinely best-effort: a failed prefetch (network error, 404,
+  /// etc.) does not throw. It's still reported through the configured
+  /// [AttachmentDiagnosticsSink], same as a failed [open], so failures
+  /// remain observable without forcing every caller to handle them.
+  Future<void> prefetch(String url, {String? id, String? name}) async {
+    final attachment = Attachment(
+      id: id ?? url,
+      name: name ?? url,
+      source: AttachmentSource.url(url),
+      remoteUrl: url,
+    );
+    try {
+      await _resolveWithDiagnostics(attachment);
+    } catch (_) {
+      // Swallowed deliberately — see dartdoc. _resolveWithDiagnostics
+      // already reported the failure to diagnostics before rethrowing.
+    }
+  }
 
   Future<ResolvedAttachment> _resolveWithDiagnostics(
     Attachment attachment,
