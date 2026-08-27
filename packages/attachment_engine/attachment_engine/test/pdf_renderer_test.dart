@@ -40,13 +40,18 @@ class _FakePdfPlatform extends AttachmentEnginePlatform {
     return PdfOpenResult(handle: handle, pageCount: pageCountByHandle[handle]!);
   }
 
+  final List<int> renderedPageIndexes = [];
+
   @override
   Future<List<int>> pdfRenderPage(
     String handle,
     int index, {
     required int width,
     required int height,
-  }) async => _tinyPngBytes;
+  }) async {
+    renderedPageIndexes.add(index);
+    return _tinyPngBytes;
+  }
 
   final List<String> closedHandles = [];
 
@@ -120,24 +125,61 @@ void main() {
       },
     );
 
-    testWidgets('remembers the last-viewed page across reopen', (tester) async {
-      final pageMemory = InMemoryPdfPageMemory();
-      final renderer = PdfAttachmentRenderer(pageMemory: pageMemory);
-      final attachment = pdfAttachment('a3', '/tmp/multi.pdf');
+    testWidgets(
+      'a saved page position is honored on open: the PDF opens straight '
+      'to that page instead of always restarting at page one',
+      (tester) async {
+        final pageMemory = InMemoryPdfPageMemory();
+        final attachment = pdfAttachment('a3', '/tmp/multi.pdf');
+        // Simulate a page position saved by a previous session/viewing —
+        // this is the actual behavior being verified, not just that the
+        // memory object itself can store and return a value.
+        pageMemory.savePage(attachment.id, 2);
+        final renderer = PdfAttachmentRenderer(pageMemory: pageMemory);
 
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: Builder(
-            builder: (context) => renderer.build(context, attachment),
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) => renderer.build(context, attachment),
+            ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      pageMemory.savePage(attachment.id, 2);
-      expect(pageMemory.lastPage(attachment.id), 2);
-    });
+        // The first page actually rendered is the saved one (index 2),
+        // not 0 — proving the PageView/PageController was built with
+        // initialPage from pageMemory rather than always starting fresh.
+        expect(platform.renderedPageIndexes, isNotEmpty);
+        expect(platform.renderedPageIndexes.first, 2);
+      },
+    );
+
+    testWidgets(
+      'changing pages saves the new position for a later open to pick up',
+      (tester) async {
+        final pageMemory = InMemoryPdfPageMemory();
+        final attachment = pdfAttachment('a3', '/tmp/multi.pdf');
+        final renderer = PdfAttachmentRenderer(pageMemory: pageMemory);
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) => renderer.build(context, attachment),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(platform.renderedPageIndexes.first, 0);
+
+        final pageView = tester.widget<PageView>(find.byType(PageView));
+        pageView.controller!.jumpToPage(2);
+        await tester.pumpAndSettle();
+
+        expect(pageMemory.lastPage(attachment.id), 2);
+      },
+    );
 
     testWidgets(
       'a slow-to-open previous document completing late does not clobber '
