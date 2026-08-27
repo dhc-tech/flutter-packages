@@ -87,6 +87,45 @@ void main() {
       expect(await manager.totalSizeBytes(), 250); // b (200) + c (50)
     });
   });
+
+  group('AttachmentCacheManager offline durability', () {
+    test("a newly-cached attachment is found by a fresh manager/store right "
+        "away — its metadata isn't left sitting in FileBasedMetadataStore's "
+        'debounce window the way a plain LRU-touch update is', () async {
+      // A debounce long enough that, if write() relied on it instead of
+      // forcing an immediate flush, this test would still be well
+      // inside the window by the time it checks — proving the flush is
+      // genuinely immediate, not just "fast enough in practice".
+      final store = FileBasedMetadataStore(
+        directoryProvider: () async => tempDir,
+        fileName: 'index.json',
+        flushDebounce: const Duration(seconds: 30),
+      );
+      final manager = AttachmentCacheManager(
+        metadataStore: store,
+        directoryProvider: () async => tempDir,
+      );
+      await manager.init();
+
+      final a = attachment('a');
+      await manager.write(a, Uint8List.fromList([1, 2, 3]));
+
+      // Simulates an app relaunch: a brand-new store/manager reading
+      // the same on-disk index — nothing in memory is shared with the
+      // one above.
+      final freshStore = FileBasedMetadataStore(
+        directoryProvider: () async => tempDir,
+        fileName: 'index.json',
+      );
+      final freshManager = AttachmentCacheManager(
+        metadataStore: freshStore,
+        directoryProvider: () async => tempDir,
+      );
+      await freshManager.init();
+
+      expect(await freshManager.lookup(a), isNotNull);
+    });
+  });
 }
 
 /// Wraps a real in-memory-ish store, counting getAll() calls so tests can

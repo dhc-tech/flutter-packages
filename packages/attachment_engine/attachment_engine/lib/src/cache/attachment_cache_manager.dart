@@ -161,6 +161,19 @@ class AttachmentCacheManager {
         checksum: sha256.convert(bytes).toString(),
       ),
     );
+    // Force this new entry's metadata durably to disk right away, rather
+    // than leaving it to FileBasedMetadataStore's debounce: this is
+    // genuinely new content someone just fetched specifically to have
+    // available (often for offline use) — if the app were force-quit
+    // within the debounce window, the file itself would be safe on disk,
+    // but the metadata index wouldn't know about it yet, so the next
+    // launch's cache lookup would miss it and treat it as never cached at
+    // all. LRU-touch bumps from lookup() don't get this treatment: losing
+    // one only means slightly stale eviction ordering, not "this
+    // attachment silently isn't available offline anymore."
+    if (_store case final FileBasedMetadataStore fileStore) {
+      await fileStore.flushPending();
+    }
     if (_cachedTotalSize != null) {
       _cachedTotalSize = _cachedTotalSize! + bytes.length;
     }
