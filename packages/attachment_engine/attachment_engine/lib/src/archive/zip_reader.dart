@@ -54,8 +54,80 @@ class ZipReader {
     }
     final bd = ByteData.sublistView(bytes);
     final totalEntries = bd.getUint16(eocdOffset + 10, Endian.little);
-    var centralDirOffset = bd.getUint32(eocdOffset + 16, Endian.little);
+    final centralDirOffset = bd.getUint32(eocdOffset + 16, Endian.little);
+    final entries = _parseCentralDirectory(
+      bytes,
+      centralDirOffset,
+      totalEntries,
+    );
+    return ZipReader._(bytes, entries);
+  }
 
+  /// Lists a zip archive's entries (names/sizes only — no content access;
+  /// there is no [readBytes] on the result) by reading only its *tail*
+  /// (the End-Of-Central-Directory record and Central Directory), never
+  /// the whole file.
+  ///
+  /// For most real archives — where actual (often compressed, often
+  /// large) file content dominates total size and the central directory
+  /// is comparatively tiny metadata — this is a fraction of what
+  /// [decodeBytes] needs to read. Use this when you only need entry names
+  /// for display (e.g. browsing a zip's contents), not to extract
+  /// anything.
+  static Future<List<ZipEntry>> listEntries(File file) async {
+    final length = await file.length();
+    final raf = await file.open();
+    try {
+      // A single read of the tail almost certainly covers the EOCD
+      // record (22 bytes, fixed) plus the maximum possible comment
+      // length (65,535 bytes) — the only two things standing between the
+      // very end of the file and the EOCD's actual start.
+      const maxTail = 22 + 65535;
+      final tailSize = length < maxTail ? length : maxTail;
+      final tailStartInFile = length - tailSize;
+      await raf.setPosition(tailStartInFile);
+      final tail = Uint8List.fromList(await raf.read(tailSize));
+
+      final eocdOffsetInTail = _findEocd(tail);
+      if (eocdOffsetInTail == -1) {
+        throw const FormatException('Not a valid zip archive (no EOCD found)');
+      }
+      final bd = ByteData.sublistView(tail);
+      final totalEntries = bd.getUint16(eocdOffsetInTail + 10, Endian.little);
+      final centralDirSize = bd.getUint32(eocdOffsetInTail + 12, Endian.little);
+      final centralDirOffset = bd.getUint32(
+        eocdOffsetInTail + 16,
+        Endian.little,
+      );
+
+      if (centralDirOffset >= tailStartInFile) {
+        // The whole central directory is already inside the tail chunk
+        // we read — the common case (central directory well under 64 KB).
+        return _parseCentralDirectory(
+          tail,
+          centralDirOffset - tailStartInFile,
+          totalEntries,
+        );
+      }
+
+      // Central directory is larger than our tail guess (an archive with
+      // very many entries) — read exactly it, by its known offset/size,
+      // rather than falling back to the whole file.
+      await raf.setPosition(centralDirOffset);
+      final centralDir = Uint8List.fromList(await raf.read(centralDirSize));
+      return _parseCentralDirectory(centralDir, 0, totalEntries);
+    } finally {
+      await raf.close();
+    }
+  }
+
+  static List<ZipEntry> _parseCentralDirectory(
+    Uint8List bytes,
+    int startOffset,
+    int totalEntries,
+  ) {
+    final bd = ByteData.sublistView(bytes);
+    var centralDirOffset = startOffset;
     final entries = <ZipEntry>[];
     for (var i = 0; i < totalEntries; i++) {
       final sig = bd.getUint32(centralDirOffset, Endian.little);
@@ -103,7 +175,7 @@ class ZipReader {
 
       centralDirOffset = nameStart + nameLen + extraLen + commentLen;
     }
-    return ZipReader._(bytes, entries);
+    return entries;
   }
 
   /// Reads and (if needed) decompresses the content of [entry].

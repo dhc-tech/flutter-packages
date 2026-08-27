@@ -114,7 +114,9 @@ class ArchiveAttachmentRenderer extends AttachmentRenderer {
   }
 
   Future<List<ZipEntry>> _listEntries(String path) async {
-    final bytes = await File(path).readAsBytes();
-    return ZipReader.decodeBytes(bytes).entries;
+    // Only entry names are shown here, never content — ZipReader.listEntries
+    // reads just the archive's tail (End-Of-Central-Directory + Central
+    // Directory), not the whole file, unlike decodeBytes.
+    return ZipReader.listEntries(File(path));
   }
 }
