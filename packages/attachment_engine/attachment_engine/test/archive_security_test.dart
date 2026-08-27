@@ -5,6 +5,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:attachment_engine/src/archive/zip_reader.dart';
 import 'package:attachment_engine/src/renderers/archive_renderer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -125,6 +126,49 @@ void main() {
 
       expect(extracted, hasLength(1));
       expect(File(extracted.single).readAsStringSync(), '<html></html>');
+    });
+
+    test('a pre-built reader is used as-is, without re-reading the file '
+        '(SCORM detection + extraction share one read+decode)', () async {
+      final zipBytes = _buildStoredZip('index.html', '<html></html>'.codeUnits);
+      final archiveFile = File('${tempDir.path}/reused.zip')
+        ..writeAsBytesSync(zipBytes);
+      final reader = ZipReader.decodeBytes(zipBytes);
+
+      // Corrupt the file on disk after building the reader — if
+      // extractArchiveSafely still needed to re-read/re-decode the file
+      // itself instead of using the passed reader, this extraction
+      // would now fail (or produce garbage).
+      archiveFile.writeAsBytesSync([0, 0, 0]);
+
+      final targetDir = Directory('${tempDir.path}/extracted4')..createSync();
+      final extracted = await extractArchiveSafely(
+        archiveFile,
+        targetDir,
+        reader: reader,
+      );
+
+      expect(extracted, hasLength(1));
+      expect(File(extracted.single).readAsStringSync(), '<html></html>');
+    });
+  });
+
+  group('archiveReaderContainsScormManifest', () {
+    test('true when imsmanifest.xml is present', () {
+      final zipBytes = _buildStoredZip(
+        'imsmanifest.xml',
+        '<manifest/>'.codeUnits,
+      );
+      final reader = ZipReader.decodeBytes(zipBytes);
+
+      expect(archiveReaderContainsScormManifest(reader), isTrue);
+    });
+
+    test('false when no manifest entry is present', () {
+      final zipBytes = _buildStoredZip('index.html', '<html/>'.codeUnits);
+      final reader = ZipReader.decodeBytes(zipBytes);
+
+      expect(archiveReaderContainsScormManifest(reader), isFalse);
     });
   });
 }

@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 
+import '../archive/zip_reader.dart';
 import '../models/attachment.dart';
 import '../models/attachment_type.dart';
 import '../native/native_paths_channel.dart';
@@ -49,13 +50,22 @@ class ScormAttachmentRenderer extends AttachmentRenderer {
     if (path == null) return null;
     try {
       final archiveFile = File(path);
-      if (!await archiveContainsScormManifest(archiveFile)) return null;
+      // Read and decode the zip once, reused for both the manifest check
+      // and the extraction below — archiveContainsScormManifest() +
+      // extractArchiveSafely() used to each independently read and decode
+      // the whole (possibly large) archive from scratch.
+      final zipReader = ZipReader.decodeBytes(await archiveFile.readAsBytes());
+      if (!archiveReaderContainsScormManifest(zipReader)) return null;
 
       final supportDir = await NativePathsChannel.applicationSupportDirectory();
       final targetDir = Directory(
         '${supportDir.path}/scorm_${attachment.stableIdentity}',
       );
-      final extracted = await extractArchiveSafely(archiveFile, targetDir);
+      final extracted = await extractArchiveSafely(
+        archiveFile,
+        targetDir,
+        reader: zipReader,
+      );
 
       final entry = extracted.firstWhere(
         (p) =>
