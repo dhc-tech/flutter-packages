@@ -141,9 +141,19 @@ class NativeDownloadClient implements DownloadClient {
   @override
   void cancel(Object cancelToken) {
     if (cancelToken is _NativeCancelToken && cancelToken._downloadId != null) {
-      AttachmentEnginePlatform.instance.cancelDownload(
-        cancelToken._downloadId!,
-      );
+      final downloadId = cancelToken._downloadId!;
+      AttachmentEnginePlatform.instance.cancelDownload(downloadId);
+      // The platform interface makes no guarantee that cancelDownload()
+      // is always followed by a corresponding event on downloadEvents()
+      // (see the class dartdoc) — resolve the pending completer directly
+      // instead of leaving download() blocked until DownloadManager's
+      // outer timeout (up to 45s by default) eventually fires. This also
+      // triggers download()'s own `finally` cleanup of
+      // _progressControllers/_destPathByDownloadId for this downloadId.
+      final completer = _completers.remove(downloadId);
+      if (completer != null && !completer.isCompleted) {
+        completer.completeError(const DownloadCancelledException());
+      }
     }
   }
 
@@ -153,6 +163,16 @@ class NativeDownloadClient implements DownloadClient {
       c.close();
     }
     _progressControllers.clear();
+    // Any download still in flight when the client is disposed would
+    // otherwise hang forever (its native event, if one ever arrives, has
+    // nowhere left to be delivered) — reject it explicitly instead.
+    for (final completer in _completers.values) {
+      if (!completer.isCompleted) {
+        completer.completeError(const DownloadCancelledException());
+      }
+    }
+    _completers.clear();
+    _destPathByDownloadId.clear();
   }
 }
 

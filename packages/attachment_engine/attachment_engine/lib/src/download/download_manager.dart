@@ -56,6 +56,19 @@ class DownloadResult {
   final String url;
 }
 
+/// Thrown when [DownloadManager.cancel] is called for a download that was
+/// still queued (waiting for a concurrency slot) rather than actually
+/// in flight — cancelling a queued download has no [DownloadClient]
+/// cancel token to forward to, so it's handled entirely inside
+/// [DownloadManager] by never letting the queued request acquire a slot.
+class DownloadCancelledException implements Exception {
+  const DownloadCancelledException();
+  @override
+  String toString() =>
+      'DownloadCancelledException: download was cancelled '
+      'while still queued for a concurrency slot.';
+}
+
 /// Orchestrates downloads with progress reporting, cancellation and retry.
 ///
 /// Retries (including after `cancel`) pass a stable `destinationHint`
@@ -93,6 +106,11 @@ class DownloadManager {
   int _running = 0;
   final List<Completer<void>> _waiters = [];
 
+  /// Tracks a still-queued (not yet running) download's waiter, keyed by
+  /// its download `key`, so [cancel] can reach it — [_waiters] alone has
+  /// no way to look a specific caller's request back up by key.
+  final Map<String, Completer<void>> _waitersByKey = {};
+
   void _validateConcurrency() {
     if (_maxConcurrent <= 0) {
       throw AttachmentConfigValidationError(
@@ -107,14 +125,19 @@ class DownloadManager {
         .stream;
   }
 
-  Future<void> _acquireSlot() async {
+  Future<void> _acquireSlot(String key) async {
     if (_running < _maxConcurrent) {
       _running++;
       return;
     }
     final completer = Completer<void>();
+    _waitersByKey[key] = completer;
     _waiters.add(completer);
-    await completer.future;
+    try {
+      await completer.future;
+    } finally {
+      _waitersByKey.remove(key);
+    }
     _running++;
   }
 
@@ -131,11 +154,17 @@ class DownloadManager {
     String url, {
     int attempt = 1,
   }) async {
-    await _acquireSlot();
+    await _acquireSlot(key);
     try {
       return await _downloadOnce(key, url, attempt: attempt);
     } finally {
       _releaseSlot();
+      // This call's full attempt sequence (including any retries — see
+      // _downloadOnce's recursion) is done: close and drop this key's
+      // progress controller rather than leaving it in _progressControllers
+      // forever. A later download() for the same key just lazily creates
+      // a fresh one via progressStream()'s `??=`.
+      unawaited(_progressControllers.remove(key)?.close());
     }
   }
 
@@ -160,7 +189,11 @@ class DownloadManager {
           .timeout(_config.connectTimeout + _config.receiveTimeout);
       return DownloadResult(bytes: bytes, url: url);
     } catch (e) {
-      if (attempt < maxRetries) {
+      // A deliberate cancellation is not a transient failure to retry —
+      // retrying it would defeat the entire point of cancel(), silently
+      // turning "the user cancelled this download" back into "keep
+      // downloading it anyway" as long as attempts remain.
+      if (e is! DownloadCancelledException && attempt < maxRetries) {
         final delay = _backoffDelay(attempt);
         if (delay > Duration.zero) {
           await Future<void>.delayed(delay);
@@ -190,6 +223,19 @@ class DownloadManager {
     if (token != null) {
       _client.cancel(token);
       _cancelTokens.remove(key);
+      return;
+    }
+    // Not yet running — still queued behind maxConcurrentDownloads other
+    // in-flight downloads, so there's no DownloadClient cancel token to
+    // forward to. Cancel the wait itself instead: remove it from the
+    // waiter queue and reject its completer, so it never gets a slot
+    // (and never silently starts downloading anyway once one frees up).
+    final waiter = _waitersByKey.remove(key);
+    if (waiter != null) {
+      _waiters.remove(waiter);
+      if (!waiter.isCompleted) {
+        waiter.completeError(const DownloadCancelledException());
+      }
     }
   }
 
