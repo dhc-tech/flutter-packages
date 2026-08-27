@@ -118,9 +118,23 @@ void main() {
         cacheManager: cacheManager,
       );
 
-      await manager.prefetch('https://example.com/report.pdf');
+      final result = await manager.prefetch('https://example.com/report.pdf');
 
       expect(client.callCount, 1);
+      expect(
+        result,
+        isNotNull,
+        reason:
+            'a successful prefetch must hand back a ResolvedAttachment '
+            '(localPath + fromCache) so callers can show/use the now-cached '
+            'file elsewhere without a second download',
+      );
+      expect(
+        result!.fromCache,
+        isFalse,
+        reason: 'this was a fresh download, not a cache hit',
+      );
+      expect(File(result.localPath).existsSync(), isTrue);
       expect(
         await cacheManager.lookup(
           Attachment(
@@ -159,10 +173,25 @@ void main() {
         cacheManager: cacheManager,
       );
 
-      await manager.prefetch('https://example.com/report.pdf', id: 'r1');
-      await manager.prefetch('https://example.com/report.pdf', id: 'r1');
+      final first = await manager.prefetch(
+        'https://example.com/report.pdf',
+        id: 'r1',
+      );
+      final second = await manager.prefetch(
+        'https://example.com/report.pdf',
+        id: 'r1',
+      );
 
       expect(client.callCount, 1);
+      expect(first!.fromCache, isFalse);
+      expect(
+        second!.fromCache,
+        isTrue,
+        reason:
+            'the second call must be told it was served from cache, so '
+            'a caller can distinguish "just downloaded" from "already had '
+            'it" — e.g. to skip showing a download progress indicator',
+      );
     });
 
     test('a failed prefetch() does not throw (best-effort)', () async {
@@ -186,8 +215,10 @@ void main() {
         cacheManager: cacheManager,
       );
 
-      // Must complete without throwing.
-      await manager.prefetch('https://example.com/broken.bin');
+      // Must complete without throwing, and signal failure via a null
+      // result rather than an exception the caller has to catch.
+      final result = await manager.prefetch('https://example.com/broken.bin');
+      expect(result, isNull);
     });
   });
 
