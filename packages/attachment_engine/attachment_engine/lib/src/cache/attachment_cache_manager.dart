@@ -40,6 +40,17 @@ class AttachmentCacheManager {
 
   Directory? _cacheDir;
 
+  /// Running total of cached bytes, so [_evictIfNeeded] doesn't have to
+  /// call [AttachmentMetadataStore.getAll] (deserializing and summing
+  /// every entry) on every single write just to check whether the cache
+  /// is anywhere near its size cap. Lazily established from a real
+  /// [totalSizeBytes] scan on first use each session (this is
+  /// intentionally not persisted across app restarts — a fresh session
+  /// just recomputes it once, which is far cheaper than keeping a
+  /// separate on-disk counter in sync with the metadata store), then
+  /// maintained incrementally by [write]/[_deleteEntry].
+  int? _cachedTotalSize;
+
   static Future<Directory> _defaultDirectoryProvider() {
     return NativePathsChannel.applicationCacheDirectory();
   }
@@ -80,6 +91,11 @@ class AttachmentCacheManager {
     if (entry.isExpired || _isPastRetention(entry)) return null;
     final file = File(entry.localPath);
     if (!await file.exists()) return null;
+    // Runs on every cache hit (e.g. every tile in a grid resolving its
+    // attachment) — cheap for FileBasedMetadataStore, whose put() only
+    // updates its in-memory index synchronously and debounces the actual
+    // disk write (see its dartdoc); a custom AttachmentMetadataStore is
+    // responsible for its own put() cost.
     await _store.put(entry.copyWith(lastAccessedAt: DateTime.now()));
     return entry.localPath;
   }
@@ -145,6 +161,9 @@ class AttachmentCacheManager {
         checksum: sha256.convert(bytes).toString(),
       ),
     );
+    if (_cachedTotalSize != null) {
+      _cachedTotalSize = _cachedTotalSize! + bytes.length;
+    }
     return file.path;
   }
 
@@ -161,6 +180,14 @@ class AttachmentCacheManager {
   }
 
   Future<void> _evictIfNeeded({int incomingBytes = 0}) async {
+    // Cheap path: skip the full getAll()-deserialize-everything-and-sort
+    // scan entirely when nowhere near the cap, which is the common case
+    // for most writes in a session (eviction is rare; writes aren't).
+    _cachedTotalSize ??= await totalSizeBytes();
+    if (_cachedTotalSize! + incomingBytes <= _policy.maxTotalSizeBytes) {
+      return;
+    }
+
     final entries = await _store.getAll();
     final toEvict = _policy.selectEntriesToEvict(
       entries,
@@ -177,6 +204,10 @@ class AttachmentCacheManager {
       await file.delete();
     }
     await _store.delete(entry.key);
+    if (_cachedTotalSize != null) {
+      final updated = _cachedTotalSize! - entry.sizeBytes;
+      _cachedTotalSize = updated < 0 ? 0 : updated;
+    }
   }
 
   Future<void> clearExpired() async {
