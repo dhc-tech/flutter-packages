@@ -79,6 +79,13 @@ class AttachmentManager {
     ConnectivityChecker? connectivityChecker,
   }) async {
     config.validate();
+    // Calling this a second time (e.g. on logout/re-login, or a test
+    // harness that doesn't reset _instance between tests) would otherwise
+    // silently leak the previous instance's resources — most notably a
+    // NativeDownloadClient's platform-channel event subscription, which
+    // would keep running (now duplicated by the new instance's own
+    // subscription) for the rest of the process's lifetime.
+    await _instance?.dispose();
     final cacheManager = AttachmentCacheManager(
       metadataStore: FileBasedMetadataStore(),
       config: config.cache,
@@ -205,5 +212,18 @@ class AttachmentManager {
       rendererConfig: _config.renderers,
       externalOpenConfig: _config.externalOpen,
     ).derive(attachment);
+  }
+
+  /// Releases resources held by this manager's collaborators: flushes any
+  /// pending (debounced) cache metadata write via
+  /// [AttachmentCacheManager.dispose], and disposes the resolver's download
+  /// resources via [AttachmentResolver.dispose] (progress controllers, and
+  /// a `NativeDownloadClient`'s platform-channel event subscription, if
+  /// that's the download client in use). Call this when the manager is no
+  /// longer needed — e.g. on app teardown, or automatically via
+  /// [initializeDefault] when replacing an existing singleton.
+  Future<void> dispose() async {
+    _resolver.dispose();
+    await _cacheManager.dispose();
   }
 }

@@ -87,6 +87,20 @@ class AttachmentResolver {
     return _inFlight.run(attachment.stableIdentity, () => _resolve(attachment));
   }
 
+  /// Releases resources held by this resolver's collaborators:
+  /// [DownloadManager.dispose] (per-key progress controllers), and, if the
+  /// download client is a [NativeDownloadClient] (holds a platform-channel
+  /// event subscription), that too. Call this before discarding a resolver
+  /// instance — e.g. [AttachmentManager.dispose] does, and
+  /// [AttachmentManager.initializeDefault] does when replacing an existing
+  /// singleton.
+  void dispose() {
+    _downloadManager.dispose();
+    if (_downloadManager.client case final NativeDownloadClient native) {
+      native.dispose();
+    }
+  }
+
   Future<ResolvedAttachment> _resolve(Attachment attachment) async {
     final source = attachment.source;
 

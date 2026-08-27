@@ -1,5 +1,43 @@
 ## 0.0.1-dev.2
 
+* **Perf**: downloads, previews and offline Office viewers now read files
+  in 64 KB chunks (`RandomAccessFile`) instead of one large synchronous
+  `readAsBytesSync()`/`readAsBytes()` call, keeping peak memory bounded
+  and the event loop unblocked for large attachments. Chunking was
+  applied only where it genuinely helps (file reads); it was deliberately
+  **not** applied to CSV/ZIP parsing or small metadata files, where it
+  would add complexity without benefit (already-loaded in-memory data, or
+  a background isolate is used instead — see the CSV/ZIP entries below).
+* **Perf**: `FileBasedMetadataStore` now debounces (2s, configurable)
+  cache-metadata disk writes instead of rewriting the whole index file on
+  every single `put()`/`delete()` — bursts of cache activity (e.g.
+  resolving a grid of attachments) now cost one disk write, not N.
+  `AttachmentCacheManager`/`AttachmentManager` force-flush any pending
+  write before it could be lost: immediately after a genuinely new cache
+  entry is written (offline durability — a force-quit right after caching
+  something still finds it on next launch, even from cache with no
+  network), and on `dispose()`.
+* **Fix**: closed a concurrency race where resolving several different
+  attachments at once (e.g. a grid) could interleave their
+  read-decide-mutate cache-eviction sequences and let the on-disk cache
+  silently exceed its configured `maxTotalSizeBytes`. All
+  `AttachmentCacheManager` mutations (`write`, `clearExpired`,
+  `clearAttachment`, `clearUnused`, `clearAll`) are now serialized against
+  each other.
+* **Fix**: a deliberately cancelled download (`DownloadManager.cancel`)
+  was being treated as a transient failure and silently retried instead
+  of staying cancelled. A still-queued (not yet running) download can now
+  also be cancelled before it ever starts.
+* **Fix**: added `dispose()` across the engine's layers
+  (`AttachmentCacheManager`, `DownloadManager`, `NativeDownloadClient`,
+  `AttachmentResolver`, `AttachmentManager`) to release `Timer`s, stream
+  controllers, and the native download platform-channel subscription.
+  `AttachmentManager.initializeDefault()` now disposes any existing
+  singleton before replacing it, instead of leaking it.
+* **Breaking**: removed `DownloadQueue`/`QueuedDownload`/`DownloadPriority`
+  (`src/download/download_queue.dart`) — dead code with no effect on
+  actual download scheduling (never constructed or referenced by
+  `DownloadManager` or anything else in the package).
 * **Fix**: `AttachmentResolver` now actually populates `attachmentType` via
   `FormatDetector` (from extension/mime/URL, plus magic bytes when
   freshly downloaded) when a resolved attachment's type is still

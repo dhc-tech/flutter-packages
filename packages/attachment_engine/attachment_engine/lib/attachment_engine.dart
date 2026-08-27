@@ -46,7 +46,6 @@ export 'src/cache/cache_policy.dart';
 
 // Download
 export 'src/download/download_manager.dart';
-export 'src/download/download_queue.dart';
 
 // Concurrency
 export 'src/concurrency/in_flight_registry.dart';

@@ -95,6 +95,14 @@ class DownloadManager {
   }
 
   final DownloadClient _client;
+
+  /// The underlying [DownloadClient]. Exposed so a caller that knows it
+  /// constructed (or was handed) a resource-owning implementation — e.g.
+  /// `NativeDownloadClient`, which holds a platform-channel event
+  /// subscription — can dispose it too. [DownloadManager] itself stays
+  /// agnostic of any particular [DownloadClient] implementation.
+  DownloadClient get client => _client;
+
   final int maxRetries;
   final DownloadConfig _config;
   final int _maxConcurrent;
