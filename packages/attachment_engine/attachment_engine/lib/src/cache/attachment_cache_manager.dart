@@ -40,6 +40,21 @@ class AttachmentCacheManager {
 
   Directory? _cacheDir;
 
+  /// Serializes [write] (and the eviction check it runs first) so
+  /// concurrent writes for *different* attachments — plausible any time a
+  /// screen resolves/downloads several uncached attachments at once, e.g.
+  /// a grid — can't each independently check the size cap against the
+  /// same pre-write [_cachedTotalSize] snapshot and both decide eviction
+  /// isn't needed, even though the two writes together push the cache
+  /// over the cap. ([InFlightRegistry] in AttachmentResolver only dedupes
+  /// concurrent resolutions of the *same* attachment; it does nothing for
+  /// different ones resolving at the same time.) A queued Future chain,
+  /// not a real lock — Dart is single-threaded, so this is just ensuring
+  /// one write's full evict-check-then-persist sequence completes before
+  /// the next one's begins, closing the gap an `await` in the middle of
+  /// that sequence would otherwise leave open.
+  Future<void> _writeQueue = Future<void>.value();
+
   /// Running total of cached bytes, so [_evictIfNeeded] doesn't have to
   /// call [AttachmentMetadataStore.getAll] (deserializing and summing
   /// every entry) on every single write just to check whether the cache
@@ -134,9 +149,36 @@ class AttachmentCacheManager {
             !_config.previewCachingEnabled);
 
     if (!_config.enabled || tooLargeToCache || categoryDisabled) {
+      // Doesn't touch _cachedTotalSize/the metadata store at all — no
+      // need to serialize it against other writes.
       return _writeUnmanaged(attachment, bytes);
     }
 
+    // Queued behind any other in-flight managed write: see _writeQueue's
+    // dartdoc for why the evict-check-then-persist sequence below needs
+    // to run as one uninterrupted unit across concurrent write() calls
+    // for different attachments.
+    final result = _writeQueue.then(
+      (_) => _writeManaged(
+        attachment,
+        bytes,
+        expiresAt: expiresAt,
+        category: category,
+      ),
+    );
+    // Chain the queue onto this write regardless of whether it succeeds
+    // or fails, so one failed write doesn't permanently wedge every
+    // subsequent one behind a broken Future.
+    _writeQueue = result.then((_) {}, onError: (_) {});
+    return result;
+  }
+
+  Future<String> _writeManaged(
+    Attachment attachment,
+    Uint8List bytes, {
+    DateTime? expiresAt,
+    required CacheEntryCategory category,
+  }) async {
     await _evictIfNeeded(incomingBytes: bytes.length);
 
     final dir = await _dir;

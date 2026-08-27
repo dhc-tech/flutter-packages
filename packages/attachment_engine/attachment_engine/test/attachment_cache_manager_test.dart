@@ -126,6 +126,57 @@ void main() {
       expect(await freshManager.lookup(a), isNotNull);
     });
   });
+
+  group('AttachmentCacheManager concurrent writes', () {
+    test('two concurrent writes for different attachments that would '
+        'individually fit under the cap, but together exceed it, still '
+        'trigger eviction — not silently exceed the cap', () async {
+      final store = _CountingStore();
+      final manager = AttachmentCacheManager(
+        metadataStore: store,
+        policy: const CachePolicy(maxTotalSizeBytes: 250),
+        directoryProvider: () async => tempDir,
+      );
+      await manager.init();
+
+      // Neither is awaited individually before the other starts — both
+      // see the same starting point (an empty cache) if write() doesn't
+      // serialize the evict-check-then-persist sequence against
+      // concurrent calls.
+      final futureA = manager.write(attachment('a'), Uint8List(200));
+      final futureB = manager.write(attachment('b'), Uint8List(200));
+      await Future.wait([futureA, futureB]);
+
+      // Without serialization, both writes' independent cap checks
+      // would each see 0 + 200 <= 250 and skip eviction, leaving the
+      // cache at 400 bytes — over the 250-byte cap. With it, the
+      // second write's check correctly runs after the first's 200
+      // bytes are already accounted for, sees 200 + 200 > 250, and
+      // evicts the first (older) entry before persisting the second.
+      expect(await manager.totalSizeBytes(), lessThanOrEqualTo(250));
+    });
+
+    test('many concurrent writes for different attachments never let the '
+        'running total silently drift from a real recount', () async {
+      final store = _CountingStore();
+      final manager = AttachmentCacheManager(
+        metadataStore: store,
+        // Cap high enough that eviction never actually triggers here —
+        // isolating this test to just the running-total bookkeeping,
+        // not eviction correctness (covered by the test above).
+        policy: const CachePolicy(maxTotalSizeBytes: 1000000),
+        directoryProvider: () async => tempDir,
+      );
+      await manager.init();
+
+      await Future.wait([
+        for (var i = 0; i < 30; i++)
+          manager.write(attachment('$i'), Uint8List(100)),
+      ]);
+
+      expect(await manager.totalSizeBytes(), 3000); // 30 * 100
+    });
+  });
 }
 
 /// Wraps a real in-memory-ish store, counting getAll() calls so tests can
