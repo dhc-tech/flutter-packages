@@ -2,6 +2,8 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
+
 import 'package:attachment_engine/attachment_engine.dart';
 import 'package:attachment_engine/src/platform/platform_info.dart';
 import 'package:attachment_engine_platform_interface/attachment_engine_platform_interface.dart';
@@ -76,6 +78,18 @@ class _FakeConnectivityChecker implements ConnectivityChecker {
   final bool online;
   @override
   Future<bool> hasConnection() async => online;
+}
+
+/// Never resolves until [gate] completes — used to hold a fallback chain
+/// in flight so the attachment can be swapped before it resumes.
+class _DelayedConnectivityChecker implements ConnectivityChecker {
+  _DelayedConnectivityChecker(this.gate);
+  final Completer<void> gate;
+  @override
+  Future<bool> hasConnection() async {
+    await gate.future;
+    return false;
+  }
 }
 
 class _FakeConversionStrategy implements OfficeConversionStrategy {
@@ -373,6 +387,63 @@ void main() {
           'openOfficePreview:/tmp/a.docx',
           'openOfficePreview:/tmp/b.docx',
         ]);
+      },
+    );
+
+    testWidgets(
+      'a stale fallback chain (attachment swapped while its connectivity '
+      'check was still in flight) does not open the previous attachment '
+      'externally once it resumes',
+      (tester) async {
+        final gate = Completer<void>();
+        final renderer = OfficeAttachmentRenderer(
+          platformInfo: const _FakePlatformInfo(isIOS: false),
+          connectivityChecker: _DelayedConnectivityChecker(gate),
+          isUrlSafeForOfficeOnline: (_) => true,
+        );
+
+        // Start opening attachment A — its connectivityChecker.hasConnection()
+        // call hangs on `gate` and never resolves during this pump.
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) => renderer.build(
+                context,
+                officeAttachment(
+                  '/tmp/a.docx',
+                  remoteUrl: 'https://cdn.example.com/a.docx',
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Swap to attachment B before A's fallback chain has resumed.
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) => renderer.build(
+                context,
+                officeAttachment(
+                  '/tmp/b.docx',
+                  remoteUrl: 'https://cdn.example.com/b.docx',
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+
+        // Now let A's stale chain resume: hasConnection() resolves false,
+        // no conversionStrategy is supplied, so it falls through to
+        // external-open — for the WRONG (no-longer-current) attachment.
+        gate.complete();
+        await tester.pumpAndSettle();
+
+        expect(platform.calls, isNot(contains('openExternally:/tmp/a.docx')));
       },
     );
   });

@@ -83,9 +83,14 @@ class CircularProgressIndicatorPlaceholder extends StatelessWidget {
 /// One occurrence of the search query: which line it's on and the
 /// character offset within that line.
 class _Match {
-  const _Match({required this.lineIndex, required this.columnStart});
+  const _Match({
+    required this.lineIndex,
+    required this.columnStart,
+    required this.columnEnd,
+  });
   final int lineIndex;
   final int columnStart;
+  final int columnEnd;
 }
 
 /// Full-text viewer with a search bar: case-insensitive substring search
@@ -149,16 +154,22 @@ class _SearchableTextViewState extends State<_SearchableTextView> {
 
   List<_Match> _findMatches(String query) {
     if (query.isEmpty) return const [];
-    final lowerQuery = query.toLowerCase();
+    // Matched against the original (non-lowercased) line via a
+    // case-insensitive RegExp, not String.toLowerCase() + indexOf: for
+    // some characters (e.g. Turkish İ, U+0130), lowercasing changes the
+    // string's UTF-16 length, which would desync any offset computed
+    // against the lowercased copy from the original line it's later
+    // sliced against in _highlightedLine — a RangeError waiting to
+    // happen. A literal (non-regex-metachar) pattern's case-insensitive
+    // match always has the same length as the query itself, so no
+    // similar desync risk here.
+    final pattern = RegExp(RegExp.escape(query), caseSensitive: false);
     final matches = <_Match>[];
     for (var i = 0; i < _lines.length; i++) {
-      final lowerLine = _lines[i].toLowerCase();
-      var start = 0;
-      while (true) {
-        final index = lowerLine.indexOf(lowerQuery, start);
-        if (index == -1) break;
-        matches.add(_Match(lineIndex: i, columnStart: index));
-        start = index + lowerQuery.length;
+      for (final match in pattern.allMatches(_lines[i])) {
+        matches.add(
+          _Match(lineIndex: i, columnStart: match.start, columnEnd: match.end),
+        );
       }
     }
     return matches;
@@ -267,16 +278,15 @@ class _SearchableTextViewState extends State<_SearchableTextView> {
     final query = _searchController.text;
     if (query.isEmpty) return Text(line);
 
-    final lowerLine = line.toLowerCase();
-    final lowerQuery = query.toLowerCase();
+    // Matched the same way as _findMatches — a case-insensitive RegExp
+    // against the original line, never a lowercased copy — see its
+    // comment for why: a lowercased copy's offsets aren't safe to slice
+    // this (original, un-lowercased) line with.
+    final pattern = RegExp(RegExp.escape(query), caseSensitive: false);
     final spans = <TextSpan>[];
     var cursor = 0;
-    while (true) {
-      final index = lowerLine.indexOf(lowerQuery, cursor);
-      if (index == -1) {
-        spans.add(TextSpan(text: line.substring(cursor)));
-        break;
-      }
+    for (final match in pattern.allMatches(line)) {
+      final index = match.start;
       if (index > cursor) {
         spans.add(TextSpan(text: line.substring(cursor, index)));
       }
@@ -286,7 +296,7 @@ class _SearchableTextViewState extends State<_SearchableTextView> {
           _matches[_currentMatch].columnStart == index;
       spans.add(
         TextSpan(
-          text: line.substring(index, index + query.length),
+          text: line.substring(index, match.end),
           style: TextStyle(
             backgroundColor: isCurrent
                 ? const Color(0xFFFFA000)
@@ -294,8 +304,9 @@ class _SearchableTextViewState extends State<_SearchableTextView> {
           ),
         ),
       );
-      cursor = index + query.length;
+      cursor = match.end;
     }
+    spans.add(TextSpan(text: line.substring(cursor)));
     return RichText(
       text: TextSpan(
         style: DefaultTextStyle.of(context).style,

@@ -378,6 +378,12 @@ class _OfficeViewState extends State<_OfficeView> {
 
   Future<void> _openExternallyAsLastResort([int? generation]) async {
     final gen = generation ?? _openGeneration;
+    // A stale chain reaching this point (a previous attachment's fallback
+    // resuming after connectivity/conversion finished with nothing usable)
+    // must not open ANOTHER app for the wrong attachment — not just avoid
+    // updating error/UI state for it. Checked before the platform call
+    // itself, not only around the state updates that follow it.
+    if (!mounted || gen != _openGeneration) return;
     final path = widget.attachment.localPath;
     if (path == null) {
       if (mounted && gen == _openGeneration) {

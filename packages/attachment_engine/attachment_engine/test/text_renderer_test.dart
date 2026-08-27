@@ -102,6 +102,26 @@ void main() {
       expect(find.text('0/0'), findsOneWidget);
     });
 
+    testWidgets(
+      'a case-fold-expanding character before a match does not throw a '
+      'RangeError (offsets must stay valid against the original text, not '
+      'a lowercased copy of a different length)',
+      (tester) async {
+        // İ (Turkish dotted capital I, U+0130) lowercases to a 2-UTF-16-unit
+        // sequence ("i" + combining dot above) — one code unit longer than
+        // itself. A match for "abc" starting after it would land at the
+        // wrong offset if matching were done against a lowercased copy of
+        // the line instead of the original.
+        await pumpTextView(tester, 'İ abc\n');
+
+        await tester.enterText(find.byType(TextField), 'abc');
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        expect(find.text('1/1'), findsOneWidget);
+      },
+    );
+
     testWidgets('showSearch: false renders plain scrollable text', (
       tester,
     ) async {
