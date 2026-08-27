@@ -250,9 +250,33 @@ class AttachmentManager {
     }
   }
 
-  /// Removes any cached copy of [attachment].
+  /// Removes any cached copy of [attachment] — including a [pinForOffline]d
+  /// one; this is a deliberate, explicit delete, not automatic cleanup.
   Future<void> deleteCache(Attachment attachment) =>
       _cacheManager.clearAttachment(attachment);
+
+  /// Ensures [attachment] is cached (resolving/downloading it first if
+  /// needed, same as [open]) and marks it exempt from automatic cache
+  /// cleanup — size-cap eviction won't touch it even under storage
+  /// pressure, so it stays available offline until explicitly removed via
+  /// [unpinFromOffline] + cleanup, or [deleteCache]. Use this for a
+  /// user-facing "keep available offline"/"save for offline" action.
+  Future<ResolvedAttachment> pinForOffline(Attachment attachment) async {
+    final resolved = await _resolveWithDiagnostics(attachment);
+    await _cacheManager.pin(resolved.attachment);
+    return resolved;
+  }
+
+  /// Reverses [pinForOffline]: [attachment]'s cached content (if any)
+  /// becomes eligible for automatic cleanup again. Does not itself delete
+  /// anything — the file is removed later by ordinary cache pressure, or
+  /// immediately via [deleteCache].
+  Future<void> unpinFromOffline(Attachment attachment) =>
+      _cacheManager.unpin(attachment);
+
+  /// Whether [attachment] is currently cached and [pinForOffline]d.
+  Future<bool> isPinnedForOffline(Attachment attachment) =>
+      _cacheManager.isPinned(attachment);
 
   /// Recomputes capabilities for [attachment] in its current state.
   AttachmentCapabilities capabilitiesFor(Attachment attachment) {

@@ -97,6 +97,83 @@ void main() {
     );
   });
 
+  group('AttachmentManager.pinForOffline', () {
+    Attachment urlAttachment(String id) => Attachment(
+      id: id,
+      name: '$id.bin',
+      source: AttachmentSource.url('https://example.com/$id'),
+    );
+
+    test('caches and pins an attachment so it survives eviction under '
+        'storage pressure', () async {
+      final cacheManager = AttachmentCacheManager(
+        metadataStore: FileBasedMetadataStore(
+          directoryProvider: () async => tempDir,
+        ),
+        // The fake download client below returns a fixed 4-byte payload
+        // per attachment — an 8-byte cap means the 3rd attachment's
+        // download genuinely forces eviction of an older, non-pinned
+        // entry.
+        policy: const CachePolicy(maxTotalSizeBytes: 8),
+        directoryProvider: () async => tempDir,
+      );
+      await cacheManager.init();
+      final resolver = AttachmentResolver(
+        cacheManager: cacheManager,
+        downloadManager: DownloadManager(client: _FakePrefetchDownloadClient()),
+        connectivityChecker: _AlwaysOnline(),
+      );
+      final manager = AttachmentManager(
+        resolver: resolver,
+        cacheManager: cacheManager,
+      );
+
+      final keep = urlAttachment('keep');
+      await manager.pinForOffline(keep);
+      expect(await manager.isPinnedForOffline(keep), isTrue);
+
+      // Two more downloads that, combined with 'keep', exceed the
+      // 8-byte cap and would normally evict 'keep' first (oldest).
+      await manager.open(urlAttachment('b'));
+      await manager.open(urlAttachment('c'));
+
+      final reopened = await manager.open(keep);
+      expect(
+        reopened.fromCache,
+        isTrue,
+        reason:
+            'pinned entry must still be served from cache, not '
+            're-downloaded because it was evicted',
+      );
+    });
+
+    test('unpinFromOffline() reverses pinForOffline()', () async {
+      final cacheManager = AttachmentCacheManager(
+        metadataStore: FileBasedMetadataStore(
+          directoryProvider: () async => tempDir,
+        ),
+        directoryProvider: () async => tempDir,
+      );
+      await cacheManager.init();
+      final resolver = AttachmentResolver(
+        cacheManager: cacheManager,
+        downloadManager: DownloadManager(client: _FakePrefetchDownloadClient()),
+        connectivityChecker: _AlwaysOnline(),
+      );
+      final manager = AttachmentManager(
+        resolver: resolver,
+        cacheManager: cacheManager,
+      );
+
+      final a = urlAttachment('a');
+      await manager.pinForOffline(a);
+      expect(await manager.isPinnedForOffline(a), isTrue);
+
+      await manager.unpinFromOffline(a);
+      expect(await manager.isPinnedForOffline(a), isFalse);
+    });
+  });
+
   group('AttachmentManager.prefetch', () {
     test('downloads and caches content for a bare URL, with no pre-built '
         'Attachment and no render/open', () async {

@@ -24,6 +24,7 @@ class CacheEntry {
     this.attachmentType,
     this.category = CacheEntryCategory.original,
     this.checksum,
+    this.pinned = false,
   });
 
   final String key;
@@ -36,10 +37,21 @@ class CacheEntry {
   final CacheEntryCategory category;
   final String? checksum;
 
+  /// When true, this entry is exempt from every *automatic* removal path —
+  /// size-cap LRU eviction ([CachePolicy.selectEntriesToEvict]),
+  /// [AttachmentCacheManager.clearUnused], and
+  /// [AttachmentCacheManager.clearExpired] — so a file the host app has
+  /// deliberately marked "keep available offline" survives cache pressure.
+  /// It does NOT protect against an explicit, targeted removal:
+  /// [AttachmentCacheManager.clearAttachment]/[AttachmentCacheManager.clearAll]
+  /// still remove it, same as any other entry — pinning only opts a file
+  /// out of automatic cleanup, not out of a deliberate delete.
+  final bool pinned;
+
   bool get isExpired =>
       expiresAt != null && expiresAt!.isBefore(DateTime.now());
 
-  CacheEntry copyWith({DateTime? lastAccessedAt}) {
+  CacheEntry copyWith({DateTime? lastAccessedAt, bool? pinned}) {
     return CacheEntry(
       key: key,
       localPath: localPath,
@@ -50,6 +62,7 @@ class CacheEntry {
       attachmentType: attachmentType,
       category: category,
       checksum: checksum,
+      pinned: pinned ?? this.pinned,
     );
   }
 
@@ -63,6 +76,7 @@ class CacheEntry {
     'attachmentType': attachmentType,
     'category': category.name,
     'checksum': checksum,
+    'pinned': pinned,
   };
 
   static CacheEntry fromMap(Map<dynamic, dynamic> map) {
@@ -81,6 +95,9 @@ class CacheEntry {
         orElse: () => CacheEntryCategory.original,
       ),
       checksum: map['checksum'] as String?,
+      // Absent in metadata written before this field existed — defaults to
+      // false (not pinned), the pre-existing behavior for every entry.
+      pinned: map['pinned'] as bool? ?? false,
     );
   }
 }

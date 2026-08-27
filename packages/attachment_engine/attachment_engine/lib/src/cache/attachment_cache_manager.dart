@@ -115,7 +115,14 @@ class AttachmentCacheManager {
     if (!_config.enabled) return null;
     final entry = await _store.get(attachment.stableIdentity);
     if (entry == null) return null;
-    if (entry.isExpired || _isPastRetention(entry)) return null;
+    // A pinned entry stays servable from cache even past its remote
+    // expiresAt/retention window: those describe when the *remote* source
+    // is considered stale, not whether the already-downloaded bytes are
+    // usable — and "pinned" means the host app deliberately wants this
+    // file available offline regardless of network/remote-source state.
+    if (!entry.pinned && (entry.isExpired || _isPastRetention(entry))) {
+      return null;
+    }
     final file = File(entry.localPath);
     if (!await file.exists()) return null;
     // Runs on every cache hit (e.g. every tile in a grid resolving its
@@ -281,6 +288,10 @@ class AttachmentCacheManager {
     });
   }
 
+  /// Removes [attachment]'s cache entry, even if it's [CacheEntry.pinned] —
+  /// an explicit, targeted delete like this always succeeds; pinning only
+  /// exempts a file from *automatic* cleanup (see [pin]'s dartdoc), not
+  /// from a deliberate removal request.
   Future<void> clearAttachment(Attachment attachment) async {
     if (!_config.enabled) return;
     await _serialized(() async {
@@ -290,7 +301,9 @@ class AttachmentCacheManager {
   }
 
   /// Clears cache entries that have not been accessed within [unusedFor]
-  /// (default 30 days).
+  /// (default 30 days). [CacheEntry.pinned] entries are skipped — see
+  /// [pin]'s dartdoc; use [clearAttachment] to remove a specific pinned
+  /// entry regardless, or [unpin] it first.
   Future<void> clearUnused({
     Duration unusedFor = const Duration(days: 30),
   }) async {
@@ -299,13 +312,17 @@ class AttachmentCacheManager {
       final cutoff = DateTime.now().subtract(unusedFor);
       final entries = await _store.getAll();
       for (final entry in entries.where(
-        (e) => e.lastAccessedAt.isBefore(cutoff),
+        (e) => e.lastAccessedAt.isBefore(cutoff) && !e.pinned,
       )) {
         await _deleteEntry(entry);
       }
     });
   }
 
+  /// Removes every cache entry, including [CacheEntry.pinned] ones — this
+  /// is an explicit, whole-cache wipe (e.g. a host app's "Clear cache"
+  /// settings action or logout), not automatic cleanup, so pinning does
+  /// not exempt anything from it.
   Future<void> clearAll() async {
     if (!_config.enabled) return;
     await _serialized(() async {
@@ -314,6 +331,61 @@ class AttachmentCacheManager {
         await _deleteEntry(entry);
       }
     });
+  }
+
+  /// Marks [attachment]'s already-cached content as exempt from automatic
+  /// cleanup — size-cap LRU eviction, [clearUnused], and [clearExpired] —
+  /// so the host app can guarantee a file stays available offline (e.g. a
+  /// user explicitly chose "make available offline"/"keep downloaded").
+  ///
+  /// [attachment] must already be cached — resolve/cache it first (e.g.
+  /// via `AttachmentManager.open`/`.prefetch`) — otherwise this throws
+  /// [StateError]. Pinning is only about protecting existing content;
+  /// it does not itself trigger a download.
+  ///
+  /// Pinning does NOT protect against [clearAttachment]/[clearAll]: those
+  /// remain a deliberate, explicit way to remove (or free up space from) a
+  /// pinned file when the host app genuinely needs to.
+  Future<void> pin(Attachment attachment) async {
+    if (!_config.enabled) return;
+    await _serialized(() async {
+      final entry = await _store.get(attachment.stableIdentity);
+      if (entry == null) {
+        throw StateError(
+          'Cannot pin "${attachment.stableIdentity}": it is not currently '
+          'cached. Resolve/cache it first (e.g. AttachmentManager.open or '
+          '.prefetch) before pinning.',
+        );
+      }
+      if (entry.pinned) return;
+      await _store.put(entry.copyWith(pinned: true));
+      if (_store case final FileBasedMetadataStore fileStore) {
+        await fileStore.flushPending();
+      }
+    });
+  }
+
+  /// Reverses [pin]: [attachment]'s cache entry (if any) becomes eligible
+  /// for automatic cleanup again. A no-op if [attachment] isn't cached, or
+  /// isn't currently pinned.
+  Future<void> unpin(Attachment attachment) async {
+    if (!_config.enabled) return;
+    await _serialized(() async {
+      final entry = await _store.get(attachment.stableIdentity);
+      if (entry == null || !entry.pinned) return;
+      await _store.put(entry.copyWith(pinned: false));
+      if (_store case final FileBasedMetadataStore fileStore) {
+        await fileStore.flushPending();
+      }
+    });
+  }
+
+  /// Whether [attachment] is currently both cached and [pin]ned. False for
+  /// content that isn't cached at all.
+  Future<bool> isPinned(Attachment attachment) async {
+    if (!_config.enabled) return false;
+    final entry = await _store.get(attachment.stableIdentity);
+    return entry?.pinned ?? false;
   }
 
   /// Releases resources and, for the default [FileBasedMetadataStore],

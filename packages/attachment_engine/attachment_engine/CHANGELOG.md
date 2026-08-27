@@ -1,5 +1,20 @@
 ## 0.0.1-dev.2
 
+* New "keep available offline" pinning: `AttachmentManager.pinForOffline(attachment)`
+  caches (if needed) and exempts an attachment from every *automatic*
+  cache-cleanup path — size-cap LRU eviction, `AttachmentCacheManager.clearUnused`,
+  and `.clearExpired` — so a file the user explicitly marked "save for
+  offline"/"keep downloaded" survives storage pressure and won't quietly
+  disappear. `unpinFromOffline`/`isPinnedForOffline` reverse/query it.
+  Pinning only exempts a file from automatic cleanup, not from an
+  explicit, targeted removal: `AttachmentManager.deleteCache` (and
+  `AttachmentCacheManager.clearAttachment`/`.clearAll`) still remove a
+  pinned file when the host app genuinely needs to. A pinned entry also
+  stays servable from `lookup()` (cache hit) even past its remote
+  `expiresAt`/retention window, since a signed URL's expiry describes the
+  *remote* source, not whether the already-downloaded bytes are usable
+  offline. New `CacheEntry.pinned` field (defaults to `false`; absent in
+  metadata written before this release, read back as `false`).
 * New `AttachmentManager.prefetch(url, {id, name})` — warms the cache for a
   URL in the background without a caller having to build a full
   `Attachment` or open/render anything. Returns the `ResolvedAttachment`
