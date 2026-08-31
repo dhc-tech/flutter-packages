@@ -1,3 +1,12 @@
+## 0.0.1-dev.2
+
+* Fixes `openOfficePreview`'s Office/QuickLook `QLPreviewController` modal
+  resolving its Dart future as soon as the preview was *presented* instead
+  of when the user actually *dismissed* it, leaving callers with no signal
+  to react to the close (e.g. to pop the screen behind the now-closed
+  modal). It now implements `QLPreviewControllerDelegate` and only
+  completes on `previewControllerDidDismiss`.
+
 ## 0.0.1-dev.1
 
 * Initial release: the iOS implementation extracted from `attachment_engine`

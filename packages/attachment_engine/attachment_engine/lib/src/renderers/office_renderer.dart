@@ -77,6 +77,7 @@ class OfficeAttachmentRenderer extends AttachmentRenderer {
     this.externalOpenConfig = const ExternalOpenConfig(),
     this.connectivityChecker = const DefaultConnectivityChecker(),
     this.isUrlSafeForOfficeOnline,
+    this.onDismissed,
   });
 
   final OfficeConversionStrategy? conversionStrategy;
@@ -112,6 +113,15 @@ class OfficeAttachmentRenderer extends AttachmentRenderer {
   /// — e.g. `(attachment) => attachment.remoteUrl?.startsWith(myPublicCdnPrefix) ?? false`.
   final bool Function(Attachment attachment)? isUrlSafeForOfficeOnline;
 
+  /// Called once the user dismisses the in-app iOS QuickLook preview (i.e.
+  /// after [NativeOfficeChannel.openOfficePreview] resolves). QuickLook is
+  /// presented as a full modal over whatever is behind this renderer, so
+  /// there's typically nothing meaningful left to show once it closes —
+  /// hosts that push this renderer onto its own route commonly want to pop
+  /// that route here instead of leaving the user on a bare screen. Not
+  /// called on Android, where no such modal exists.
+  final VoidCallback? onDismissed;
+
   @override
   AttachmentType get type => .office;
 
@@ -124,6 +134,7 @@ class OfficeAttachmentRenderer extends AttachmentRenderer {
       externalOpenConfig: externalOpenConfig,
       connectivityChecker: connectivityChecker,
       isUrlSafeForOfficeOnline: isUrlSafeForOfficeOnline,
+      onDismissed: onDismissed,
     );
   }
 }
@@ -136,6 +147,7 @@ class _OfficeView extends StatefulWidget {
     this.externalOpenConfig = const ExternalOpenConfig(),
     this.connectivityChecker = const DefaultConnectivityChecker(),
     this.isUrlSafeForOfficeOnline,
+    this.onDismissed,
   });
   final Attachment attachment;
   final OfficeConversionStrategy? conversionStrategy;
@@ -143,6 +155,7 @@ class _OfficeView extends StatefulWidget {
   final ExternalOpenConfig externalOpenConfig;
   final ConnectivityChecker connectivityChecker;
   final bool Function(Attachment attachment)? isUrlSafeForOfficeOnline;
+  final VoidCallback? onDismissed;
 
   @override
   State<_OfficeView> createState() => _OfficeViewState();
@@ -235,10 +248,13 @@ class _OfficeViewState extends State<_OfficeView> {
         }
         // Genuine in-app preview via QuickLook — requires a local file URL,
         // which the resolver guarantees by the time this renderer runs.
-        // Always wins on iOS; conversion isn't needed here.
+        // Always wins on iOS; conversion isn't needed here. This resolves
+        // only once the user actually dismisses the QuickLook modal (see
+        // OfficePreviewChannel), not merely once it's presented.
         await NativeOfficeChannel.openOfficePreview(path);
         if (mounted && generation == _openGeneration) {
           setState(() => _previewedInApp = true);
+          widget.onDismissed?.call();
         }
         return;
       }
