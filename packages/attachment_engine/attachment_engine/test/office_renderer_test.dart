@@ -168,6 +168,30 @@ void main() {
       );
     });
 
+    testWidgets(
+      'iOS calls onDismissed once the QuickLook preview future resolves '
+      '(i.e. once the user has dismissed it)',
+      (tester) async {
+        var dismissed = 0;
+        final renderer = OfficeAttachmentRenderer(
+          platformInfo: const _FakePlatformInfo(isIOS: true),
+          onDismissed: () => dismissed++,
+        );
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) =>
+                  renderer.build(context, officeAttachment('/tmp/f.docx')),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(dismissed, 1);
+      },
+    );
+
     testWidgets('Android with no connection and no public URL falls back to '
         'external-open', (tester) async {
       final renderer = OfficeAttachmentRenderer(

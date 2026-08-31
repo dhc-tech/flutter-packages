@@ -21,9 +21,19 @@ import UIKit
 /// local path (as `AttachmentResolver` already guarantees) before invoking
 /// this channel.
 ///
+/// `openOfficePreview`'s async completion is deferred until the user
+/// actually dismisses the QuickLook modal (via
+/// `QLPreviewControllerDelegate.previewControllerDidDismiss`), not until
+/// it's merely presented — the Dart side uses this to know when to react
+/// (e.g. pop back to the previous screen) instead of leaving a bare Flutter
+/// view showing behind the now-dismissed preview.
+///
 /// Implements the Pigeon-generated `OfficeHostApi`.
-class OfficePreviewChannel: NSObject, OfficeHostApi, QLPreviewControllerDataSource {
+class OfficePreviewChannel: NSObject, OfficeHostApi, QLPreviewControllerDataSource,
+  QLPreviewControllerDelegate
+{
   private var previewItemURL: URL?
+  private var dismissContinuation: CheckedContinuation<Void, Never>?
 
   func register(with messenger: FlutterBinaryMessenger) {
     OfficeHostApiSetup.setUp(binaryMessenger: messenger, api: self)
@@ -45,7 +55,14 @@ class OfficePreviewChannel: NSObject, OfficeHostApi, QLPreviewControllerDataSour
     }
     let preview = QLPreviewController()
     preview.dataSource = self
+    preview.delegate = self
     presenter.present(preview, animated: true, completion: nil)
+
+    // Suspend until previewControllerDidDismiss fires, so the caller learns
+    // when the modal actually closes rather than just when it was shown.
+    await withCheckedContinuation { continuation in
+      self.dismissContinuation = continuation
+    }
   }
 
   // MARK: QLPreviewControllerDataSource
@@ -56,5 +73,12 @@ class OfficePreviewChannel: NSObject, OfficeHostApi, QLPreviewControllerDataSour
 
   func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
     previewItemURL! as QLPreviewItem
+  }
+
+  // MARK: QLPreviewControllerDelegate
+
+  func previewControllerDidDismiss(_ controller: QLPreviewController) {
+    dismissContinuation?.resume()
+    dismissContinuation = nil
   }
 }

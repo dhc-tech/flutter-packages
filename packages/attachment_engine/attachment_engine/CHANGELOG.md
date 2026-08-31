@@ -1,3 +1,12 @@
+## 0.0.1-dev.3
+
+* New `OfficeAttachmentRenderer.onDismissed` callback, invoked once the
+  user dismisses the iOS QuickLook office-document preview. Requires
+  `attachment_engine_ios` 0.0.1-dev.2+, whose `openOfficePreview` now
+  resolves only on the modal's actual dismissal rather than as soon as it
+  is presented — previously there was no signal at all for a host app to
+  react to the close (e.g. to pop the screen left behind it).
+
 ## 0.0.1-dev.2
 
 * New "keep available offline" pinning: `AttachmentManager.pinForOffline(attachment)`

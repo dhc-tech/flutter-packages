@@ -1,6 +1,6 @@
 name: attachment_engine
 description: "Universal attachment engine for Flutter to resolve, cache, download, preview, and render documents, media, and web content using native platform APIs."
-version: 0.0.1-dev.2
+version: 0.0.1-dev.3
 homepage: "https://github.com/dhc-tech/flutter-packages/tree/main/packages/attachment_engine/attachment_engine"
 repository: "https://github.com/dhc-tech/flutter-packages"
 issue_tracker: "https://github.com/dhc-tech/flutter-packages/issues"
