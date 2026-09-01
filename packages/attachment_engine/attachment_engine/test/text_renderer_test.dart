@@ -32,7 +32,9 @@ void main() {
   Future<void> pumpTextView(
     WidgetTester tester,
     String content, {
-    TextAttachmentRenderer renderer = const TextAttachmentRenderer(),
+    TextAttachmentRenderer renderer = const TextAttachmentRenderer(
+      showSearch: true,
+    ),
   }) async {
     final file = File('${tempDir.path}/sample.txt');
     file.writeAsStringSync(content);
@@ -195,7 +197,7 @@ void main() {
       'reusing the same widget for different text reloads its lines and '
       'search results instead of keeping the previous document\'s',
       (tester) async {
-        const renderer = TextAttachmentRenderer();
+        const renderer = TextAttachmentRenderer(showSearch: true);
         final fileA = File('${tempDir.path}/a.txt');
         fileA.writeAsStringSync('apple pie\nbanana split\n');
         final fileB = File('${tempDir.path}/b.txt');
