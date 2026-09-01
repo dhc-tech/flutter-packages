@@ -14,15 +14,15 @@ import 'renderer.dart';
 /// Plain text viewer. Set [snippetMode] to true (via [TextAttachmentRenderer.preview])
 /// for a short, non-scrolling preview rather than the full document.
 ///
-/// Full (non-snippet) mode includes a search bar (case-insensitive, with
-/// match count and next/previous navigation that scrolls to and highlights
-/// each match) — set [showSearch] to false to opt out and get the plain
-/// scrollable text view instead.
+/// Full (non-snippet) mode can optionally show a search bar (case-insensitive,
+/// with match count and next/previous navigation that scrolls to and
+/// highlights each match) — set [showSearch] to true to opt in; it defaults
+/// to off, giving the plain scrollable text view.
 class TextAttachmentRenderer extends AttachmentRenderer {
   const TextAttachmentRenderer({
     this.snippetMode = false,
     this.snippetLength = 280,
-    this.showSearch = true,
+    this.showSearch = false,
   });
 
   final bool snippetMode;
@@ -30,7 +30,7 @@ class TextAttachmentRenderer extends AttachmentRenderer {
 
   /// Whether the full (non-snippet) view shows an in-file search bar.
   /// Ignored when [snippetMode] is true (a 3-line preview has nothing
-  /// meaningful to search).
+  /// meaningful to search). Off by default.
   final bool showSearch;
 
   @override

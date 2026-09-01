@@ -1,3 +1,9 @@
+## 0.0.1-dev.4
+
+* `TextAttachmentRenderer.showSearch` now defaults to `false` (was `true`).
+  The in-file search bar remains available by opting in explicitly; the
+  plain scrollable text view is now the out-of-the-box behavior.
+
 ## 0.0.1-dev.3
 
 * New `OfficeAttachmentRenderer.onDismissed` callback, invoked once the
