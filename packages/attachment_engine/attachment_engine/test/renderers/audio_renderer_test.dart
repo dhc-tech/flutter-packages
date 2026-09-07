@@ -13,6 +13,12 @@ import 'package:flutter_test/flutter_test.dart';
 /// for the real iOS/Android platform packages (which this package cannot
 /// depend on without a cycle).
 class _RecordingPlatform extends AttachmentEnginePlatform {
+  _RecordingPlatform({this.failVolumeSetting = false});
+
+  /// When true, [audioSetVolume] rejects — exercises the revert-on-failure
+  /// path in [NativeAudioController.setVolume].
+  final bool failVolumeSetting;
+
   final List<String> calls = [];
   final _controllers = <String, StreamController<Map<Object?, Object?>>>{};
 
@@ -56,6 +62,9 @@ class _RecordingPlatform extends AttachmentEnginePlatform {
   @override
   Future<void> audioSetVolume(String playerId, double volume) {
     calls.add('audioSetVolume:$playerId:$volume');
+    if (failVolumeSetting) {
+      return Future.error(StateError('player disposed'));
+    }
     return Future.value();
   }
 
@@ -213,6 +222,43 @@ void main() {
           .length;
 
       expect(loadCallsAfter, loadCallsBefore + 1);
+    },
+  );
+
+  testWidgets(
+    'reverts the volume slider if the platform volume call fails, without '
+    'an unhandled error',
+    (tester) async {
+      platform = _RecordingPlatform(failVolumeSetting: true);
+      AttachmentEnginePlatform.instance = platform;
+
+      const renderer = AudioAttachmentRenderer();
+      final attachment = audioAttachment('audio-volume-failure-test');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Material(
+            child: Builder(
+              builder: (context) => renderer.build(context, attachment),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final volumeSlider = tester.widget<Slider>(find.byType(Slider).last);
+      expect(volumeSlider.value, 1);
+
+      (volumeSlider.onChanged!)(0.4);
+      // One pump for the optimistic update, one more for the revert once
+      // the rejected Future completes.
+      await tester.pump();
+      await tester.pump();
+
+      // Reverted back to the pre-drag value — no error escapes to fail the
+      // test (flutter_test fails the test on any unhandled exception, so
+      // simply reaching this assertion is itself part of the coverage).
+      expect(tester.widget<Slider>(find.byType(Slider).last).value, 1);
     },
   );
 }

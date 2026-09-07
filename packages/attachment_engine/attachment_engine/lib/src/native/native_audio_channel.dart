@@ -110,12 +110,24 @@ class NativeAudioController {
   Future<void> setSpeed(double speed) =>
       AttachmentEnginePlatform.instance.audioSetSpeed(playerId, speed);
 
-  Future<void> setVolume(double newVolume) {
+  /// Updates [volume] optimistically (so the slider tracks the drag
+  /// immediately), then reverts it if the platform call actually fails —
+  /// e.g. the player was disposed mid-drag, or the platform implementation
+  /// rejects the request. Never throws: `Slider.onChanged` is a
+  /// fire-and-forget `void Function(double)`, so an unhandled rejection
+  /// here would otherwise become an unhandled async error with no way for
+  /// the UI to react to it.
+  Future<void> setVolume(double newVolume) async {
+    final previousVolume = volume.value;
     volume.value = newVolume;
-    return AttachmentEnginePlatform.instance.audioSetVolume(
-      playerId,
-      newVolume,
-    );
+    try {
+      await AttachmentEnginePlatform.instance.audioSetVolume(
+        playerId,
+        newVolume,
+      );
+    } catch (_) {
+      volume.value = previousVolume;
+    }
   }
 
   Future<void> dispose() async {
