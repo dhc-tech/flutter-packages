@@ -110,6 +110,8 @@ class NativeAudioController {
   Future<void> setSpeed(double speed) =>
       AttachmentEnginePlatform.instance.audioSetSpeed(playerId, speed);
 
+  bool _isDisposed = false;
+
   /// Updates [volume] optimistically (so the slider tracks the drag
   /// immediately), then reverts it if the platform call actually fails —
   /// e.g. the player was disposed mid-drag, or the platform implementation
@@ -126,11 +128,19 @@ class NativeAudioController {
         newVolume,
       );
     } catch (_) {
-      volume.value = previousVolume;
+      // A pending setVolume can still be in flight when this controller
+      // gets disposed (e.g. the last renderer for this pooled player
+      // unmounts mid-drag) — writing to `volume` after `volume.dispose()`
+      // throws, so the revert must be skipped once disposed rather than
+      // attempted.
+      if (!_isDisposed) {
+        volume.value = previousVolume;
+      }
     }
   }
 
   Future<void> dispose() async {
+    _isDisposed = true;
     await _eventSub?.cancel();
     await _statusController.close();
     volume.dispose();
