@@ -124,4 +124,55 @@ void main() {
 
     expect(loadCallsAfter, loadCallsBefore + 1);
   });
+
+  testWidgets('a second renderer mounting after the pooled controller already '
+      'errored shows the error UI immediately, not a stale loading state', (
+    tester,
+  ) async {
+    const renderer = VideoAttachmentRenderer();
+    final attachment = videoAttachment('video-pooled-error-test');
+    final showSecond = ValueNotifier<bool>(false);
+
+    // Both renderers live under one widget tree from the start — the
+    // second is just hidden until later, via ValueListenableBuilder, so
+    // pumping never unmounts (and pool-releases) the first.
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Material(
+          child: Column(
+            children: [
+              Builder(
+                builder: (context) => renderer.build(context, attachment),
+              ),
+              ValueListenableBuilder<bool>(
+                valueListenable: showSecond,
+                builder: (context, visible, _) => visible
+                    ? Builder(
+                        builder: (context) =>
+                            renderer.build(context, attachment),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final playerId = playerIdFromFirstLoad(platform);
+    platform.emit(playerId, {'state': 'error'});
+    await tester.pump();
+    expect(find.text('This video could not be played.'), findsOneWidget);
+
+    // Second renderer for the SAME attachment mounts now — the pool
+    // returns the same, already-errored controller (ref-counted), with
+    // no new stream event to tell this late subscriber about it.
+    showSecond.value = true;
+    await tester.pump();
+
+    // Both renderers should show the error UI — including the second,
+    // freshly-mounted one, immediately (no further emit needed).
+    expect(find.text('This video could not be played.'), findsNWidgets(2));
+  });
 }

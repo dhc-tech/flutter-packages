@@ -81,6 +81,12 @@ class _VideoViewState extends State<_VideoView> {
           ? widget.attachment.remoteUrl
           : null,
     );
+    // Seeded from the pooled controller's current status, not just
+    // NativePlaybackStatus.initial() — a second renderer mounting after the
+    // first already advanced (e.g. into `error`) would otherwise show a
+    // stale idle/loading UI until another status event happens to arrive,
+    // which may never come if the controller is already done transitioning.
+    _status = _controller.status;
     _controller.statusStream.listen((status) {
       if (mounted) setState(() => _status = status);
     });
