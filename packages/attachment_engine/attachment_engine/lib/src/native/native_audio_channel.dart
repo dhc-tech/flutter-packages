@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:attachment_engine_platform_interface/attachment_engine_platform_interface.dart';
+import 'package:flutter/foundation.dart' show ValueNotifier;
 
 /// Playback/buffering state mirrored from the native side.
 enum NativePlaybackState {
@@ -64,6 +65,13 @@ class NativeAudioController {
   NativePlaybackStatus get status => _status;
   Duration? get duration => _status.duration;
 
+  /// Lives on the controller (not the widget) because [NativeAudioController]
+  /// is pool-shared by [playerId]/stable-identity — if two renderers show
+  /// the same attachment concurrently, changing volume in one must be
+  /// reflected in the other rather than leaving its slider showing a stale
+  /// value while the underlying native player's volume actually changed.
+  final ValueNotifier<double> volume = ValueNotifier<double>(1);
+
   void _onEvent(Object? event) {
     if (event is! Map) return;
     final stateName = event['state'] as String?;
@@ -102,12 +110,40 @@ class NativeAudioController {
   Future<void> setSpeed(double speed) =>
       AttachmentEnginePlatform.instance.audioSetSpeed(playerId, speed);
 
-  Future<void> setVolume(double volume) =>
-      AttachmentEnginePlatform.instance.audioSetVolume(playerId, volume);
+  bool _isDisposed = false;
+
+  /// Updates [volume] optimistically (so the slider tracks the drag
+  /// immediately), then reverts it if the platform call actually fails —
+  /// e.g. the player was disposed mid-drag, or the platform implementation
+  /// rejects the request. Never throws: `Slider.onChanged` is a
+  /// fire-and-forget `void Function(double)`, so an unhandled rejection
+  /// here would otherwise become an unhandled async error with no way for
+  /// the UI to react to it.
+  Future<void> setVolume(double newVolume) async {
+    final previousVolume = volume.value;
+    volume.value = newVolume;
+    try {
+      await AttachmentEnginePlatform.instance.audioSetVolume(
+        playerId,
+        newVolume,
+      );
+    } catch (_) {
+      // A pending setVolume can still be in flight when this controller
+      // gets disposed (e.g. the last renderer for this pooled player
+      // unmounts mid-drag) — writing to `volume` after `volume.dispose()`
+      // throws, so the revert must be skipped once disposed rather than
+      // attempted.
+      if (!_isDisposed) {
+        volume.value = previousVolume;
+      }
+    }
+  }
 
   Future<void> dispose() async {
+    _isDisposed = true;
     await _eventSub?.cancel();
     await _statusController.close();
+    volume.dispose();
     await AttachmentEnginePlatform.instance.audioDispose(playerId);
   }
 }

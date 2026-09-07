@@ -94,6 +94,31 @@ class _AudioViewState extends State<_AudioView> {
     super.dispose();
   }
 
+  /// H:MM:SS once the duration reaches an hour, MM:SS otherwise — using
+  /// `inMinutes.remainder(60)` unconditionally (as an earlier version of
+  /// this did) silently drops the hour component for anything an hour or
+  /// longer (e.g. 1:05:00 rendered as "05:00").
+  String _formatDuration(Duration d) {
+    final hours = d.inHours;
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+  }
+
+  Future<void> _retry() async {
+    final path = widget.attachment.localPath;
+    final url = widget.attachment.remoteUrl;
+    try {
+      if (path != null) {
+        await _player.setFilePath(path);
+      } else if (url != null) {
+        await _player.setUrl(url);
+      }
+    } catch (_) {
+      // Playback errors surface via the status stream's error state below.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<NativePlaybackStatus>(
@@ -101,6 +126,23 @@ class _AudioViewState extends State<_AudioView> {
       initialData: _player.status,
       builder: (context, snapshot) {
         final status = snapshot.data ?? NativePlaybackStatus.initial();
+        if (status.state == NativePlaybackState.error) {
+          // Matches the video renderer's recovery behavior — without this,
+          // a failed load left the player permanently unusable unless the
+          // whole widget was rebuilt externally.
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 40),
+                const SizedBox(height: 12),
+                const Text('This audio could not be played.'),
+                const SizedBox(height: 12),
+                TextButton(onPressed: _retry, child: const Text('Retry')),
+              ],
+            ),
+          );
+        }
         final playing = status.state == NativePlaybackState.playing;
         final total = status.duration ?? Duration.zero;
         return Column(
@@ -113,10 +155,44 @@ class _AudioViewState extends State<_AudioView> {
               max: total.inMilliseconds.toDouble().clamp(1, double.infinity),
               onChanged: (v) => _player.seek(Duration(milliseconds: v.round())),
             ),
+            // Position/duration readout — the slider alone doesn't tell a
+            // listener how long the track is or how far into it they are.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_formatDuration(status.position)),
+                  Text(_formatDuration(total)),
+                ],
+              ),
+            ),
             IconButton(
               iconSize: 48,
               icon: Icon(playing ? Icons.pause_circle : Icons.play_circle),
               onPressed: () => playing ? _player.pause() : _player.play(),
+            ),
+            // Volume lives on the shared controller (see
+            // NativeAudioController.volume), not local widget state — so
+            // two renderers of the same pooled attachment stay in sync
+            // instead of one showing a stale slider after the other moves
+            // it.
+            ValueListenableBuilder<double>(
+              valueListenable: _player.volume,
+              builder: (context, volume, _) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Icon(volume == 0 ? Icons.volume_off : Icons.volume_up),
+                    Expanded(
+                      child: Slider(
+                        value: volume,
+                        onChanged: _player.setVolume,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         );

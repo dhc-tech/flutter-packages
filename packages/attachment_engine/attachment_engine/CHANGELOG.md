@@ -1,3 +1,16 @@
+## 0.0.1-dev.5
+
+* Fix: `VideoAttachmentRenderer` never rendered anything for a failed load —
+  `NativePlaybackState.error` was defined but unhandled, so a failure fell
+  through to the "assume playable" branch and looked like a video stuck on
+  an infinite loading spinner with no way to recover. Added an explicit
+  error branch (message + Retry, which reloads the same source).
+* Fix: `AudioAttachmentRenderer` had a seek bar and play/pause button but no
+  position/duration readout and no volume control, even though
+  `NativeAudioController.setVolume()` already existed and was wired to the
+  platform channel. Added both, plus the same explicit error-state handling
+  as the video renderer.
+
 ## 0.0.1-dev.4
 
 * `TextAttachmentRenderer.showSearch` now defaults to `false` (was `true`).
