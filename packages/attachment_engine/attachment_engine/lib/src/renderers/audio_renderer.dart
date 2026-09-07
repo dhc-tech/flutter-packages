@@ -65,6 +65,7 @@ class _AudioView extends StatefulWidget {
 class _AudioViewState extends State<_AudioView> {
   late final String _key;
   late final NativeAudioController _player;
+  double _volume = 1;
 
   @override
   void initState() {
@@ -94,6 +95,12 @@ class _AudioViewState extends State<_AudioView> {
     super.dispose();
   }
 
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<NativePlaybackStatus>(
@@ -101,6 +108,9 @@ class _AudioViewState extends State<_AudioView> {
       initialData: _player.status,
       builder: (context, snapshot) {
         final status = snapshot.data ?? NativePlaybackStatus.initial();
+        if (status.state == NativePlaybackState.error) {
+          return const Center(child: Text('This audio could not be played.'));
+        }
         final playing = status.state == NativePlaybackState.playing;
         final total = status.duration ?? Duration.zero;
         return Column(
@@ -113,10 +123,39 @@ class _AudioViewState extends State<_AudioView> {
               max: total.inMilliseconds.toDouble().clamp(1, double.infinity),
               onChanged: (v) => _player.seek(Duration(milliseconds: v.round())),
             ),
+            // Position/duration readout — the slider alone doesn't tell a
+            // listener how long the track is or how far into it they are.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(_formatDuration(status.position)),
+                  Text(_formatDuration(total)),
+                ],
+              ),
+            ),
             IconButton(
               iconSize: 48,
               icon: Icon(playing ? Icons.pause_circle : Icons.play_circle),
               onPressed: () => playing ? _player.pause() : _player.play(),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  Icon(_volume == 0 ? Icons.volume_off : Icons.volume_up),
+                  Expanded(
+                    child: Slider(
+                      value: _volume,
+                      onChanged: (v) {
+                        setState(() => _volume = v);
+                        _player.setVolume(v);
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         );

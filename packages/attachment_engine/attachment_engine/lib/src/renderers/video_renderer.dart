@@ -92,8 +92,39 @@ class _VideoViewState extends State<_VideoView> {
     super.dispose();
   }
 
+  /// Reloads the same source into the existing controller — same
+  /// filePath/url precedence [VideoControllerPool.acquire] used originally
+  /// (local file wins when present, otherwise the remote URL).
+  void _retry() {
+    _controller.load(
+      filePath: widget.attachment.localPath,
+      url: widget.attachment.localPath == null
+          ? widget.attachment.remoteUrl
+          : null,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Checked first and exclusively: a failed load must never fall through
+    // to the "assume playable" branch below, which would render the native
+    // surface with an uninitialized aspect ratio and no indication anything
+    // went wrong — exactly the "stuck on an infinite spinner with no error
+    // or retry" bug this branch exists to fix.
+    if (_status.state == NativePlaybackState.error) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 40),
+            const SizedBox(height: 12),
+            const Text('This video could not be played.'),
+            const SizedBox(height: 12),
+            TextButton(onPressed: _retry, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
     if (_status.state == NativePlaybackState.idle ||
         _status.state == NativePlaybackState.buffering) {
       return Stack(
