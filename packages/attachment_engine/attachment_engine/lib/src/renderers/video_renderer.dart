@@ -95,13 +95,17 @@ class _VideoViewState extends State<_VideoView> {
   /// Reloads the same source into the existing controller — same
   /// filePath/url precedence [VideoControllerPool.acquire] used originally
   /// (local file wins when present, otherwise the remote URL).
-  void _retry() {
-    _controller.load(
-      filePath: widget.attachment.localPath,
-      url: widget.attachment.localPath == null
-          ? widget.attachment.remoteUrl
-          : null,
-    );
+  Future<void> _retry() async {
+    try {
+      await _controller.load(
+        filePath: widget.attachment.localPath,
+        url: widget.attachment.localPath == null
+            ? widget.attachment.remoteUrl
+            : null,
+      );
+    } catch (_) {
+      // Playback errors surface via the status stream's error state above.
+    }
   }
 
   @override

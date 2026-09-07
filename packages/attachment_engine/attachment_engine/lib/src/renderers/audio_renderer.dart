@@ -105,13 +105,17 @@ class _AudioViewState extends State<_AudioView> {
     return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
   }
 
-  void _retry() {
+  Future<void> _retry() async {
     final path = widget.attachment.localPath;
     final url = widget.attachment.remoteUrl;
-    if (path != null) {
-      _player.setFilePath(path);
-    } else if (url != null) {
-      _player.setUrl(url);
+    try {
+      if (path != null) {
+        await _player.setFilePath(path);
+      } else if (url != null) {
+        await _player.setUrl(url);
+      }
+    } catch (_) {
+      // Playback errors surface via the status stream's error state below.
     }
   }
 
