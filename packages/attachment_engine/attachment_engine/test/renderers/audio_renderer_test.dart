@@ -149,10 +149,7 @@ void main() {
     );
     // Moving the slider updates the shared controller-level value, not
     // per-widget state — the same volume slider reads it back.
-    expect(
-      tester.widget<Slider>(find.byType(Slider).last).value,
-      0.4,
-    );
+    expect(tester.widget<Slider>(find.byType(Slider).last).value, 0.4);
   });
 
   testWidgets('formats a duration of an hour or more with an hours component', (
@@ -186,44 +183,43 @@ void main() {
     expect(find.text('1:05:00'), findsOneWidget);
   });
 
-  testWidgets(
-    'renders an error message and Retry button on playback failure',
-    (tester) async {
-      const renderer = AudioAttachmentRenderer();
-      final attachment = audioAttachment('audio-error-test');
+  testWidgets('renders an error message and Retry button on playback failure', (
+    tester,
+  ) async {
+    const renderer = AudioAttachmentRenderer();
+    final attachment = audioAttachment('audio-error-test');
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Material(
-            child: Builder(
-              builder: (context) => renderer.build(context, attachment),
-            ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Material(
+          child: Builder(
+            builder: (context) => renderer.build(context, attachment),
           ),
         ),
-      );
-      await tester.pump();
+      ),
+    );
+    await tester.pump();
 
-      final playerId = playerIdFromFirstLoad(platform);
-      platform.emit(playerId, {'state': 'error'});
-      await tester.pump();
-      await tester.pump();
+    final playerId = playerIdFromFirstLoad(platform);
+    platform.emit(playerId, {'state': 'error'});
+    await tester.pump();
+    await tester.pump();
 
-      expect(find.text('This audio could not be played.'), findsOneWidget);
-      expect(find.byType(Slider), findsNothing);
-      expect(find.widgetWithText(TextButton, 'Retry'), findsOneWidget);
+    expect(find.text('This audio could not be played.'), findsOneWidget);
+    expect(find.byType(Slider), findsNothing);
+    expect(find.widgetWithText(TextButton, 'Retry'), findsOneWidget);
 
-      final loadCallsBefore = platform.calls
-          .where((c) => c.startsWith('audioLoad:'))
-          .length;
-      await tester.tap(find.widgetWithText(TextButton, 'Retry'));
-      await tester.pump();
-      final loadCallsAfter = platform.calls
-          .where((c) => c.startsWith('audioLoad:'))
-          .length;
+    final loadCallsBefore = platform.calls
+        .where((c) => c.startsWith('audioLoad:'))
+        .length;
+    await tester.tap(find.widgetWithText(TextButton, 'Retry'));
+    await tester.pump();
+    final loadCallsAfter = platform.calls
+        .where((c) => c.startsWith('audioLoad:'))
+        .length;
 
-      expect(loadCallsAfter, loadCallsBefore + 1);
-    },
-  );
+    expect(loadCallsAfter, loadCallsBefore + 1);
+  });
 
   testWidgets(
     'reverts the volume slider if the platform volume call fails, without '
