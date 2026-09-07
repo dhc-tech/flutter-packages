@@ -57,6 +57,12 @@ class AudioChannel(private val messenger: BinaryMessenger) : AudioHostApi {
       emitState(playerId, "buffering")
       entry.player.prepareAsync()
     } catch (e: Exception) {
+      // setDataSource/prepareAsync can throw synchronously (e.g. malformed
+      // path/URI) before setOnErrorListener's callback ever gets a chance to
+      // fire — without this, the Dart-side status stream never sees "error"
+      // for this specific failure, leaving the widget stuck showing normal
+      // (unplayed) controls instead of the error/Retry UI.
+      emitState(playerId, "error")
       throw FlutterError("load_failed", e.message, null)
     }
   }

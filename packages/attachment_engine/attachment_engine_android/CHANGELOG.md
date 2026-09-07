@@ -1,3 +1,15 @@
+## 0.0.1-dev.2
+
+* Fix: `AudioChannel.load` could throw a synchronous exception from
+  `MediaPlayer.setDataSource`/`.prepareAsync` (e.g. a malformed path/URI)
+  before `setOnErrorListener`'s callback ever had a chance to fire — so
+  the Dart-side status stream never saw `"error"` for that specific
+  failure, leaving `attachment_engine`'s audio renderer stuck showing
+  normal (unplayed) controls instead of its error/Retry UI. The catch
+  block now emits `"error"` before rethrowing, matching
+  `VideoPlatformView`'s (and `attachment_engine_ios`'s `AudioChannel`'s)
+  existing behavior.
+
 ## 0.0.1-dev.1
 
 * Initial release: the Android implementation extracted from
