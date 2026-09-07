@@ -65,7 +65,6 @@ class _AudioView extends StatefulWidget {
 class _AudioViewState extends State<_AudioView> {
   late final String _key;
   late final NativeAudioController _player;
-  double _volume = 1;
 
   @override
   void initState() {
@@ -95,10 +94,25 @@ class _AudioViewState extends State<_AudioView> {
     super.dispose();
   }
 
+  /// H:MM:SS once the duration reaches an hour, MM:SS otherwise — using
+  /// `inMinutes.remainder(60)` unconditionally (as an earlier version of
+  /// this did) silently drops the hour component for anything an hour or
+  /// longer (e.g. 1:05:00 rendered as "05:00").
   String _formatDuration(Duration d) {
+    final hours = d.inHours;
     final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
+    return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
+  }
+
+  void _retry() {
+    final path = widget.attachment.localPath;
+    final url = widget.attachment.remoteUrl;
+    if (path != null) {
+      _player.setFilePath(path);
+    } else if (url != null) {
+      _player.setUrl(url);
+    }
   }
 
   @override
@@ -109,7 +123,21 @@ class _AudioViewState extends State<_AudioView> {
       builder: (context, snapshot) {
         final status = snapshot.data ?? NativePlaybackStatus.initial();
         if (status.state == NativePlaybackState.error) {
-          return const Center(child: Text('This audio could not be played.'));
+          // Matches the video renderer's recovery behavior — without this,
+          // a failed load left the player permanently unusable unless the
+          // whole widget was rebuilt externally.
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, size: 40),
+                const SizedBox(height: 12),
+                const Text('This audio could not be played.'),
+                const SizedBox(height: 12),
+                TextButton(onPressed: _retry, child: const Text('Retry')),
+              ],
+            ),
+          );
         }
         final playing = status.state == NativePlaybackState.playing;
         final total = status.duration ?? Duration.zero;
@@ -140,21 +168,26 @@ class _AudioViewState extends State<_AudioView> {
               icon: Icon(playing ? Icons.pause_circle : Icons.play_circle),
               onPressed: () => playing ? _player.pause() : _player.play(),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  Icon(_volume == 0 ? Icons.volume_off : Icons.volume_up),
-                  Expanded(
-                    child: Slider(
-                      value: _volume,
-                      onChanged: (v) {
-                        setState(() => _volume = v);
-                        _player.setVolume(v);
-                      },
+            // Volume lives on the shared controller (see
+            // NativeAudioController.volume), not local widget state — so
+            // two renderers of the same pooled attachment stay in sync
+            // instead of one showing a stale slider after the other moves
+            // it.
+            ValueListenableBuilder<double>(
+              valueListenable: _player.volume,
+              builder: (context, volume, _) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  children: [
+                    Icon(volume == 0 ? Icons.volume_off : Icons.volume_up),
+                    Expanded(
+                      child: Slider(
+                        value: volume,
+                        onChanged: _player.setVolume,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

@@ -5,6 +5,7 @@
 import 'dart:async';
 
 import 'package:attachment_engine_platform_interface/attachment_engine_platform_interface.dart';
+import 'package:flutter/foundation.dart' show ValueNotifier;
 
 /// Playback/buffering state mirrored from the native side.
 enum NativePlaybackState {
@@ -64,6 +65,13 @@ class NativeAudioController {
   NativePlaybackStatus get status => _status;
   Duration? get duration => _status.duration;
 
+  /// Lives on the controller (not the widget) because [NativeAudioController]
+  /// is pool-shared by [playerId]/stable-identity — if two renderers show
+  /// the same attachment concurrently, changing volume in one must be
+  /// reflected in the other rather than leaving its slider showing a stale
+  /// value while the underlying native player's volume actually changed.
+  final ValueNotifier<double> volume = ValueNotifier<double>(1);
+
   void _onEvent(Object? event) {
     if (event is! Map) return;
     final stateName = event['state'] as String?;
@@ -102,12 +110,18 @@ class NativeAudioController {
   Future<void> setSpeed(double speed) =>
       AttachmentEnginePlatform.instance.audioSetSpeed(playerId, speed);
 
-  Future<void> setVolume(double volume) =>
-      AttachmentEnginePlatform.instance.audioSetVolume(playerId, volume);
+  Future<void> setVolume(double newVolume) {
+    volume.value = newVolume;
+    return AttachmentEnginePlatform.instance.audioSetVolume(
+      playerId,
+      newVolume,
+    );
+  }
 
   Future<void> dispose() async {
     await _eventSub?.cancel();
     await _statusController.close();
+    volume.dispose();
     await AttachmentEnginePlatform.instance.audioDispose(playerId);
   }
 }
