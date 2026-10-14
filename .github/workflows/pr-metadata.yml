@@ -6,7 +6,6 @@
 # the official actions/github-script action rather than a marketplace
 # "PR readiness" action of unknown provenance. Computes, in one pass so
 # there is one source of truth and no racing label writers:
-#   - size:XS/S/M/L/XL         (from diff size)
 #   - type:<conventional-type> (from the PR title, which pr-title.yml
 #                                already validates as Conventional Commits)
 #   - breaking-change          (from `!` in the title or a BREAKING CHANGE
@@ -57,7 +56,6 @@ jobs:
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            const SIZE_LABELS = ['size:XS', 'size:S', 'size:M', 'size:L', 'size:XL'];
             const STATUS_LABELS = [
               'status:blocked',
               'status:changes-requested',
@@ -87,17 +85,6 @@ jobs:
             const nextLabels = new Set(existingLabels);
             const removeLabel = (name) => nextLabels.delete(name);
             const setLabel = (name) => nextLabels.add(name);
-
-            // ---- size:* ----
-            const totalChanges = pr.additions + pr.deletions;
-            let sizeLabel;
-            if (totalChanges <= 10) sizeLabel = 'size:XS';
-            else if (totalChanges <= 100) sizeLabel = 'size:S';
-            else if (totalChanges <= 500) sizeLabel = 'size:M';
-            else if (totalChanges <= 1000) sizeLabel = 'size:L';
-            else sizeLabel = 'size:XL';
-            for (const l of SIZE_LABELS) removeLabel(l);
-            setLabel(sizeLabel);
 
             // ---- type:* (from the Conventional Commits PR title) ----
             const titleMatch = pr.title.match(/^(\w+)(\([^)]*\))?(!)?:/);

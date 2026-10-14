@@ -18,7 +18,6 @@ and everything below is applied for you.
 | `platform: android` / `ios` / `macos` / `darwin` / `linux` / `windows` / `web` / `interface` | Automatically, from changed paths | Which platform implementation package the PR touches. |
 | `type:feat`, `type:fix`, `type:docs`, ... | Automatically, from the PR title | Conventional Commit type of the change. |
 | `breaking-change` | Automatically, from `!` in the title or a `BREAKING CHANGE` footer | Breaking change; the maintainer picks a major version bump when releasing. |
-| `size:XS` ... `size:XL` | Automatically, from diff size | Smaller PRs review faster. |
 | `status:needs-review` | Automatically | Waiting for a review or for checks. |
 | `status:changes-requested` | Automatically | A reviewer asked for changes. Push fixes; it clears itself. |
 | `status:ci-failed` | Automatically | A required check is failing. Open the failing check and fix it. |
@@ -57,5 +56,5 @@ A maintainer then triages it:
 - To merge a `status:ready` PR hands-free, add `autosubmit`.
 - To add or change a label, edit `.github/labels.json`; the workflow syncs it.
   Path-based labels live in `.github/labeler.yml`, issue-text rules in
-  `.github/issue-labeler.yml`, and size/type/status logic in
+  `.github/issue-labeler.yml`, and type/status logic in
   `.github/workflows/pr-metadata.yml`.

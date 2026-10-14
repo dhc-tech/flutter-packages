@@ -135,31 +135,6 @@
     "description": "Breaking API or behavior change (automatic from title or footer)"
   },
   {
-    "name": "size:XS",
-    "color": "c2e0c6",
-    "description": "Diff size <=10 lines (automatic)"
-  },
-  {
-    "name": "size:S",
-    "color": "7bcc70",
-    "description": "Diff size <=100 lines (automatic)"
-  },
-  {
-    "name": "size:M",
-    "color": "f9d71c",
-    "description": "Diff size <=500 lines (automatic)"
-  },
-  {
-    "name": "size:L",
-    "color": "f0883e",
-    "description": "Diff size <=1000 lines (automatic)"
-  },
-  {
-    "name": "size:XL",
-    "color": "d73a4a",
-    "description": "Diff size >1000 lines (automatic)"
-  },
-  {
     "name": "status:blocked",
     "color": "000000",
     "description": "Draft, has conflicts or otherwise not mergeable (automatic)"
