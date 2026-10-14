@@ -1,9 +1,9 @@
 name: release
 
 # Publishes every package whose current `version:` is not on pub.dev yet and
-# tags it <package>-v<version>. It runs on every push to `main`, every 10
-# minutes, and on demand. Merges made with the default GITHUB_TOKEN (auto-merge
-# via `status: automerge`) do not trigger `push` workflows, so the schedule is
+# tags it <package>-v<version>. It runs on every push to `main`, hourly,
+# and on demand (for an urgent release, run it by hand). Merges made with the default GITHUB_TOKEN (auto-merge
+# via `status: automerge`) do not trigger `push` workflows, so the hourly run is
 # what releases them, and a failed run is simply completed by the next one. A
 # run with nothing to publish only checks pub.dev and exits in seconds.
 
@@ -11,7 +11,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "23 * * * *"
   workflow_dispatch:
 
 # Declare default permissions as read only.
