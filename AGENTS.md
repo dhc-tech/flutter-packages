@@ -1,112 +1,49 @@
-# Agent Guide for the DHC Tech Flutter Packages Repository
+# Agent Guide
 
-This document provides guidance for AI agents to effectively contribute to the `dhc-tech/flutter-packages` repository.
+Guidance for AI agents and contributors working in `dhc-tech/flutter-packages`.
+Human-oriented details live in [CONTRIBUTING.md](CONTRIBUTING.md) and
+[README.md](README.md); this file only adds what agents need to act safely.
 
-## Guiding Principles for Contributions
+## Rules
 
-- **Format All Code**: Every code change must be formatted using the repository's tools.
-- **Pass All Tests**: All changes must pass linting, analysis, and relevant tests.
-- **Update CHANGELOGs**: Any user-facing change or bug fix in a package requires an update to its `CHANGELOG.md` and `pubspec.yaml` version. Ensure you follow the [CHANGELOG style guide](https://github.com/flutter/flutter/blob/master/docs/ecosystem/contributing/README.md#changelog-style).
-- **Follow Conventions**: Adhere to the repository's specific conventions, such as federated plugin structure and code generation steps.
+- Format with `dart format .`, then run `dart analyze --fatal-infos` and the
+  affected tests. A change is not done until all three pass.
+- Do not bump versions or edit `CHANGELOG.md` by hand; Melos generates them from
+  Conventional Commit titles (`fix(pkg): ...`, `feat(pkg): ...`).
+- Comments explain *why*, never restate the code.
+- Never commit credentials or proprietary names.
 
-## Agent Environment Setup
+## Layout
 
-To ensure a consistent and functional environment, configure your VM with the following setup. This provides the necessary Flutter SDK and dependencies for building and testing packages.
+This is a pub workspace. The root `pubspec.yaml` lists every package and example
+app; each member has `resolution: workspace`. Run `flutter pub get` once at the
+root. Never add `dependency_overrides` or `pubspec_overrides.yaml` to a member.
+
+- `packages/dig_cli`, `packages/white_label_kit` — standalone Dart packages.
+- `packages/apple_sign_in_plugin/*`, `packages/attachment_engine/*` — federated
+  plugins: app-facing package, `_platform_interface`, and one package per
+  platform. Interface changes usually need matching implementation changes.
+
+## Commands
 
 ```bash
-curl -L https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.7-stable.tar.xz | tar -xJ -C $HOME
-export FLUTTER_HOME=$HOME/flutter
-export PATH=$FLUTTER_HOME/bin:$PATH
-flutter --disable-analytics
-flutter precache --force
-# Sanity check the configuration.
-flutter doctor --verbose
+flutter pub get                                  # resolve the workspace
+dart format .                                    # or: melos run format
+dart analyze --fatal-infos                       # or: melos run analyze
+melos run publish:check                          # pub publish --dry-run everywhere
+.github/scripts/run_tests.sh [package_dir ...]   # all packages, or just those given
+dart run pigeon --input pigeons/<file>.dart      # after editing a pigeons/ file
+dart run build_runner build -d                   # after changing build_runner inputs
 ```
 
-## Repository Overview
+`*_web` packages only load in a browser; the test script runs them with
+`--platform chrome`.
 
-This is a monorepo containing Flutter packages maintained by DHC Tech.
-- First-party packages developed by DHC Tech are in `packages/`.
-- All first-party packages are in `packages/`.
+## Releases
 
-Many packages are part of **federated plugins**. A federated plugin has a main package (e.g., `apple_sign_in_plugin`) that defines the API used by plugin clients, a platform interface package (e.g., `apple_sign_in_plugin_platform_interface`) that defines the interface that each platform implementation must implement, and one or more platform implementation packages (e.g., `apple_sign_in_plugin_ios`, `apple_sign_in_plugin_web`) that implement that platform interface. When working on a federated plugin, you may need to modify multiple packages.
-
-For more details, see the main `README.md` and `CONTRIBUTING.md`.
-
-## Core Tooling and Workflows
-
-This repository uses standard Flutter and Dart SDK tools for development, testing, and validation.
-
-### Formatting
-
-Always format your code changes:
-```bash
-dart format .
-```
-
-### Static Analysis
-
-Run analysis across all packages:
-```bash
-dart analyze --fatal-infos
-```
-
-### Running Tests
-
-Run unit and widget tests:
-```bash
-# Run tests for a specific package:
-flutter test packages/<package_name>
-
-# Run all tests across the repository:
-for pkg in $(find packages -mindepth 1 -maxdepth 2 -name pubspec.yaml -exec dirname {} \; | sort); do
-  if [ -d "$pkg/test" ]; then
-    echo "Running tests in $pkg"
-    (cd "$pkg" && flutter test)
-  fi
-done
-```
-
-## Code Generators
-
-Some packages use code generators, and changes to those packages require running the relevant code generators.
-
-- **Pigeon**: If you change a file in a `pigeons/` directory, you must run the Pigeon generator:
-  ```bash
-  # Run from the package's directory
-  dart run pigeon --input pigeons/<changed_file>.dart
-  ```
-- **Mockito**: If you change code in a package that uses `mockito` for tests (check `dev_dependencies` in `pubspec.yaml`), you must run its mock generator:
-  ```bash
-  # Run from the package's directory
-  dart run build_runner build -d
-  ```
-
-## Code Style
-
-All code must adhere to the repository's style guides. The `format` command handles most of this, but be aware of the specific style guides for each language, as detailed in [CONTRIBUTING.md](./CONTRIBUTING.md#style):
-- **Dart**: Flutter style, formatted with `dart format`.
-- **C++**: Google style, formatted with `clang-format`.
-- **Java**: Google style, formatted with `google-java-format`.
-- **Kotlin**: Android Kotlin style, formatted with `ktfmt`.
-- **Objective-C**: Google style, formatted with `clang-format`.
-- **Swift**: Google style, formatted with `swift-format`.
-- **Comments**: Avoid adding redundant or trivial comments that simply restate what the code itself does (e.g., repeating method calls in English). Comments should explain the *why* behind complex or non-obvious logic, or serve as public API documentation.
-
-## Version and CHANGELOG updates
-
-Any PR that changes non-test code in a package should update its version in pubspec.yaml and add a corresponding entry in CHANGELOG.md.
-
-**This process can be automated**. The `update-release-info` command is the preferred way to handle this. It determines changed packages, bumps versions, and updates changelogs automatically.
-```bash
-dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart update-release-info \
-  --version=minimal \
-  --base-branch=origin/main \
-  --changelog="A description of the changes."
-```
-
-- `--version=minimal`: Bumps patch for bug fixes, and skips unchanged packages. This is usually the best option unless a new feature is being added.
-  - When making public API changes, use `--version=minor` instead.
-- `--base-branch=origin/main`: Diffs against the `main` branch to find changed packages.
-
-If you update manually, follow semantic versioning and the [repository's CHANGELOG style](https://github.com/flutter/flutter/blob/master/docs/ecosystem/contributing/README.md#changelog-style).
+`release_pr.yml` runs `melos version` on `main` and maintains a `release/next` PR;
+merging it triggers `release.yml`, which runs `.github/scripts/publish_changed.sh`
+to publish packages whose `version:` changed and tag them `<name>-v<version>`.
+Preview with `melos run version:preview` (discard the changes afterwards) or
+`DRY_RUN=1 BASE_SHA=origin/main~1 .github/scripts/publish_changed.sh`.
+See [docs/release_architecture.md](docs/release_architecture.md).

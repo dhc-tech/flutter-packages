@@ -1,7 +1,7 @@
 # Skill: apple_sign_in_plugin Authentication
 
 ## Overview
-`apple_sign_in_plugin` provides Apple Sign-In authentication across iOS, macOS, Android, and Web platforms.
+`apple_sign_in_plugin` provides Apple Sign-In authentication across iOS, macOS, Android, Web, Windows and Linux.
 
 ## Key Principles
 - Uses native `AuthenticationServices` on iOS 13+ and macOS 10.15+.

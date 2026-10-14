@@ -1,12 +1,9 @@
-# Flutter Agent Skills
+# Agent skills
 
-Welcome to the `.agent/skills` directory. This directory contains agent skills designed for consumption by Flutter package contributors.
+Short, package-specific notes for AI agents. Repository-wide rules are in
+[AGENTS.md](../../AGENTS.md).
 
-## Base guidance
-
-dhc-tech/flutter-packages follows the same guidance that flutter/flutter uses.
-https://github.com/flutter/flutter/blob/master/.agents/skills/README.md
-
-## Packages specific guidance
-
-When there is specific guidance for packages it will go here.
+- [apple_sign_in_plugin](apple_sign_in_plugin.md)
+- [attachment_engine](attachment_engine.md)
+- [dig_cli](dig_cli.md)
+- [white_label_kit](white_label_kit.md)
