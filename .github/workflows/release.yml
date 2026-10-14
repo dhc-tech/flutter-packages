@@ -1,16 +1,17 @@
 name: release
 
 # Publishes every package whose current `version:` is not on pub.dev yet and
-# tags it <package>-v<version>. It runs on every push to `main`, hourly, and on
-# demand. The hourly run makes releases self-healing: merges made with the
-# default GITHUB_TOKEN (auto-merge via `status: automerge`) do not trigger `push`
-# workflows, and a failed run is simply completed by the next one.
+# tags it <package>-v<version>. It runs on every push to `main`, every 10
+# minutes, and on demand. Merges made with the default GITHUB_TOKEN (auto-merge
+# via `status: automerge`) do not trigger `push` workflows, so the schedule is
+# what releases them, and a failed run is simply completed by the next one. A
+# run with nothing to publish only checks pub.dev and exits in seconds.
 
 on:
   push:
     branches: [main]
   schedule:
-    - cron: "23 * * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 # Declare default permissions as read only.
@@ -39,10 +40,22 @@ jobs:
           fetch-depth: 0 # Full history and tags are needed to tag releases.
           persist-credentials: false
 
+      - name: Look for unpublished package versions
+        id: detect
+        run: |
+          if DRY_RUN=1 .github/scripts/publish_unpublished.sh | grep -q "would publish"; then
+            echo "pending=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Every package version is already on pub.dev; nothing to do."
+            echo "pending=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install Flutter
+        if: steps.detect.outputs.pending == 'true'
         uses: $/.github/actions/install_flutter
 
       - name: Check validate on this commit
+        if: steps.detect.outputs.pending == 'true'
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
@@ -72,6 +85,7 @@ jobs:
             core.setFailed('Timed out waiting for the validate check');
 
       - name: Publish unpublished packages
+        if: steps.detect.outputs.pending == 'true'
         env:
           PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

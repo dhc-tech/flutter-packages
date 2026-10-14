@@ -13,7 +13,7 @@ automatically, so an unrelated change can never trigger a release.
 PR (code + deliberate `version:` bump + CHANGELOG entry)
   → `validate` workflow: format, analyze, tests, `dart pub publish --dry-run`
   → merge to main
-  → `release` workflow (push to main, hourly, or manual)
+  → `release` workflow (push to main, every 10 minutes, or manual)
   → .github/scripts/publish_unpublished.sh
       for every package whose `version:` is not on pub.dev yet:
         dart pub publish --force, then tag <package>-v<version>
@@ -23,7 +23,7 @@ A change without a version bump merges normally and publishes nothing; it ships
 with the package's next bump. Because the script compares against pub.dev rather
 than a git diff, a skipped or half-finished run is completed by the next one, and
 merges that do not trigger `push` workflows (auto-merge with the default
-`GITHUB_TOKEN`) are still released by the hourly run. No extra token is needed.
+`GITHUB_TOKEN`) are still released by the next scheduled run (within 10 minutes). No extra token is needed.
 
 ## Components
 
