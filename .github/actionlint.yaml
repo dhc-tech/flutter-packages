@@ -1,0 +1,7 @@
+# actionlint predates GitHub's `$/` self-repository syntax (required by zizmor's
+# self-repository audit and accepted by GitHub), so it reports it as an invalid
+# action reference.
+paths:
+  .github/workflows/**/*.yml:
+    ignore:
+      - 'specifying action "\$/\.github/actions/.+" in invalid format because ref is missing'

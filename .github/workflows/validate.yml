@@ -26,7 +26,7 @@ jobs:
           persist-credentials: false
 
       - name: Install Flutter
-        uses: $/.github/workflows/internals/install_flutter
+        uses: $/.github/actions/install_flutter
 
       - name: Cache pub packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -37,31 +37,28 @@ jobs:
             ${{ runner.os }}-pub-
 
       - name: Resolve workspace dependencies
-        run: flutter pub get
+        run: .github/scripts/ci.sh pub-get
 
       - name: Check formatting
         if: ${{ !cancelled() }}
-        run: dart format --output=none --set-exit-if-changed .
+        run: .github/scripts/ci.sh format
 
       - name: Run static analysis
         if: ${{ !cancelled() }}
-        run: dart analyze --fatal-infos
+        run: .github/scripts/ci.sh analyze
 
-      - name: Test CI scripts and workflows
+      - name: Test CI scripts
         if: ${{ !cancelled() }}
-        run: |
-          .github/scripts/test/publish_unpublished_test.sh
-          node --test .github/scripts/test/
+        run: .github/scripts/ci.sh scripts
+
+      - name: Test workflow scripts
+        if: ${{ !cancelled() }}
+        run: .github/scripts/ci.sh workflows
 
       - name: Run tests
         if: ${{ !cancelled() }}
-        run: .github/scripts/run_tests.sh
+        run: .github/scripts/ci.sh tests
 
       - name: Verify packages are publishable
         if: ${{ !cancelled() }}
-        run: |
-          for pubspec in $(find packages -name pubspec.yaml -not -path '*/example/*' | sort); do
-            dir="$(dirname "$pubspec")"
-            echo "==> $dir"
-            (cd "$dir" && dart pub publish --dry-run)
-          done
+        run: .github/scripts/ci.sh publish-check

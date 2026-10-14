@@ -39,7 +39,12 @@ melos run test        # or: .github/scripts/run_tests.sh packages/<package>
 ```
 
 CI (`validate`) runs the same checks plus `dart pub publish --dry-run` for every
-package.
+package. Run the whole pipeline exactly as CI does, on a clean clone of your
+committed HEAD, **before every push**:
+
+```bash
+.github/scripts/ci.sh local
+```
 
 - PR titles follow [Conventional Commits](https://www.conventionalcommits.org/),
   for example `fix(dig_cli): handle missing pubspec`.

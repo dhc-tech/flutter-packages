@@ -59,6 +59,9 @@ melos:
     test:
       description: Run tests in every package that has a test/ directory.
       run: .github/scripts/run_tests.sh
+    ci:
+      description: Run the full validate pipeline on a clean clone of the committed HEAD (run before every push).
+      run: .github/scripts/ci.sh local
     publish:check:
       description: Run `dart pub publish --dry-run` in every package.
       run: melos exec -c 1 -- dart pub publish --dry-run

@@ -27,6 +27,10 @@ root. Never add `dependency_overrides` or `pubspec_overrides.yaml` to a member.
 
 ## Commands
 
+Before every push run `.github/scripts/ci.sh local`: it runs the whole validate
+pipeline (format, analyze, script and workflow tests, package tests, publish
+dry-run) on a clean clone of the committed HEAD, the same commands CI runs.
+
 ```bash
 flutter pub get                                  # resolve the workspace
 dart format .                                    # or: melos run format

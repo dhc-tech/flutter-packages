@@ -29,11 +29,12 @@ merges that do not trigger `push` workflows (auto-merge with the default
 
 | File | Responsibility |
 |---|---|
-| `.github/workflows/validate.yml` | Required check on PRs and `main`: formatting, analysis, tests, publish dry-run for every package. |
+| `.github/workflows/validate.yml` | Required check on PRs and `main`. Runs the steps of `.github/scripts/ci.sh`: formatting, analysis, script and workflow tests, package tests, publish dry-run. |
+| `.github/scripts/ci.sh` | The validate pipeline as one script; `ci.sh local` runs it on a clean clone of the committed HEAD. |
 | `.github/workflows/release.yml` | Runs on push to `main` (or manually). Waits for `validate`, then publishes. |
 | `.github/scripts/run_tests.sh` | Runs each package's tests; pure Dart packages use `dart test`, `*_web` packages use `flutter test --platform chrome`. |
 | `.github/scripts/publish_unpublished.sh` | Finds package versions missing from pub.dev, publishes them in dependency order, tags and pushes. |
-| `.github/workflows/internals/install_flutter` | Installs the pinned Flutter version (`3.47.7`) shared by all workflows. |
+| `.github/actions/install_flutter` | Installs the pinned Flutter version (`3.47.7`) shared by all workflows. |
 
 ## Publish order
 
