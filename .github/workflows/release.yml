@@ -44,10 +44,14 @@ jobs:
       - name: Look for unpublished package versions
         id: detect
         run: |
-          if DRY_RUN=1 .github/scripts/publish_unpublished.sh | grep -q "would publish"; then
+          # Capture the whole output first. A failing pub.dev check must fail
+          # this step (the shell runs with -e), and piping into `grep -q` would
+          # both hide that failure and close the pipe while the script writes.
+          report="$(DRY_RUN=1 .github/scripts/publish_unpublished.sh)"
+          echo "$report"
+          if grep -q "would publish" <<<"$report"; then
             echo "pending=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Every package version is already on pub.dev; nothing to do."
             echo "pending=false" >> "$GITHUB_OUTPUT"
           fi
 
