@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/dhc-tech/flutter-packages/security/advisories/new
+    about: Report vulnerabilities privately. Do not open a public issue.
+  - name: Question or support
+    url: https://github.com/dhc-tech/flutter-packages/blob/main/SUPPORT.md
+    about: See how to get help with using the packages.

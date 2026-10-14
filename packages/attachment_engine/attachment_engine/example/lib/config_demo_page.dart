@@ -5,7 +5,7 @@
 import 'dart:typed_data';
 
 import 'package:attachment_engine/attachment_engine.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Demonstrates [AttachmentEngineConfig] using only the real, public
 /// engine API — every toggle below rebuilds an [AttachmentManager] with a
@@ -47,8 +47,7 @@ class _ConfigDemoPageState extends State<ConfigDemoPage> {
     name: 'Sample MP4 (network)',
     extension: 'mp4',
     mimeType: 'video/mp4',
-    remoteUrl:
-        'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    remoteUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
     source: const AttachmentSource.url(
       'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
     ),

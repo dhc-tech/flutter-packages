@@ -28,15 +28,15 @@ class BuildCommand extends Command<void> {
     );
   }
   @override
-  final name =
-      'create'; // Kept as 'create' for compatibility with previous version
+  final name = 'create'; // Kept as 'create' for compatibility with previous version
   @override
   final description = 'Builds the Flutter project into an APK or App Bundle.';
 
   @override
   Future<void> run() async {
-    final String buildType =
-        argResults?.rest.isNotEmpty ?? false ? argResults!.rest.first : 'apk';
+    final String buildType = argResults?.rest.isNotEmpty ?? false
+        ? argResults!.rest.first
+        : 'apk';
     var outputDir = argResults?['output'] as String?;
     var customName = argResults?['name'] as String?;
     bool includeTimestamp = argResults?['timestamp'] as bool? ?? true;
@@ -102,7 +102,7 @@ class BuildCommand extends Command<void> {
     } else {
       kLog(
         'Unknown build type: "$buildType". Use "apk" or "bundle".',
-        type: LogType.error,
+        type: .error,
       );
       exit(64);
     }
@@ -120,7 +120,7 @@ class BuildCommand extends Command<void> {
     if (!await isFlutterProject()) {
       kLog(
         '❗ This command must be run inside a Flutter project.',
-        type: LogType.error,
+        type: .error,
       );
       exit(1);
     }
@@ -130,7 +130,7 @@ class BuildCommand extends Command<void> {
       if (projectName == null || projectName.isEmpty) {
         kLog(
           '❗ Project name not found and no custom name was provided!',
-          type: LogType.error,
+          type: .error,
         );
         exit(1);
       }
@@ -156,7 +156,7 @@ class BuildCommand extends Command<void> {
       );
 
       if (result.exitCode != 0) {
-        kLog('❗ Build failed. See error below:', type: LogType.error);
+        kLog('❗ Build failed. See error below:', type: .error);
         stderr.writeln(result.stderr);
         exit(1);
       }
@@ -165,7 +165,7 @@ class BuildCommand extends Command<void> {
       if (!srcFile.existsSync()) {
         kLog(
           '❗ Build failed. Output file not found at: $sourcePath',
-          type: LogType.error,
+          type: .error,
         );
         exit(1);
       }
@@ -177,19 +177,13 @@ class BuildCommand extends Command<void> {
       final int fileSize = await destFile.length();
       final String sizeInMB = (fileSize / (1024 * 1024)).toStringAsFixed(2);
 
-      kLog(
-        '\n✅ $buildDisplayType created successfully!',
-        type: LogType.success,
-      );
+      kLog('\n✅ $buildDisplayType created successfully!', type: .success);
       kLog('-------------------------------------------');
-      kLog('📁 Location: ${destFile.path}', type: LogType.success);
+      kLog('📁 Location: ${destFile.path}', type: .success);
       kLog('📊 Size: ${sizeInMB}MB');
       kLog('-------------------------------------------\n');
     } catch (e) {
-      kLog(
-        '❌ An unexpected error occurred during the build: $e',
-        type: LogType.error,
-      );
+      kLog('❌ An unexpected error occurred during the build: $e', type: .error);
       exit(1);
     }
   }

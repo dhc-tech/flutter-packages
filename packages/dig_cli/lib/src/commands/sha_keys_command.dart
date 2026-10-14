@@ -29,19 +29,14 @@ Future<void> getShaKeys() async {
   final Directory? projectRoot = findProjectRoot();
 
   if (projectRoot == null) {
-    kLog(
-      '❗ This command must be run inside a Flutter project.',
-      type: LogType.error,
-    );
+    kLog('❗ This command must be run inside a Flutter project.', type: .error);
     return;
   }
 
   final androidDir = Directory(p.join(projectRoot.path, 'android'));
   if (!androidDir.existsSync()) {
-    kLog('❗ Android directory not found.', type: LogType.error);
-    kLog(
-      '💡 Make sure you are in a Flutter project with Android support.',
-    );
+    kLog('❗ Android directory not found.', type: .error);
+    kLog('💡 Make sure you are in a Flutter project with Android support.');
     return;
   }
 
@@ -52,16 +47,12 @@ Future<void> getShaKeys() async {
 
   final gradlewFile = File(gradlewPath);
   if (!gradlewFile.existsSync()) {
-    kLog('❗ Gradle wrapper not found.', type: LogType.error);
-    kLog(
-      '💡 Run "flutter build apk" first to generate it.',
-    );
+    kLog('❗ Gradle wrapper not found.', type: .error);
+    kLog('💡 Run "flutter build apk" first to generate it.');
     return;
   }
 
-  kLog(
-    '\n🔐 Getting SHA Keys using Gradle Signing Report...',
-  );
+  kLog('\n🔐 Getting SHA Keys using Gradle Signing Report...');
   kLog('📁 Project: ${projectRoot.path}');
   kLog('📂 Running in: ${androidDir.path}\n');
 
@@ -75,17 +66,14 @@ Future<void> getShaKeys() async {
     // Use absolute path for gradlew
     final ProcessResult result = await runWithSpinner(
       '🔍 Running signingReport...',
-      () => Process.run(
-          gradlewPath,
-          [
-            'signingReport',
-          ],
-          workingDirectory: androidDir.path),
+      () => Process.run(gradlewPath, [
+        'signingReport',
+      ], workingDirectory: androidDir.path),
     );
 
     if (result.exitCode != 0) {
-      kLog('❗ Signing report failed.', type: LogType.error);
-      kLog('Error: ${result.stderr}', type: LogType.error);
+      kLog('❗ Signing report failed.', type: .error);
+      kLog('Error: ${result.stderr}', type: .error);
       return;
     }
 
@@ -94,7 +82,7 @@ Future<void> getShaKeys() async {
     // Parse and display the signing report
     _parseAndDisplaySigningReport(output);
   } catch (e) {
-    kLog('❌ An error occurred: $e', type: LogType.error);
+    kLog('❌ An error occurred: $e', type: .error);
   } finally {
     // Restore original directory
     Directory.current = originalDir;
@@ -150,19 +138,21 @@ void _parseAndDisplaySigningReport(String output) {
   }
 
   if (reports.isEmpty) {
-    kLog('❗ No signing information found in the report.', type: LogType.error);
+    kLog('❗ No signing information found in the report.', type: .error);
     kLog('\n📋 Raw output:');
     kLog(output);
     return;
   }
 
-  kLog('✅ SHA Keys extracted successfully!\n', type: LogType.success);
+  kLog('✅ SHA Keys extracted successfully!\n', type: .success);
 
   // Group by config (debug/release)
-  final List<Map<String, String>> debugReports =
-      reports.where((r) => r['config']?.toLowerCase() == 'debug').toList();
-  final List<Map<String, String>> releaseReports =
-      reports.where((r) => r['config']?.toLowerCase() == 'release').toList();
+  final List<Map<String, String>> debugReports = reports
+      .where((r) => r['config']?.toLowerCase() == 'debug')
+      .toList();
+  final List<Map<String, String>> releaseReports = reports
+      .where((r) => r['config']?.toLowerCase() == 'release')
+      .toList();
 
   if (debugReports.isNotEmpty) {
     kLog('═══════════════════════════════════════════');
@@ -181,9 +171,7 @@ void _parseAndDisplaySigningReport(String output) {
   kLog('\n💡 Tips:');
   kLog('   • Use SHA1 for Google Sign-In, Maps API, etc.');
   kLog('   • Use SHA256 for App Links and Play Integrity.');
-  kLog(
-    '   • Add both debug & release keys to Google Console.',
-  );
+  kLog('   • Add both debug & release keys to Google Console.');
 }
 
 /// Displays a single signing report entry
@@ -192,13 +180,13 @@ void _displayReport(Map<String, String> report) {
   final String sha256 = report['sha256'] ?? 'N/A';
 
   kLog('\n🔑 SHA1:');
-  kLog('   $sha1', type: LogType.success);
+  kLog('   $sha1', type: .success);
   if (sha1 != 'N/A') {
     kLog('   (No colons: ${sha1.replaceAll(':', '')})');
   }
 
   kLog('\n🔑 SHA256:');
-  kLog('   $sha256', type: LogType.success);
+  kLog('   $sha256', type: .success);
   if (sha256 != 'N/A') {
     kLog('   (No colons: ${sha256.replaceAll(':', '')})');
   }

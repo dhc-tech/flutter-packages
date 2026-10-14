@@ -30,11 +30,13 @@ class VideoPlayerEntry: NSObject {
     eventChannel = FlutterEventChannel(
       name: "attachment_engine/video_events/\(playerId)", binaryMessenger: messenger)
     eventChannel?.setStreamHandler(
-      VideoStreamHandler(onListen: { [weak self] sink in
-        self?.eventSink = sink
-      }, onCancel: { [weak self] in
-        self?.eventSink = nil
-      }))
+      VideoStreamHandler(
+        onListen: { [weak self] sink in
+          self?.eventSink = sink
+        },
+        onCancel: { [weak self] in
+          self?.eventSink = nil
+        }))
   }
 
   func load(path: String?, url: String?) {

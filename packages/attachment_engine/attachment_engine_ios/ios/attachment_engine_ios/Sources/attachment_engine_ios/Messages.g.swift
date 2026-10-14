@@ -77,7 +77,7 @@ enum MessagesPigeonInternal {
 
   static func doubleHash(_ value: Double, _ hasher: inout Hasher) {
     if value.isNaN {
-      hasher.combine(0x7FF8000000000000)
+      hasher.combine(0x7FF8_0000_0000_0000)
     } else {
       // Normalize -0.0 to 0.0
       hasher.combine(value == 0 ? 0 : value)
@@ -187,7 +187,6 @@ private func nilOrValue<T>(_ value: Any?) -> T? {
   return value as! T?
 }
 
-
 /// Result of opening a PDF document natively.
 ///
 /// Generated class from Pigeon that represents data sent in messages.
@@ -196,7 +195,6 @@ struct PdfOpenResultMessage: Hashable, CustomStringConvertible {
   var handle: String
   /// Number of pages in the document.
   var pageCount: Int64
-
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
   static func fromList(_ pigeonVar_list: [Any?]) -> PdfOpenResultMessage? {
@@ -218,7 +216,8 @@ struct PdfOpenResultMessage: Hashable, CustomStringConvertible {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return MessagesPigeonInternal.deepEquals(lhs.handle, rhs.handle) && MessagesPigeonInternal.deepEquals(lhs.pageCount, rhs.pageCount)
+    return MessagesPigeonInternal.deepEquals(lhs.handle, rhs.handle)
+      && MessagesPigeonInternal.deepEquals(lhs.pageCount, rhs.pageCount)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -228,7 +227,8 @@ struct PdfOpenResultMessage: Hashable, CustomStringConvertible {
   }
 
   public var description: String {
-    return "PdfOpenResultMessage(handle: \(String(describing: handle)), pageCount: \(String(describing: pageCount)))"
+    return
+      "PdfOpenResultMessage(handle: \(String(describing: handle)), pageCount: \(String(describing: pageCount)))"
   }
 }
 
@@ -238,7 +238,6 @@ struct PdfOpenResultMessage: Hashable, CustomStringConvertible {
 struct NativeOpenResultMessage: Hashable, CustomStringConvertible {
   var success: Bool
   var message: String? = nil
-
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
   static func fromList(_ pigeonVar_list: [Any?]) -> NativeOpenResultMessage? {
@@ -260,7 +259,8 @@ struct NativeOpenResultMessage: Hashable, CustomStringConvertible {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return MessagesPigeonInternal.deepEquals(lhs.success, rhs.success) && MessagesPigeonInternal.deepEquals(lhs.message, rhs.message)
+    return MessagesPigeonInternal.deepEquals(lhs.success, rhs.success)
+      && MessagesPigeonInternal.deepEquals(lhs.message, rhs.message)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -270,7 +270,8 @@ struct NativeOpenResultMessage: Hashable, CustomStringConvertible {
   }
 
   public var description: String {
-    return "NativeOpenResultMessage(success: \(String(describing: success)), message: \(String(describing: message)))"
+    return
+      "NativeOpenResultMessage(success: \(String(describing: success)), message: \(String(describing: message)))"
   }
 }
 
@@ -315,13 +316,13 @@ class MessagesPigeonCodec: FlutterStandardMessageCodec, @unchecked Sendable {
   static let shared = MessagesPigeonCodec(readerWriter: MessagesPigeonCodecReaderWriter())
 }
 
-
 /// PDF (open/renderPage/close). Replaces `pdfx`.
 ///
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol PdfHostApi {
   func open(path: String) async throws -> PdfOpenResultMessage
-  func renderPage(handle: String, index: Int64, width: Int64, height: Int64) async throws -> FlutterStandardTypedData
+  func renderPage(handle: String, index: Int64, width: Int64, height: Int64) async throws
+    -> FlutterStandardTypedData
   func close(handle: String) async throws
 }
 
@@ -329,9 +330,14 @@ protocol PdfHostApi {
 class PdfHostApiSetup {
   static var codec: FlutterStandardMessageCodec { MessagesPigeonCodec.shared }
   /// Sets up an instance of `PdfHostApi` to handle messages through the `binaryMessenger`.
-  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: PdfHostApi?, messageChannelSuffix: String = "") {
+  static func setUp(
+    binaryMessenger: FlutterBinaryMessenger, api: PdfHostApi?, messageChannelSuffix: String = ""
+  ) {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
-    let openChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.PdfHostApi.open\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let openChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.PdfHostApi.open\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       openChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -348,7 +354,10 @@ class PdfHostApiSetup {
     } else {
       openChannel.setMessageHandler(nil)
     }
-    let renderPageChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.PdfHostApi.renderPage\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let renderPageChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.PdfHostApi.renderPage\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       renderPageChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -358,7 +367,8 @@ class PdfHostApiSetup {
         let heightArg = args[3] as! Int64
         Task { @MainActor in
           do {
-            let result = try await api.renderPage(handle: handleArg, index: indexArg, width: widthArg, height: heightArg)
+            let result = try await api.renderPage(
+              handle: handleArg, index: indexArg, width: widthArg, height: heightArg)
             reply(wrapResult(result))
           } catch {
             reply(wrapError(error))
@@ -368,7 +378,10 @@ class PdfHostApiSetup {
     } else {
       renderPageChannel.setMessageHandler(nil)
     }
-    let closeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.PdfHostApi.close\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let closeChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.PdfHostApi.close\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       closeChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -406,9 +419,14 @@ protocol AudioHostApi {
 class AudioHostApiSetup {
   static var codec: FlutterStandardMessageCodec { MessagesPigeonCodec.shared }
   /// Sets up an instance of `AudioHostApi` to handle messages through the `binaryMessenger`.
-  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: AudioHostApi?, messageChannelSuffix: String = "") {
+  static func setUp(
+    binaryMessenger: FlutterBinaryMessenger, api: AudioHostApi?, messageChannelSuffix: String = ""
+  ) {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
-    let loadChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.load\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let loadChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.load\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       loadChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -427,7 +445,10 @@ class AudioHostApiSetup {
     } else {
       loadChannel.setMessageHandler(nil)
     }
-    let playChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.play\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let playChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.play\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       playChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -444,7 +465,10 @@ class AudioHostApiSetup {
     } else {
       playChannel.setMessageHandler(nil)
     }
-    let pauseChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.pause\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let pauseChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.pause\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       pauseChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -461,7 +485,10 @@ class AudioHostApiSetup {
     } else {
       pauseChannel.setMessageHandler(nil)
     }
-    let seekChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.seek\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let seekChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.seek\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       seekChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -479,7 +506,10 @@ class AudioHostApiSetup {
     } else {
       seekChannel.setMessageHandler(nil)
     }
-    let setSpeedChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.setSpeed\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let setSpeedChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.setSpeed\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       setSpeedChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -497,7 +527,10 @@ class AudioHostApiSetup {
     } else {
       setSpeedChannel.setMessageHandler(nil)
     }
-    let setVolumeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.setVolume\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let setVolumeChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.setVolume\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       setVolumeChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -515,7 +548,10 @@ class AudioHostApiSetup {
     } else {
       setVolumeChannel.setMessageHandler(nil)
     }
-    let disposeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.dispose\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let disposeChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.AudioHostApi.dispose\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       disposeChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -555,9 +591,14 @@ protocol VideoHostApi {
 class VideoHostApiSetup {
   static var codec: FlutterStandardMessageCodec { MessagesPigeonCodec.shared }
   /// Sets up an instance of `VideoHostApi` to handle messages through the `binaryMessenger`.
-  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: VideoHostApi?, messageChannelSuffix: String = "") {
+  static func setUp(
+    binaryMessenger: FlutterBinaryMessenger, api: VideoHostApi?, messageChannelSuffix: String = ""
+  ) {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
-    let loadChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.load\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let loadChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.load\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       loadChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -576,7 +617,10 @@ class VideoHostApiSetup {
     } else {
       loadChannel.setMessageHandler(nil)
     }
-    let playChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.play\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let playChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.play\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       playChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -593,7 +637,10 @@ class VideoHostApiSetup {
     } else {
       playChannel.setMessageHandler(nil)
     }
-    let pauseChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.pause\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let pauseChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.pause\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       pauseChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -610,7 +657,10 @@ class VideoHostApiSetup {
     } else {
       pauseChannel.setMessageHandler(nil)
     }
-    let seekChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.seek\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let seekChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.seek\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       seekChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -628,7 +678,10 @@ class VideoHostApiSetup {
     } else {
       seekChannel.setMessageHandler(nil)
     }
-    let setSpeedChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.setSpeed\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let setSpeedChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.setSpeed\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       setSpeedChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -646,7 +699,10 @@ class VideoHostApiSetup {
     } else {
       setSpeedChannel.setMessageHandler(nil)
     }
-    let setVolumeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.setVolume\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let setVolumeChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.setVolume\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       setVolumeChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -664,7 +720,10 @@ class VideoHostApiSetup {
     } else {
       setVolumeChannel.setMessageHandler(nil)
     }
-    let disposeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.dispose\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let disposeChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.VideoHostApi.dispose\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       disposeChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -695,9 +754,14 @@ protocol ShareHostApi {
 class ShareHostApiSetup {
   static var codec: FlutterStandardMessageCodec { MessagesPigeonCodec.shared }
   /// Sets up an instance of `ShareHostApi` to handle messages through the `binaryMessenger`.
-  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: ShareHostApi?, messageChannelSuffix: String = "") {
+  static func setUp(
+    binaryMessenger: FlutterBinaryMessenger, api: ShareHostApi?, messageChannelSuffix: String = ""
+  ) {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
-    let shareFileChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.ShareHostApi.shareFile\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let shareFileChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.ShareHostApi.shareFile\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       shareFileChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -715,7 +779,10 @@ class ShareHostApiSetup {
     } else {
       shareFileChannel.setMessageHandler(nil)
     }
-    let shareTextChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.ShareHostApi.shareText\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let shareTextChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.ShareHostApi.shareText\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       shareTextChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -746,9 +813,14 @@ protocol OpenHostApi {
 class OpenHostApiSetup {
   static var codec: FlutterStandardMessageCodec { MessagesPigeonCodec.shared }
   /// Sets up an instance of `OpenHostApi` to handle messages through the `binaryMessenger`.
-  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: OpenHostApi?, messageChannelSuffix: String = "") {
+  static func setUp(
+    binaryMessenger: FlutterBinaryMessenger, api: OpenHostApi?, messageChannelSuffix: String = ""
+  ) {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
-    let openExternallyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.OpenHostApi.openExternally\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let openExternallyChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.OpenHostApi.openExternally\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       openExternallyChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -781,9 +853,14 @@ protocol OfficeHostApi {
 class OfficeHostApiSetup {
   static var codec: FlutterStandardMessageCodec { MessagesPigeonCodec.shared }
   /// Sets up an instance of `OfficeHostApi` to handle messages through the `binaryMessenger`.
-  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: OfficeHostApi?, messageChannelSuffix: String = "") {
+  static func setUp(
+    binaryMessenger: FlutterBinaryMessenger, api: OfficeHostApi?, messageChannelSuffix: String = ""
+  ) {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
-    let openOfficePreviewChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.OfficeHostApi.openOfficePreview\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let openOfficePreviewChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.OfficeHostApi.openOfficePreview\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       openOfficePreviewChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -814,9 +891,14 @@ protocol PathsHostApi {
 class PathsHostApiSetup {
   static var codec: FlutterStandardMessageCodec { MessagesPigeonCodec.shared }
   /// Sets up an instance of `PathsHostApi` to handle messages through the `binaryMessenger`.
-  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: PathsHostApi?, messageChannelSuffix: String = "") {
+  static func setUp(
+    binaryMessenger: FlutterBinaryMessenger, api: PathsHostApi?, messageChannelSuffix: String = ""
+  ) {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
-    let getApplicationSupportDirectoryChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.PathsHostApi.getApplicationSupportDirectory\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let getApplicationSupportDirectoryChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.PathsHostApi.getApplicationSupportDirectory\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       getApplicationSupportDirectoryChannel.setMessageHandler { _, reply in
         Task { @MainActor in
@@ -831,7 +913,10 @@ class PathsHostApiSetup {
     } else {
       getApplicationSupportDirectoryChannel.setMessageHandler(nil)
     }
-    let getApplicationCacheDirectoryChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.PathsHostApi.getApplicationCacheDirectory\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let getApplicationCacheDirectoryChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.PathsHostApi.getApplicationCacheDirectory\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       getApplicationCacheDirectoryChannel.setMessageHandler { _, reply in
         Task { @MainActor in
@@ -854,8 +939,10 @@ class PathsHostApiSetup {
 ///
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol DownloadHostApi {
-  func startDownload(url: String, headers: [String: String], destPath: String) async throws -> String
-  func resumeDownload(url: String, headers: [String: String], destPath: String) async throws -> String
+  func startDownload(url: String, headers: [String: String], destPath: String) async throws
+    -> String
+  func resumeDownload(url: String, headers: [String: String], destPath: String) async throws
+    -> String
   func cancelDownload(downloadId: String) async throws
 }
 
@@ -863,9 +950,15 @@ protocol DownloadHostApi {
 class DownloadHostApiSetup {
   static var codec: FlutterStandardMessageCodec { MessagesPigeonCodec.shared }
   /// Sets up an instance of `DownloadHostApi` to handle messages through the `binaryMessenger`.
-  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: DownloadHostApi?, messageChannelSuffix: String = "") {
+  static func setUp(
+    binaryMessenger: FlutterBinaryMessenger, api: DownloadHostApi?,
+    messageChannelSuffix: String = ""
+  ) {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
-    let startDownloadChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.DownloadHostApi.startDownload\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let startDownloadChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.DownloadHostApi.startDownload\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       startDownloadChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -874,7 +967,8 @@ class DownloadHostApiSetup {
         let destPathArg = args[2] as! String
         Task { @MainActor in
           do {
-            let result = try await api.startDownload(url: urlArg, headers: headersArg, destPath: destPathArg)
+            let result = try await api.startDownload(
+              url: urlArg, headers: headersArg, destPath: destPathArg)
             reply(wrapResult(result))
           } catch {
             reply(wrapError(error))
@@ -884,7 +978,10 @@ class DownloadHostApiSetup {
     } else {
       startDownloadChannel.setMessageHandler(nil)
     }
-    let resumeDownloadChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.DownloadHostApi.resumeDownload\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let resumeDownloadChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.DownloadHostApi.resumeDownload\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       resumeDownloadChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
@@ -893,7 +990,8 @@ class DownloadHostApiSetup {
         let destPathArg = args[2] as! String
         Task { @MainActor in
           do {
-            let result = try await api.resumeDownload(url: urlArg, headers: headersArg, destPath: destPathArg)
+            let result = try await api.resumeDownload(
+              url: urlArg, headers: headersArg, destPath: destPathArg)
             reply(wrapResult(result))
           } catch {
             reply(wrapError(error))
@@ -903,7 +1001,10 @@ class DownloadHostApiSetup {
     } else {
       resumeDownloadChannel.setMessageHandler(nil)
     }
-    let cancelDownloadChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.attachment_engine_platform_interface.DownloadHostApi.cancelDownload\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    let cancelDownloadChannel = FlutterBasicMessageChannel(
+      name:
+        "dev.flutter.pigeon.attachment_engine_platform_interface.DownloadHostApi.cancelDownload\(channelSuffix)",
+      binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       cancelDownloadChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]

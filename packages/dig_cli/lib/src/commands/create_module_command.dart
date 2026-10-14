@@ -36,7 +36,7 @@ class CreateModuleCommand extends Command<void> {
     if (!await isFlutterProject()) {
       kLog(
         '❗ This command must be run inside a Flutter project.',
-        type: LogType.error,
+        type: .error,
       );
       return;
     }
@@ -52,7 +52,7 @@ class CreateModuleCommand extends Command<void> {
     }
 
     if (moduleName == null || moduleName.isEmpty) {
-      kLog('❗ Module name is required.', type: LogType.error);
+      kLog('❗ Module name is required.', type: .error);
       return;
     }
 
@@ -71,7 +71,7 @@ class CreateModuleCommand extends Command<void> {
     final moduleDir = Directory(p.join('lib', 'app', 'module', slug));
 
     if (moduleDir.existsSync()) {
-      kLog('❗ Module $slug already exists.', type: LogType.error);
+      kLog('❗ Module $slug already exists.', type: .error);
       return;
     }
 
@@ -103,7 +103,7 @@ class CreateModuleCommand extends Command<void> {
     painter.drawRow('Files', 'Scaffolded in lib/app/module/$slug/');
     painter.drawFooter();
 
-    kLog('\n✅ Module $className is ready to use!', type: LogType.success);
+    kLog('\n✅ Module $className is ready to use!', type: .success);
   }
 
   Future<void> _createController(
@@ -114,7 +114,8 @@ class CreateModuleCommand extends Command<void> {
     final file = File(
       p.join(dir.path, 'controller', '${slug}_controller.dart'),
     );
-    final content = '''
+    final content =
+        '''
 import '../../../utils/import.dart';
 
 class ${className}Controller extends GetxController {
@@ -130,7 +131,8 @@ class ${className}Controller extends GetxController {
     String slug,
   ) async {
     final file = File(p.join(dir.path, 'binding', '${slug}_binding.dart'));
-    final content = '''
+    final content =
+        '''
 import '../../../utils/import.dart';
 import '../controller/${slug}_controller.dart';
 
@@ -148,7 +150,8 @@ class ${className}Binding extends Bindings {
 
   Future<void> _createView(Directory dir, String className, String slug) async {
     final file = File(p.join(dir.path, 'view', '${slug}_view.dart'));
-    final content = '''
+    final content =
+        '''
 import '../../../utils/import.dart';
 import '../controller/${slug}_controller.dart';
 
@@ -177,7 +180,8 @@ class ${className}View extends GetView<${className}Controller> {
 
   Future<void> _createExport(Directory dir, String slug) async {
     final file = File(p.join(dir.path, '${slug}_export.dart'));
-    final content = '''
+    final content =
+        '''
 export 'binding/${slug}_binding.dart';
 export 'controller/${slug}_controller.dart';
 export 'view/${slug}_view.dart';
@@ -211,10 +215,12 @@ export 'splash/splash_export.dart';
     lines.add(exportLine);
 
     // Header and non-export lines
-    final List<String> headerLines =
-        lines.where((l) => !l.trim().startsWith('export')).toList();
-    final List<String> exportLines =
-        lines.where((l) => l.trim().startsWith('export')).toList();
+    final List<String> headerLines = lines
+        .where((l) => !l.trim().startsWith('export'))
+        .toList();
+    final List<String> exportLines = lines
+        .where((l) => l.trim().startsWith('export'))
+        .toList();
     exportLines.sort();
 
     final newContent =
@@ -246,7 +252,8 @@ abstract class AppRoute {
       return;
     }
 
-    final updatedContent = '${content.substring(0, lastBraceIndex)}'
+    final updatedContent =
+        '${content.substring(0, lastBraceIndex)}'
         "  static const String $routeName = '/$className';\n"
         '${content.substring(lastBraceIndex)}';
 
@@ -284,7 +291,8 @@ abstract class AppPage {
     }
 
     if (!content.contains('AppRoute.$routeName')) {
-      final newPage = '''
+      final newPage =
+          '''
     GetPage(
       name: AppRoute.$routeName,
       page: () => const ${className}View(),
@@ -297,7 +305,8 @@ abstract class AppPage {
         return;
       }
 
-      final updatedContent = '${content.substring(0, listEndIndex)}'
+      final updatedContent =
+          '${content.substring(0, listEndIndex)}'
           '$newPage'
           '${content.substring(listEndIndex)}';
 

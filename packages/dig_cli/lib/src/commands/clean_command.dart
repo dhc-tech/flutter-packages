@@ -35,7 +35,7 @@ class CleanCommand extends Command<void> {
     if (root == null) {
       kLog(
         '❗ This command must be run inside a Flutter project.',
-        type: LogType.error,
+        type: .error,
       );
       exit(1);
     }
@@ -46,8 +46,7 @@ class CleanCommand extends Command<void> {
     try {
       kLog('🚀 Starting thorough project cleanup...');
 
-      await runWithSpinner('🧹 Cleaning Flutter project (flutter clean)',
-          () async {
+      await runWithSpinner('🧹 Cleaning Flutter project (flutter clean)', () async {
         final ProcessResult result = await Process.run('flutter', ['clean']);
         if (result.exitCode != 0) {
           throw Exception(
@@ -59,10 +58,11 @@ class CleanCommand extends Command<void> {
       await _deleteIfExists('build');
       kLog('🗑️  Removed build directory');
 
-      await runWithSpinner('📦 Getting Dart packages (flutter pub get)',
-          () async {
-        final ProcessResult result =
-            await Process.run('flutter', ['pub', 'get']);
+      await runWithSpinner('📦 Getting Dart packages (flutter pub get)', () async {
+        final ProcessResult result = await Process.run('flutter', [
+          'pub',
+          'get',
+        ]);
         if (result.exitCode != 0) {
           throw Exception(
             'flutter pub get failed with exit code ${result.exitCode}\n${result.stderr}',
@@ -93,16 +93,13 @@ class CleanCommand extends Command<void> {
           await runWithSpinner(
             '📥 Installing CocoaPods (pod install)',
             () async {
-              final ProcessResult result = await Process.run(
-                  'pod',
-                  [
-                    'install',
-                  ],
-                  workingDirectory: iosDir.path);
+              final ProcessResult result = await Process.run('pod', [
+                'install',
+              ], workingDirectory: iosDir.path);
               if (result.exitCode != 0) {
                 kLog(
                   '⚠️ pod install failed. You might need to run it manually.',
-                  type: LogType.warning,
+                  type: .warning,
                 );
               }
             },
@@ -119,9 +116,7 @@ class CleanCommand extends Command<void> {
           }
         }
       } else if (Platform.isWindows) {
-        kLog(
-          '🪟 Windows: Running platform specific cleanup...',
-        );
+        kLog('🪟 Windows: Running platform specific cleanup...');
         await _deleteIfExists('windows/build');
         await _deleteIfExists('windows/flutter/ephemeral');
         kLog('🧼 Cleaned local Windows build artifacts.');
@@ -134,9 +129,7 @@ class CleanCommand extends Command<void> {
           }
         }
       } else if (Platform.isLinux) {
-        kLog(
-          '🐧 Linux: Running platform specific cleanup...',
-        );
+        kLog('🐧 Linux: Running platform specific cleanup...');
         await _deleteIfExists('linux/build');
         await _deleteIfExists('linux/flutter/ephemeral');
         kLog('🧼 Cleaned local Linux build artifacts.');
@@ -150,9 +143,9 @@ class CleanCommand extends Command<void> {
         }
       }
 
-      kLog('✅ All Clean! Project reset complete.', type: LogType.success);
+      kLog('✅ All Clean! Project reset complete.', type: .success);
     } catch (e) {
-      kLog('❌ An error occurred during cleanup: $e', type: LogType.error);
+      kLog('❌ An error occurred during cleanup: $e', type: .error);
       exit(1);
     }
   }
@@ -169,7 +162,7 @@ class CleanCommand extends Command<void> {
         }
       }
     } catch (e) {
-      kLog('⚠️  Could not delete "$path": $e', type: LogType.warning);
+      kLog('⚠️  Could not delete "$path": $e', type: .warning);
     }
   }
 }

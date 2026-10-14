@@ -1,3 +1,7 @@
+## 0.0.1-dev.3
+
+* Updates SDK constraints to Dart `^3.13.0` and Flutter `>=3.47.7`.
+
 ## 0.0.1-dev.2
 
 * Fixes `openOfficePreview`'s Office/QuickLook `QLPreviewController` modal

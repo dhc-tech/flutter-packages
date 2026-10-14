@@ -1,7 +1,7 @@
 name: 💡 Feature Request
 description: Propose a new feature or enhancement for a package.
 title: "[Feature]: "
-labels: ["type:feat"]
+labels: ["type: feat", "needs: triage"]
 body:
   - type: markdown
     attributes:
@@ -17,6 +17,7 @@ body:
         - white_label_kit
         - dig_cli
         - apple_sign_in_plugin
+        - attachment_engine
         - new package proposal
         - other
     validations:

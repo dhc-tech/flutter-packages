@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:attachment_engine/attachment_engine.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'config_demo_page.dart';
 
@@ -35,8 +35,7 @@ final sampleAttachments = <Attachment>[
     name: 'Sample Image (network)',
     extension: 'jpg',
     mimeType: 'image/jpeg',
-    remoteUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/a/a3/June_odd-eyed-cat.jpg',
+    remoteUrl: 'https://upload.wikimedia.org/wikipedia/commons/a/a3/June_odd-eyed-cat.jpg',
     source: const AttachmentSource.url(
       'https://upload.wikimedia.org/wikipedia/commons/a/a3/June_odd-eyed-cat.jpg',
     ),
@@ -47,8 +46,7 @@ final sampleAttachments = <Attachment>[
     name: 'Sample PDF (network)',
     extension: 'pdf',
     mimeType: 'application/pdf',
-    remoteUrl:
-        'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
+    remoteUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     source: const AttachmentSource.url(
       'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
     ),
@@ -59,8 +57,7 @@ final sampleAttachments = <Attachment>[
     name: 'Sample MP4 (network)',
     extension: 'mp4',
     mimeType: 'video/mp4',
-    remoteUrl:
-        'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    remoteUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
     source: const AttachmentSource.url(
       'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
     ),

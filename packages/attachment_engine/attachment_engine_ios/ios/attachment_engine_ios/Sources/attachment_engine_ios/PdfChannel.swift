@@ -5,6 +5,7 @@
 import Flutter
 import Foundation
 import PDFKit
+
 #if canImport(UIKit)
   import UIKit
 #endif
@@ -52,7 +53,8 @@ class PdfChannel: NSObject, PdfHostApi {
     let scale = min(
       Double(width) / Double(pageRect.width), Double(height) / Double(pageRect.height))
     let targetSize = CGSize(
-      width: max(pageRect.width * CGFloat(scale), 1), height: max(pageRect.height * CGFloat(scale), 1))
+      width: max(pageRect.width * CGFloat(scale), 1),
+      height: max(pageRect.height * CGFloat(scale), 1))
 
     #if canImport(UIKit)
       let image = page.thumbnail(of: targetSize, for: .mediaBox)

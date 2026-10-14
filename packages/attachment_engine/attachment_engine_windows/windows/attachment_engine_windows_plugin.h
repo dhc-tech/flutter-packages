@@ -37,11 +37,13 @@ class AttachmentEngineWindowsPlugin : public flutter::Plugin {
  public:
   static void RegisterWithRegistrar(flutter::PluginRegistrarWindows* registrar);
 
-  explicit AttachmentEngineWindowsPlugin(flutter::PluginRegistrarWindows* registrar);
+  explicit AttachmentEngineWindowsPlugin(
+      flutter::PluginRegistrarWindows* registrar);
   virtual ~AttachmentEngineWindowsPlugin();
 
   AttachmentEngineWindowsPlugin(const AttachmentEngineWindowsPlugin&) = delete;
-  AttachmentEngineWindowsPlugin& operator=(const AttachmentEngineWindowsPlugin&) = delete;
+  AttachmentEngineWindowsPlugin& operator=(
+      const AttachmentEngineWindowsPlugin&) = delete;
 
  private:
   std::unique_ptr<ShareChannel> share_channel_;

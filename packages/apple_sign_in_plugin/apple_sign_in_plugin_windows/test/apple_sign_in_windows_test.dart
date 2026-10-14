@@ -2,10 +2,6 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-// Copyright 2013 The Flutter Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 import 'dart:convert';
 
 import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
@@ -49,32 +45,37 @@ void main() {
       mockCallbackUrl = null;
       mockPlatformError = null;
 
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(impl.channel, (MethodCall call) async {
-        if (call.method == 'isAvailable') {
-          return true;
-        } else if (call.method == 'signIn') {
-          if (mockPlatformError != null) {
-            throw mockPlatformError!;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        impl.channel,
+        (MethodCall call) async {
+          if (call.method == 'isAvailable') {
+            return true;
+          } else if (call.method == 'signIn') {
+            if (mockPlatformError != null) {
+              throw mockPlatformError!;
+            }
+            final arguments = call.arguments as Map<Object?, Object?>;
+            return <String, dynamic>{
+              'callbackUrl':
+                  mockCallbackUrl ??
+                  'com.example.app://apple-callback?code=auth123&state=${arguments['state']}&id_token=${_fakeIdToken("user123", "user@example.com")}',
+              'expectedState': arguments['state'],
+            };
+          } else if (call.method == 'onNativeCallback') {
+            return true;
+          } else if (call.method == 'cancelSignIn') {
+            return true;
           }
-          final arguments = call.arguments as Map<Object?, Object?>;
-          return <String, dynamic>{
-            'callbackUrl': mockCallbackUrl ??
-                'com.example.app://apple-callback?code=auth123&state=${arguments['state']}&id_token=${_fakeIdToken("user123", "user@example.com")}',
-            'expectedState': arguments['state'],
-          };
-        } else if (call.method == 'onNativeCallback') {
-          return true;
-        } else if (call.method == 'cancelSignIn') {
-          return true;
-        }
-        return null;
-      });
+          return null;
+        },
+      );
     });
 
     tearDown(() {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(impl.channel, null);
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        impl.channel,
+        null,
+      );
     });
 
     test('isAvailable returns true', () async {
@@ -153,16 +154,9 @@ void main() {
       );
 
       expect(
-        () => impl.signIn(
-          scopes: {AppleAuthorizationScope.email},
-          state: 'state1',
-        ),
+        () => impl.signIn(scopes: {AppleAuthorizationScope.email}, state: 'state1'),
         throwsA(
-          isA<AppleSignInException>().having(
-            (e) => e.code,
-            'code',
-            AppleSignInErrorCode.canceled,
-          ),
+          isA<AppleSignInException>().having((e) => e.code, 'code', AppleSignInErrorCode.canceled),
         ),
       );
     });

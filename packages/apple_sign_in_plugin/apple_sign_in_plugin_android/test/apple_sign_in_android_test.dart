@@ -2,10 +2,6 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-// Copyright 2013 The Flutter Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 import 'dart:async';
 import 'dart:convert';
 
@@ -73,20 +69,24 @@ void main() {
       impl = AppleSignInAndroidImpl();
       impl.config = _kConfig;
 
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(impl.channel, (MethodCall call) async {
-        if (call.method == 'isAvailable') {
-          return true;
-        } else if (call.method == 'launchAuthUrl') {
-          return true;
-        }
-        return null;
-      });
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        impl.channel,
+        (MethodCall call) async {
+          if (call.method == 'isAvailable') {
+            return true;
+          } else if (call.method == 'launchAuthUrl') {
+            return true;
+          }
+          return null;
+        },
+      );
     });
 
     tearDown(() {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(impl.channel, null);
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        impl.channel,
+        null,
+      );
     });
 
     test('isAvailable returns true', () async {
@@ -148,10 +148,7 @@ void main() {
         ),
       );
       expect(result, isA<AppleSignInException>());
-      expect(
-        (result! as AppleSignInException).message,
-        contains('scheme mismatch'),
-      );
+      expect((result! as AppleSignInException).message, contains('scheme mismatch'));
     });
 
     test('handleCallback rejects mismatched host', () async {
@@ -165,10 +162,7 @@ void main() {
         ),
       );
       expect(result, isA<AppleSignInException>());
-      expect(
-        (result! as AppleSignInException).message,
-        contains('host mismatch'),
-      );
+      expect((result! as AppleSignInException).message, contains('host mismatch'));
     });
 
     test('handleCallback rejects mismatched state (CSRF protection)', () async {
@@ -183,10 +177,7 @@ void main() {
         ),
       );
       expect(result, isA<AppleSignInException>());
-      expect(
-        (result! as AppleSignInException).code,
-        AppleSignInErrorCode.authorizationFailed,
-      );
+      expect((result! as AppleSignInException).code, AppleSignInErrorCode.authorizationFailed);
     });
 
     test('handleCallback maps user_cancelled_authorize to canceled', () async {
@@ -200,10 +191,7 @@ void main() {
         ),
       );
       expect(result, isA<AppleSignInException>());
-      expect(
-        (result! as AppleSignInException).code,
-        AppleSignInErrorCode.canceled,
-      );
+      expect((result! as AppleSignInException).code, AppleSignInErrorCode.canceled);
     });
 
     test('handleCallback rejects missing code and id_token', () async {
@@ -213,10 +201,7 @@ void main() {
         Uri.parse('com.example.app://apple-callback?state=s2'),
       );
       expect(result, isA<AppleSignInException>());
-      expect(
-        (result! as AppleSignInException).code,
-        AppleSignInErrorCode.invalidResponse,
-      );
+      expect((result! as AppleSignInException).code, AppleSignInErrorCode.invalidResponse);
     });
 
     test('handleCallback maps credential fields correctly', () async {

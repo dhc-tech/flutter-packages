@@ -1,22 +1,22 @@
 name: release
+
+# Publishes every package whose current `version:` is not on pub.dev yet and
+# tags it <package>-v<version>. It runs on every push to `main`, hourly, and on
+# demand. The hourly run makes releases self-healing: merges made with the
+# default GITHUB_TOKEN (auto-merge via `status: automerge`) do not trigger `push`
+# workflows, and a failed run is simply completed by the next one.
+
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  schedule:
+    - cron: "23 * * * *"
   workflow_dispatch:
-    inputs:
-      base-sha:
-        description: >-
-          Base SHA/ref to diff against for --all-changed (defaults to HEAD~).
-          Use this to publish version bumps that were merged while this
-          workflow was broken and never got picked up automatically.
-        required: false
-        type: string
 
 # Declare default permissions as read only.
 permissions: read-all
 
-# Enforce sequential release execution so multiple merges never publish concurrently
+# Releases run one at a time so runs never publish concurrently.
 concurrency:
   group: release-publishing-lock
   cancel-in-progress: false
@@ -24,61 +24,62 @@ concurrency:
 jobs:
   release:
     name: release
+    # Scheduled runs only exist on the default branch of this repository.
+    if: github.repository == 'dhc-tech/flutter-packages'
+    runs-on: ubuntu-latest
     permissions:
-      # Release needs to push a tag back to the repo and read validate checks.
+      # Pushes package tags and reads the validate check.
       contents: write
       checks: read
-    runs-on: ubuntu-latest
     steps:
-    # Checks out a copy of the repo.
-    - name: Check out code
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      with:
-        fetch-depth: 0 # Fetch all history so the tool can get all the tags to determine version.
-        persist-credentials: false
-    - name: "Install Flutter"
-      uses: ./.github/workflows/internals/install_flutter
-    - name: Set up tools
-      run: dart pub get
-      working-directory: ${{ github.workspace }}/script/tool
+      - name: Check out code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: main
+          fetch-depth: 0 # Full history and tags are needed to tag releases.
+          persist-credentials: false
 
-    # Wait for this SHA's 'validate' check to finish successfully before publishing
-    - name: Wait for validate check
-      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
-      with:
-        script: |
-          const targetSha = '${{ github.sha }}';
-          core.info(`Waiting for validate check to complete on ${targetSha}...`);
+      - name: Install Flutter
+        uses: $/.github/actions/install_flutter
 
-          for (let i = 0; i < 30; i++) {
-            const { data } = await github.rest.checks.listForRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: targetSha,
-              check_name: 'validate',
-            });
-            const validateCheck = data.check_runs.find((c) => c.name === 'validate');
-            if (validateCheck && validateCheck.status === 'completed') {
-              if (validateCheck.conclusion === 'success') {
-                core.info('Validate check passed successfully!');
-                return;
-              } else {
-                core.setFailed(`Validate check finished with conclusion: ${validateCheck.conclusion}`);
+      - name: Check validate on this commit
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            // Branch protection already required `validate` before the merge.
+            // If it ran again on this commit it must have passed; if it never
+            // ran (the merge came from GITHUB_TOKEN), trust the required PR checks.
+            const { owner, repo } = context.repo;
+            const { data: head } = await github.rest.repos.getBranch({ owner, repo, branch: 'main' });
+            const ref = head.commit.sha;
+            for (let i = 0; i < 40; i++) {
+              const { data } = await github.rest.checks.listForRef({
+                owner, repo, ref, check_name: 'validate',
+              });
+              const check = data.check_runs.find((c) => c.name === 'validate');
+              if (!check) {
+                if (i >= 4) {
+                  core.info('No validate run on this commit; relying on the required PR checks.');
+                  return;
+                }
+              } else if (check.status === 'completed') {
+                if (check.conclusion === 'success') return;
+                core.setFailed(`validate finished with conclusion: ${check.conclusion}`);
                 return;
               }
+              await new Promise((r) => setTimeout(r, 15000));
             }
-            core.info(`Validate check status: ${validateCheck ? validateCheck.status : 'pending/queued'}, waiting 15s...`);
-            await new Promise((r) => setTimeout(r, 15000));
-          }
-          core.setFailed('Timed out waiting for validate check to complete');
+            core.setFailed('Timed out waiting for the validate check');
 
-    - name: run release
-      run: |
-        gh auth setup-git
-        git config --global user.name ${{ secrets.USER_NAME }}
-        git config --global user.email ${{ secrets.USER_EMAIL }}
-        dart ./script/tool/lib/src/main.dart publish --all-changed --base-sha="${BASE_SHA:-HEAD~}" --skip-confirmation --remote=origin
-      env:
-        BASE_SHA: ${{ inputs.base-sha }}
-        PUB_CREDENTIALS: "${{ secrets.PUB_CREDENTIALS }}"
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish unpublished packages
+        env:
+          PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_USER_NAME: ${{ secrets.USER_NAME }}
+          GIT_USER_EMAIL: ${{ secrets.USER_EMAIL }}
+        run: |
+          gh auth setup-git
+          git config --global user.name "$GIT_USER_NAME"
+          git config --global user.email "$GIT_USER_EMAIL"
+          flutter pub get
+          .github/scripts/publish_unpublished.sh

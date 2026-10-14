@@ -65,7 +65,7 @@ void main() {
     });
 
     test(
-      'when opted in, auto-creates the config from assets.logo if missing',
+      'when opted in without adaptive layers, creates a regular icon config',
       () {
         maybeGenerateLauncherIcon(tenantOptedIn, projectRoot: projectRoot.path);
 
@@ -75,13 +75,170 @@ void main() {
         expect(configFile.existsSync(), isTrue);
         final content = configFile.readAsStringSync();
         expect(content, contains('image_path: "tenants/acme/logo.png"'));
-        expect(
-          content,
-          contains('adaptive_foreground_image: "tenants/acme/logo.png"'),
-        );
-        expect(content, contains('adaptive_background_color: "#ffffff"'));
+        expect(content, isNot(contains('adaptive_foreground_image')));
+        expect(content, isNot(contains('adaptive_background')));
       },
     );
+
+    test('uses configured adaptive icon layers when creating the config', () {
+      final TenantConfig tenant = WhiteLabelConfig.parse('''
+white_label:
+  default_tenant: acme
+  tenants:
+    acme:
+      name: Acme
+      android:
+        application_id: com.example.acme
+        adaptive_icon:
+          foreground: tenants/acme/adaptive_foreground.png
+          background: tenants/acme/adaptive_background.png
+          monochrome: tenants/acme/monochrome.png
+      ios:
+        bundle_id: com.example.acme
+      assets:
+        logo: tenants/acme/logo.png
+      features:
+        icon_generate: true
+''').resolve();
+
+      maybeGenerateLauncherIcon(tenant, projectRoot: projectRoot.path);
+
+      final String content = File(
+        p.join(projectRoot.path, 'icons_launcher-acme.yaml'),
+      ).readAsStringSync();
+      expect(
+        content,
+        contains(
+          'adaptive_foreground_image: "tenants/acme/adaptive_foreground.png"',
+        ),
+      );
+      expect(
+        content,
+        contains(
+          'adaptive_background_image: "tenants/acme/adaptive_background.png"',
+        ),
+      );
+      expect(
+        content,
+        contains('adaptive_monochrome_image: "tenants/acme/monochrome.png"'),
+      );
+    });
+
+    test(
+      'uses adaptive background_color and falls back foreground to iconPath',
+      () {
+        final TenantConfig tenant = WhiteLabelConfig.parse('''
+white_label:
+  default_tenant: acme
+  tenants:
+    acme:
+      name: Acme
+      android:
+        application_id: com.example.acme
+        adaptive_icon:
+          background_color: "#FE6D0B"
+      ios:
+        bundle_id: com.example.acme
+      assets:
+        logo: tenants/acme/logo.png
+        icon: tenants/acme/icon.png
+      features:
+        icon_generate: true
+''').resolve();
+
+        maybeGenerateLauncherIcon(tenant, projectRoot: projectRoot.path);
+
+        final String content = File(
+          p.join(projectRoot.path, 'icons_launcher-acme.yaml'),
+        ).readAsStringSync();
+        expect(
+          content,
+          contains('adaptive_foreground_image: "tenants/acme/icon.png"'),
+        );
+        expect(content, contains('adaptive_background_color: "#FE6D0B"'));
+        expect(content, isNot(contains('adaptive_monochrome_image')));
+      },
+    );
+
+    test('rejects both background and background_color together', () {
+      expect(
+        () => WhiteLabelConfig.parse('''
+white_label:
+  default_tenant: acme
+  tenants:
+    acme:
+      name: Acme
+      android:
+        application_id: com.example.acme
+        adaptive_icon:
+          background: tenants/acme/bg.png
+          background_color: "#FE6D0B"
+      ios:
+        bundle_id: com.example.acme
+      assets:
+        logo: tenants/acme/logo.png
+'''),
+        throwsA(
+          isA<WhiteLabelConfigException>().having(
+            (e) => e.errors,
+            'errors',
+            contains(
+              contains(
+                'use either `adaptive_icon.background` or `adaptive_icon.background_color`, not both',
+              ),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test('rejects invalid background_color hex', () {
+      expect(
+        () => WhiteLabelConfig.parse('''
+white_label:
+  default_tenant: acme
+  tenants:
+    acme:
+      name: Acme
+      android:
+        application_id: com.example.acme
+        adaptive_icon:
+          background_color: "NOT_A_HEX"
+      ios:
+        bundle_id: com.example.acme
+      assets:
+        logo: tenants/acme/logo.png
+'''),
+        throwsA(
+          isA<WhiteLabelConfigException>().having(
+            (e) => e.errors,
+            'errors',
+            contains(contains('#RRGGBB or #AARRGGBB')),
+          ),
+        ),
+      );
+    });
+
+    test('rejects path traversal in adaptive icon layers', () {
+      expect(
+        () => WhiteLabelConfig.parse('''
+white_label:
+  default_tenant: acme
+  tenants:
+    acme:
+      name: Acme
+      android:
+        application_id: com.example.acme
+        adaptive_icon:
+          foreground: ../secret/fg.png
+      ios:
+        bundle_id: com.example.acme
+      assets:
+        logo: tenants/acme/logo.png
+'''),
+        throwsA(isA<WhiteLabelConfigException>()),
+      );
+    });
 
     test('when opted in, never overwrites an already-existing hand-authored '
         'config file', () {

@@ -1,6 +1,3 @@
-# Directory for files cached by the repo tooling
-/.repo_tool_cache/
-
 .DS_Store
 .atom/
 .idea
@@ -69,4 +66,7 @@ gradlew.bat
 # AI related
 .agents/rules/personal-*
 .agents/skills/personal-*
+.claude/
+agent-artifacts/
+.direnv
 coverage/

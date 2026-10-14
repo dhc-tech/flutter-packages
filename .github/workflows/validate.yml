@@ -1,20 +1,19 @@
 name: Validate Repository
 
-# Adapted from flutter/core-packages' validate_repo.yaml, using this repo's
-# local script/tool (flutter_plugin_tools) instead of a globally-activated
-# pub.dev release, to match this repo's other workflows' convention of
-# invoking `dart ./script/tool/lib/src/main.dart <command>` directly.
-
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  merge_group:
 
 # Declare default permissions as read only.
 permissions:
   contents: read
-  pull-requests: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   validate:
@@ -24,57 +23,42 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          fetch-depth: 0
           persist-credentials: false
+
+      - name: Install Flutter
+        uses: $/.github/actions/install_flutter
 
       - name: Cache pub packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            ~/.pub-cache
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pub-
 
-      - name: "Install Flutter"
-        # A pinned git clone (matching this repo's own
-        # internals/install_flutter action) instead of
-        # subosito/flutter-action: that action's composite definition
-        # always references actions/cache@v5 unpinned regardless of its
-        # `cache` input, which this repo's actions.sha_pinning_required
-        # policy rejects. 3.47.0 (newer than internals/install_flutter's
-        # 3.44.0, which is shared with the release pipeline and left
-        # untouched here) is needed for white_label_kit's `sdk: ^3.13.0`
-        # constraint.
-        shell: bash
-        run: |
-          git clone https://github.com/flutter/flutter.git --depth 1 -b 3.47.0 "$HOME/_flutter"
-          echo "$HOME/_flutter/bin" >> "$GITHUB_PATH"
+      - name: Resolve workspace dependencies
+        run: .github/scripts/ci.sh pub-get
 
-      - name: Set up main branch
-        run: git rev-parse --verify --quiet main || git branch main origin/main
-        shell: bash
-
-      - name: Set up tools
-        run: dart pub get
-        working-directory: ${{ github.workspace }}/script/tool
-
-      - name: Run 'format' to check for formatting violations
+      - name: Check formatting
         if: ${{ !cancelled() }}
-        # clang-format is excluded: it produced a non-convergent diff on
-        # generated runner boilerplate (win32_window.h) even across
-        # consecutive runs on the same machine, making it unusable as a
-        # merge gate. Dart/Kotlin/Java formatting remain enforced.
-        run: dart ./script/tool/lib/src/main.dart format --fail-on-change --no-swift --no-clang-format
+        run: .github/scripts/ci.sh format
 
-      - name: Run 'license-check' to check for license issues
+      - name: Run static analysis
         if: ${{ !cancelled() }}
-        run: dart ./script/tool/lib/src/main.dart license-check
+        run: .github/scripts/ci.sh analyze
 
-      - name: Run 'publish-check' to make sure everything is in a publishable state
+      - name: Test CI scripts
         if: ${{ !cancelled() }}
-        run: dart ./script/tool/lib/src/main.dart publish-check --allow-pre-release
+        run: .github/scripts/ci.sh scripts
+
+      - name: Test workflow scripts
+        if: ${{ !cancelled() }}
+        run: .github/scripts/ci.sh workflows
 
       - name: Run tests
         if: ${{ !cancelled() }}
-        run: dart ./script/tool/lib/src/main.dart dart-test
+        run: .github/scripts/ci.sh tests
+
+      - name: Verify packages are publishable
+        if: ${{ !cancelled() }}
+        run: .github/scripts/ci.sh publish-check

@@ -2,13 +2,10 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-// Copyright 2013 The Flutter Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
 import 'dart:math';
 
 import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
@@ -188,7 +185,7 @@ class AppleSignInWebImpl extends AppleSignInPlatform {
     } on AppleSignInException {
       rethrow;
     } catch (e) {
-      final String errorString = e.toString().toLowerCase();
+      final String errorString = '${_sdkErrorCode(e)} $e'.toLowerCase();
       if (errorString.contains('user_cancelled') ||
           errorString.contains('cancel') ||
           errorString.contains('popup_closed')) {
@@ -205,9 +202,7 @@ class AppleSignInWebImpl extends AppleSignInPlatform {
   }
 
   @override
-  Future<AppleCredentialState> getCredentialState(
-    String userIdentifier,
-  ) async {
+  Future<AppleCredentialState> getCredentialState(String userIdentifier) async {
     throw const AppleSignInException(
       AppleSignInErrorCode.platformNotSupported,
       'getCredentialState() is not available on Web. Apple does not expose '
@@ -312,4 +307,22 @@ class AppleSignInWebConfig {
 
   /// Whether to use a popup window for authentication.
   final bool usePopup;
+}
+
+/// Apple's JS SDK rejects with a plain object such as
+/// `{error: 'popup_closed_by_user'}`, which stringifies to `[object Object]`;
+/// read its `error` field so a user cancel is recognised.
+String _sdkErrorCode(Object error) {
+  try {
+    final raw = error as JSAny?;
+    if (raw.isA<JSObject>()) {
+      final JSAny? code = (raw! as JSObject).getProperty<JSAny?>('error'.toJS);
+      if (code.isA<JSString>()) {
+        return (code! as JSString).toDart;
+      }
+    }
+  } catch (_) {
+    // Not a JS object; the caller falls back to the error's string form.
+  }
+  return '';
 }

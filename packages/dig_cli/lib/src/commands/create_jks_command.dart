@@ -97,7 +97,7 @@ class CreateJksCommand extends Command<void> {
     if (jksFile.existsSync() && !noInteractive) {
       stdout.write('⚠️  File $fullJksName already exists. Overwrite? (y/N): ');
       if (stdin.readLineSync()?.trim().toLowerCase() != 'y') {
-        kLog('Aborted.', type: LogType.warning);
+        kLog('Aborted.', type: .warning);
         return;
       }
     }
@@ -122,10 +122,7 @@ class CreateJksCommand extends Command<void> {
     }
 
     if (storePass.length < 6) {
-      kLog(
-        '❗ Store password must be at least 6 characters.',
-        type: LogType.error,
-      );
+      kLog('❗ Store password must be at least 6 characters.', type: .error);
       return;
     }
 
@@ -155,7 +152,7 @@ class CreateJksCommand extends Command<void> {
     if (keytoolCheck.exitCode != 0) {
       kLog(
         '❗ "keytool" command not found. Please ensure JDK is installed and in your PATH.',
-        type: LogType.error,
+        type: .error,
       );
       return;
     }
@@ -186,12 +183,12 @@ class CreateJksCommand extends Command<void> {
       );
 
       if (result.exitCode != 0) {
-        kLog('❗ Failed to generate JKS.', type: LogType.error);
-        kLog('Error: ${result.stderr}', type: LogType.error);
+        kLog('❗ Failed to generate JKS.', type: .error);
+        kLog('Error: ${result.stderr}', type: .error);
         return;
       }
 
-      kLog('\n✅ JKS file created: ${jksFile.path}', type: LogType.success);
+      kLog('\n✅ JKS file created: ${jksFile.path}', type: .success);
 
       // 5. Automated setup if inside Flutter project
       if (isInsideFlutter) {
@@ -202,7 +199,8 @@ class CreateJksCommand extends Command<void> {
           );
 
           // Use absolute path in key.properties for "0 work" robustness
-          final propertiesContent = 'storePassword=$storePass\n'
+          final propertiesContent =
+              'storePassword=$storePass\n'
               'keyPassword=$keyPass\n'
               'keyAlias=$alias\n'
               'storeFile=${p.basename(jksFile.path)}';
@@ -212,7 +210,7 @@ class CreateJksCommand extends Command<void> {
           // Update build.gradle
           await _updateBuildGradle(projectRoot.path);
         });
-        kLog('✅ Android signing setup complete!', type: LogType.success);
+        kLog('✅ Android signing setup complete!', type: .success);
         kLog('📝 key.properties created in android/');
       }
 
@@ -223,10 +221,10 @@ class CreateJksCommand extends Command<void> {
       kLog('   • Passwords: $storePass');
       kLog(
         '   • Status: Your project is ready for "flutter build apk --release"',
-        type: LogType.success,
+        type: .success,
       );
     } catch (e) {
-      kLog('❌ An error occurred: $e', type: LogType.error);
+      kLog('❌ An error occurred: $e', type: .error);
     }
   }
 

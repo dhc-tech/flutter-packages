@@ -26,11 +26,13 @@ class AudioPlayerEntry: NSObject, AVAudioPlayerDelegate {
     eventChannel = FlutterEventChannel(
       name: "attachment_engine/audio_events/\(playerId)", binaryMessenger: messenger)
     eventChannel?.setStreamHandler(
-      AudioStreamHandler(onListen: { [weak self] sink in
-        self?.eventSink = sink
-      }, onCancel: { [weak self] in
-        self?.eventSink = nil
-      }))
+      AudioStreamHandler(
+        onListen: { [weak self] sink in
+          self?.eventSink = sink
+        },
+        onCancel: { [weak self] in
+          self?.eventSink = nil
+        }))
   }
 
   func load(path: String?, url: String?) {
@@ -131,7 +133,8 @@ class AudioPlayerEntry: NSObject, AVAudioPlayerDelegate {
         durationMs: Int(audioPlayer.duration * 1000))
     } else if let avPlayer = avPlayer {
       let positionMs = Int(avPlayer.currentTime().seconds * 1000)
-      let durationMs = avPlayer.currentItem?.duration.seconds.isFinite == true
+      let durationMs =
+        avPlayer.currentItem?.duration.seconds.isFinite == true
         ? Int((avPlayer.currentItem?.duration.seconds ?? 0) * 1000) : nil
       emit(
         state: avPlayer.rate > 0 ? "playing" : "paused", positionMs: positionMs,

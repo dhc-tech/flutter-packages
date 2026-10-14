@@ -2,10 +2,6 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-// Copyright 2013 The Flutter Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 import 'package:flutter/foundation.dart';
 
 import 'apple_authorization_scope.dart';
@@ -81,15 +77,15 @@ class AppleCredential {
 
   @override
   int get hashCode => Object.hash(
-        userIdentifier,
-        email,
-        name,
-        identityToken,
-        authorizationCode,
-        state,
-        Object.hashAll(authorizedScopes),
-        realUserStatus,
-      );
+    userIdentifier,
+    email,
+    name,
+    identityToken,
+    authorizationCode,
+    state,
+    Object.hashAll(authorizedScopes),
+    realUserStatus,
+  );
 
   @override
   String toString() =>

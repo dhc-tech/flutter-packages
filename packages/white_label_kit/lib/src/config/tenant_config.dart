@@ -79,6 +79,12 @@ class TenantConfig {
   /// files (see `TenantStager.stage`).
   final TenantFirebaseConfig? firebase;
 
+  /// Every declared tenant image, including Android adaptive icon layers.
+  Iterable<String> get allAssetPaths => [
+    ...assets.all,
+    ...?android.adaptiveIcon?.assetPaths,
+  ];
+
   /// The version to use for this tenant's Android build: [AndroidTenantConfig.version]
   /// if the tenant declared a platform-specific override, otherwise the
   /// shared [version]. A tenant whose Android and iOS release cadences have
@@ -119,14 +125,15 @@ class TenantConfig {
   }
 }
 
-/// Android-specific tenant configuration (application ID, app name, and an
-/// optional Android-only version override).
+/// Android-specific tenant configuration (application ID, app name, adaptive
+/// icon assets, and an optional Android-only version override).
 class AndroidTenantConfig {
   /// Creates an Android tenant config.
   const AndroidTenantConfig({
     required this.applicationId,
     required this.appName,
     this.version,
+    this.adaptiveIcon,
   });
 
   /// Must be a valid Java package name — see [ConfigValidator.androidApplicationId].
@@ -140,6 +147,37 @@ class AndroidTenantConfig {
   /// don't read this field directly unless you specifically need to know
   /// whether an override was declared.
   final TenantVersion? version;
+
+  /// Optional Android adaptive icon configuration. When omitted, launcher
+  /// generation uses the regular icon without adaptive layers.
+  final AndroidAdaptiveIconConfig? adaptiveIcon;
+}
+
+/// Android 8+ adaptive icon layers for one tenant.
+class AndroidAdaptiveIconConfig {
+  /// Creates an adaptive icon configuration.
+  const AndroidAdaptiveIconConfig({
+    this.foreground,
+    this.background,
+    this.backgroundColor,
+    this.monochrome,
+  });
+
+  /// Transparent foreground image, designed to keep important content within
+  /// Android's adaptive icon safe zone.
+  final String? foreground;
+
+  /// Optional tenant-owned image filling the adaptive icon background layer.
+  final String? background;
+
+  /// Adaptive icon background color in `#RRGGBB` or `#AARRGGBB` form.
+  final String? backgroundColor;
+
+  /// Optional monochrome image used by themed Android icons.
+  final String? monochrome;
+
+  /// All tenant-owned images used by the adaptive icon.
+  Iterable<String> get assetPaths => [?foreground, ?background, ?monochrome];
 }
 
 /// iOS-specific tenant configuration (bundle ID, app name, and an optional

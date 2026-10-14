@@ -1,3 +1,12 @@
+## 0.0.7
+
+* Fixed `update-tenant` crashing with a `RangeError` when `--name`, `--android-id`, `--ios-id`, `--api-url` or `--logo` had no value.
+* `update-tenant` now refuses to run, changing nothing, when the tenant has settings it would silently drop (theme, features, icon, splash, firebase, ...).
+* Added opt-in per-tenant Android adaptive icon foreground, background image
+  or color, and monochrome configuration (`android.adaptive_icon`).
+* Tenants without `android.adaptive_icon` continue to generate regular launcher
+  icons without unintended adaptive masking.
+
 ## 0.0.6
 
 * New: Full Monorepo & Melos workspace support via `--project-root`,

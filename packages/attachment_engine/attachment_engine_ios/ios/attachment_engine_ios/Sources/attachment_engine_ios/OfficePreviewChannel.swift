@@ -51,7 +51,8 @@ class OfficePreviewChannel: NSObject, OfficeHostApi, QLPreviewControllerDataSour
     self.previewItemURL = URL(fileURLWithPath: path)
 
     guard let presenter = ShareChannel.topViewController() else {
-      throw PigeonError(code: "no_presenter", message: "No presenting view controller", details: nil)
+      throw PigeonError(
+        code: "no_presenter", message: "No presenting view controller", details: nil)
     }
     let preview = QLPreviewController()
     preview.dataSource = self
@@ -71,7 +72,9 @@ class OfficePreviewChannel: NSObject, OfficeHostApi, QLPreviewControllerDataSour
     previewItemURL == nil ? 0 : 1
   }
 
-  func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+  func previewController(_ controller: QLPreviewController, previewItemAt index: Int)
+    -> QLPreviewItem
+  {
     previewItemURL! as QLPreviewItem
   }
 

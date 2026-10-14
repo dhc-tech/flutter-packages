@@ -2,7 +2,7 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../models/attachment.dart';
 import '../models/attachment_type.dart';
@@ -10,6 +10,7 @@ import '../native/native_audio_channel.dart'
     show NativePlaybackState, NativePlaybackStatus;
 import '../native/native_video_channel.dart';
 import 'renderer.dart';
+import 'renderer_error_state.dart';
 
 /// Shared pool of [NativeVideoController]s keyed by source, so navigating
 /// to the same video twice reuses (rather than duplicates) a controller,
@@ -122,17 +123,10 @@ class _VideoViewState extends State<_VideoView> {
     // went wrong — exactly the "stuck on an infinite spinner with no error
     // or retry" bug this branch exists to fix.
     if (_status.state == NativePlaybackState.error) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 40),
-            const SizedBox(height: 12),
-            const Text('This video could not be played.'),
-            const SizedBox(height: 12),
-            TextButton(onPressed: _retry, child: const Text('Retry')),
-          ],
-        ),
+      return RendererErrorState(
+        message: 'This video could not be played.',
+        icon: Icons.videocam_off_outlined,
+        onRetry: _retry,
       );
     }
     if (_status.state == NativePlaybackState.idle ||

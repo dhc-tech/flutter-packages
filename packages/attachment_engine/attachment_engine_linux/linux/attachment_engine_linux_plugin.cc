@@ -27,12 +27,10 @@ G_DEFINE_TYPE(AttachmentEngineLinuxPlugin, attachment_engine_linux_plugin,
               g_object_get_type())
 
 static void attachment_engine_linux_plugin_dispose(GObject* object) {
-  AttachmentEngineLinuxPlugin* self =
-      ATTACHMENT_ENGINE_LINUX_PLUGIN(object);
+  AttachmentEngineLinuxPlugin* self = ATTACHMENT_ENGINE_LINUX_PLUGIN(object);
   g_clear_object(&self->audio_channel);
   g_clear_object(&self->video_channel);
-  G_OBJECT_CLASS(attachment_engine_linux_plugin_parent_class)
-      ->dispose(object);
+  G_OBJECT_CLASS(attachment_engine_linux_plugin_parent_class)->dispose(object);
 }
 
 static void attachment_engine_linux_plugin_class_init(

@@ -14,10 +14,9 @@ import '../validation/validation_result.dart';
 /// files into a deterministic staging directory
 /// (`<projectRoot>/.generated/<tenantId>/...`) — never the whole `tenants/`
 /// tree, never another tenant's files. Two independent groups of declared
-/// files are staged this way, each into its own subdirectory: the required
-/// [TenantConfig.assets] (`assets/`) and the optional
-/// [TenantConfig.firebase] config files (`firebase/`), if the tenant
-/// declared any.
+/// files are staged this way, each into its own subdirectory: tenant images
+/// (`assets/`), including optional Android adaptive icon layers, and optional
+/// [TenantConfig.firebase] config files (`firebase/`).
 ///
 /// This is the actual isolation mechanism (not a runtime `if`/asset-manifest
 /// trick): whatever consumes the staging directory afterwards (icon
@@ -73,7 +72,7 @@ class TenantStager {
   /// output for this tenant.
   String stage(TenantConfig tenant) {
     final groups = <_StageGroup>[
-      _StageGroup('assets', tenant.assets.all.toList()),
+      _StageGroup('assets', tenant.allAssetPaths.toList()),
       if (tenant.firebase != null)
         _StageGroup('firebase', tenant.firebase!.all.toList()),
     ];

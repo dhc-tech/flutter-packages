@@ -80,7 +80,7 @@ class ProjectRebrander {
         recursive: false,
       );
     } catch (e) {
-      kLog('Error in _updateDartImports: $e', type: LogType.error);
+      kLog('Error in _updateDartImports: $e', type: .error);
     }
   }
 
@@ -90,8 +90,9 @@ class ProjectRebrander {
     bool recursive = true,
   }) async {
     try {
-      final List<FileSystemEntity> entities =
-          dir.listSync(recursive: recursive);
+      final List<FileSystemEntity> entities = dir.listSync(
+        recursive: recursive,
+      );
       for (final entity in entities) {
         if (entity is! File) {
           continue;
@@ -291,8 +292,9 @@ class ProjectRebrander {
 
     if (buildGradle != null) {
       String content = await buildGradle.readAsString();
-      final RegExpMatch? appIdMatch =
-          RegExp(r'applicationId\s*[=]?\s*"([^"]+)"').firstMatch(content);
+      final RegExpMatch? appIdMatch = RegExp(
+        r'applicationId\s*[=]?\s*"([^"]+)"',
+      ).firstMatch(content);
       final String? oldId = appIdMatch?.group(1);
 
       content = content.replaceAllMapped(
@@ -451,8 +453,9 @@ class ProjectRebrander {
       for (final lang in ['kotlin', 'java']) {
         final sourceDir = Directory(p.join(appSrc, type, lang, newPathSegment));
         if (sourceDir.existsSync()) {
-          await for (final FileSystemEntity entity
-              in sourceDir.list(recursive: true)) {
+          await for (final FileSystemEntity entity in sourceDir.list(
+            recursive: true,
+          )) {
             if (entity is File &&
                 (entity.path.endsWith('.kt') ||
                     entity.path.endsWith('.java'))) {

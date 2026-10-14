@@ -2,10 +2,6 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-// Copyright 2013 The Flutter Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 import 'dart:async';
 
 import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
@@ -82,7 +78,7 @@ class AppleSignIn {
 
       final AppleBackendAdapter? adapter = backendAdapter;
       if (adapter != null) {
-        unawaited(adapter.onAuthorizationSuccess(credential));
+        unawaited(_notifyBackend(adapter, credential));
       }
 
       return session;
@@ -121,8 +117,9 @@ class AppleSignIn {
   /// Calling this on non-Apple platforms throws an [AppleSignInException]
   /// with [AppleSignInErrorCode.platformNotSupported].
   Future<AppleCredentialState> getCredentialState(String userIdentifier) async {
-    final AppleCredentialState state =
-        await AppleSignInPlatform.instance.getCredentialState(userIdentifier);
+    final AppleCredentialState state = await AppleSignInPlatform.instance.getCredentialState(
+      userIdentifier,
+    );
 
     if (state == AppleCredentialState.transferred) {
       _eventController.add(
@@ -174,14 +171,12 @@ class AppleSignIn {
         }
         return const AppleDisconnectResult(
           status: AppleDisconnectStatus.manualActionRequired,
-          message:
-              'Local session cleared. To revoke authorization, the user can remove the app in Apple ID Settings, or configure an AppleBackendAdapter for programmatic revocation.',
+          message: 'Local session cleared. To revoke authorization, the user can remove the app in Apple ID Settings, or configure an AppleBackendAdapter for programmatic revocation.',
         );
       } catch (_) {
         return const AppleDisconnectResult(
           status: AppleDisconnectStatus.manualActionRequired,
-          message:
-              'Local session cleared. Configure an AppleBackendAdapter for programmatic token revocation.',
+          message: 'Local session cleared. Configure an AppleBackendAdapter for programmatic token revocation.',
         );
       }
     }
@@ -189,8 +184,7 @@ class AppleSignIn {
     if (caps.webAppleJs || caps.browserAuthorization) {
       return const AppleDisconnectResult(
         status: AppleDisconnectStatus.backendRequired,
-        message:
-            'On non-Apple platforms, true Apple token revocation requires an AppleBackendAdapter to call /auth/revoke.',
+        message: 'On non-Apple platforms, true Apple token revocation requires an AppleBackendAdapter to call /auth/revoke.',
       );
     }
 
@@ -262,10 +256,7 @@ class AppleSignIn {
       webAppleJs: webJs,
       wasmWeb: wasmWeb,
       backendRevocation: backendAdapter != null,
-      supportedScopes: const {
-        AppleAuthorizationScope.email,
-        AppleAuthorizationScope.fullName,
-      },
+      supportedScopes: const {AppleAuthorizationScope.email, AppleAuthorizationScope.fullName},
     );
   }
 
@@ -311,11 +302,26 @@ class AppleSignInPlugin {
   }
 
   /// Calls [AppleSignIn.getCredentialState] on [AppleSignIn.instance].
-  static Future<AppleCredentialState> getCredentialState(
-    String userIdentifier,
-  ) =>
+  static Future<AppleCredentialState> getCredentialState(String userIdentifier) =>
       AppleSignIn.instance.getCredentialState(userIdentifier);
 
   /// Calls [AppleSignIn.onCredentialRevoked] on [AppleSignIn.instance].
   static Stream<void> get onCredentialRevoked => AppleSignIn.instance.onCredentialRevoked;
+}
+
+/// Notifies [adapter] of a successful sign-in without letting its failure
+/// escape as an uncaught asynchronous error; sign-in itself already succeeded.
+Future<void> _notifyBackend(AppleBackendAdapter adapter, AppleCredential credential) async {
+  try {
+    await adapter.onAuthorizationSuccess(credential);
+  } catch (error, stack) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'apple_sign_in_plugin',
+        context: ErrorDescription('while notifying the backend adapter of a successful sign-in'),
+      ),
+    );
+  }
 }

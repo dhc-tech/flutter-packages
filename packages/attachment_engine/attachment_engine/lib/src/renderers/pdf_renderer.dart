@@ -4,12 +4,13 @@
 
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../models/attachment.dart';
 import '../models/attachment_type.dart';
 import '../native/native_pdf_channel.dart';
 import 'renderer.dart';
+import 'renderer_error_state.dart';
 
 /// Remembers the last-viewed page per attachment so reopening a PDF resumes
 /// where the reader left off, instead of always restarting at page one.
@@ -67,7 +68,10 @@ class PdfAttachmentRenderer extends AttachmentRenderer {
   Widget build(BuildContext context, Attachment attachment) {
     final path = attachment.localPath;
     if (path == null) {
-      return const Center(child: Text('PDF unavailable'));
+      return const RendererErrorState(
+        message: 'PDF unavailable',
+        icon: Icons.picture_as_pdf_outlined,
+      );
     }
     return _PdfView(
       path: path,
@@ -166,15 +170,10 @@ class _PdfViewState extends State<_PdfView> {
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Unable to render PDF'),
-            const SizedBox(height: 12),
-            OutlinedButton(onPressed: _open, child: const Text('Retry')),
-          ],
-        ),
+      return RendererErrorState(
+        message: 'Unable to render PDF',
+        icon: Icons.picture_as_pdf_outlined,
+        onRetry: _open,
       );
     }
     final controller = _controller;
@@ -260,15 +259,10 @@ class _PdfPageState extends State<_PdfPage> {
   @override
   Widget build(BuildContext context) {
     if (_failed) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Unable to render this page'),
-            const SizedBox(height: 12),
-            OutlinedButton(onPressed: _render, child: const Text('Retry')),
-          ],
-        ),
+      return RendererErrorState(
+        message: 'Unable to render this page',
+        icon: Icons.picture_as_pdf_outlined,
+        onRetry: _render,
       );
     }
     final bytes = _bytes;

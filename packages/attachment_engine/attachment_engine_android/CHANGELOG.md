@@ -1,3 +1,8 @@
+## 0.0.1-dev.3
+
+* Fixes VideoPlatformView surface lifecycle handling on Android to detach stale surfaces and safely handle surface destruction.
+* Updates SDK constraints to Dart `^3.13.0` and Flutter `>=3.47.7`.
+
 ## 0.0.1-dev.2
 
 * Fix: `AudioChannel.load` could throw a synchronous exception from

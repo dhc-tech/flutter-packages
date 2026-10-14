@@ -2,10 +2,6 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-// Copyright 2013 The Flutter Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 import 'package:flutter/foundation.dart';
 
 import 'apple_authorization_scope.dart';
@@ -41,11 +37,7 @@ String? _decodeEmailFromIdentityToken(String? identityToken) {
 @immutable
 class AppleAuthIdentity {
   /// Creates an [AppleAuthIdentity].
-  const AppleAuthIdentity({
-    required this.userIdentifier,
-    this.email,
-    this.name,
-  });
+  const AppleAuthIdentity({required this.userIdentifier, this.email, this.name});
 
   /// The user's team-scoped stable unique identifier.
   final String userIdentifier;
@@ -61,8 +53,10 @@ class AppleAuthIdentity {
     if (name == null || name!.isEmpty) {
       return null;
     }
-    final Iterable<String> parts =
-        [name!.givenName, name!.familyName].whereType<String>().where((s) => s.isNotEmpty);
+    final Iterable<String> parts = [
+      name!.givenName,
+      name!.familyName,
+    ].whereType<String>().where((s) => s.isNotEmpty);
     return parts.isEmpty ? null : parts.join(' ');
   }
 
@@ -104,10 +98,7 @@ class AppleAuthTokens {
 @immutable
 class AppleAuthAuthorization {
   /// Creates an [AppleAuthAuthorization].
-  const AppleAuthAuthorization({
-    required this.scopes,
-    required this.realUserStatus,
-  });
+  const AppleAuthAuthorization({required this.scopes, required this.realUserStatus});
 
   /// The set of authorization scopes granted by the user.
   final Set<AppleAuthorizationScope> scopes;

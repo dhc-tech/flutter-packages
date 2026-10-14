@@ -27,10 +27,7 @@ const _capabilities = AppleSignInCapabilities(
   webAppleJs: false,
   wasmWeb: false,
   backendRevocation: false,
-  supportedScopes: {
-    AppleAuthorizationScope.email,
-    AppleAuthorizationScope.fullName,
-  },
+  supportedScopes: {AppleAuthorizationScope.email, AppleAuthorizationScope.fullName},
 );
 
 void main() {
@@ -55,24 +52,26 @@ void main() {
       expect(session.metadata.receivedEmail, isTrue);
     });
 
-    test('falls back to decoding the email claim from identityToken when credential.email is null',
-        () {
-      final credential = AppleCredential(
-        userIdentifier: 'user-2',
-        state: '',
-        authorizedScopes: const {AppleAuthorizationScope.email},
-        realUserStatus: AppleRealUserStatus.unknown,
-        identityToken: _createTestJwt({'email': 'from-token@example.com'}),
-      );
+    test(
+      'falls back to decoding the email claim from identityToken when credential.email is null',
+      () {
+        final credential = AppleCredential(
+          userIdentifier: 'user-2',
+          state: '',
+          authorizedScopes: const {AppleAuthorizationScope.email},
+          realUserStatus: AppleRealUserStatus.unknown,
+          identityToken: _createTestJwt({'email': 'from-token@example.com'}),
+        );
 
-      final session = AppleAuthSession.fromCredential(
-        credential: credential,
-        capabilities: _capabilities,
-      );
+        final session = AppleAuthSession.fromCredential(
+          credential: credential,
+          capabilities: _capabilities,
+        );
 
-      expect(session.identity.email, 'from-token@example.com');
-      expect(session.metadata.receivedEmail, isTrue);
-    });
+        expect(session.identity.email, 'from-token@example.com');
+        expect(session.metadata.receivedEmail, isTrue);
+      },
+    );
 
     test('leaves email null when neither the credential nor the token has one', () {
       final credential = AppleCredential(
@@ -102,10 +101,7 @@ void main() {
       );
 
       expect(
-        () => AppleAuthSession.fromCredential(
-          credential: credential,
-          capabilities: _capabilities,
-        ),
+        () => AppleAuthSession.fromCredential(credential: credential, capabilities: _capabilities),
         returnsNormally,
       );
     });

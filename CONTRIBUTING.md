@@ -1,67 +1,90 @@
-## Local setup: git hooks
+# Contributing
 
-Run once per clone:
+Please read our [Code of Conduct](CODE_OF_CONDUCT.md) first.
+
+Thanks for helping improve the DHC Tech Flutter packages. This guide covers
+everything needed to land a change in this monorepo.
+
+## Setup
+
+1. Install Flutter `3.47.7` or newer.
+2. From the repository root, resolve the whole workspace once ([Melos](https://melos.invertase.dev/)
+   is a workspace dev dependency, so `dart run melos <cmd>` works without a global install):
+
+   ```bash
+   flutter pub get
+   git config core.hooksPath .githooks   # formats staged Dart files on commit
+   ```
+
+The root `pubspec.yaml` is a [pub workspace](https://dart.dev/tools/pub/workspaces):
+every package and example app is a member, so sibling packages (for example
+`attachment_engine` and `attachment_engine_android`) always resolve to the local
+source. Do not add `dependency_overrides` or `pubspec_overrides.yaml` files to
+packages; workspace members must declare `resolution: workspace`.
+
+## Repository structure
+
+- `packages/<name>/` — a standalone package (`dig_cli`, `white_label_kit`).
+- `packages/<name>/<name>*/` — a federated plugin: the app-facing package
+  `<name>`, `<name>_platform_interface`, and one `<name>_<platform>` package per
+  platform. A change to the platform interface usually needs matching changes in
+  the implementations.
+
+## Before opening a PR
 
 ```bash
-git config core.hooksPath .githooks
+melos run format
+melos run analyze
+melos run test        # or: .github/scripts/run_tests.sh packages/<package>
 ```
 
-This enables a pre-commit hook that runs `dart format` and `dart pub
-publish --dry-run` on any package you've touched — the same two checks
-CI's `validate` job runs — so a formatting or publish-blocking issue is
-caught locally before you push, not after. Skip it for a single commit
-with `git commit --no-verify` if you're certain it's a false positive.
+CI (`validate`) runs the same checks plus `dart pub publish --dry-run` for every
+package. Run the whole pipeline exactly as CI does, on a clean clone of your
+committed HEAD, **before every push**:
 
-## Welcome
+```bash
+.github/scripts/ci.sh local
+```
 
-For an introduction to contributing to Flutter, see [our contributor
-guide](https://github.com/flutter/flutter/blob/master/CONTRIBUTING.md).
+- PR titles follow [Conventional Commits](https://www.conventionalcommits.org/),
+  for example `fix(dig_cli): handle missing pubspec`.
+- Add or update tests for behavior changes.
+- Add `///` documentation for public API (`public_member_api_docs` is enabled).
+- Regenerate code when you change its inputs: `dart run pigeon --input pigeons/<file>.dart`
+  for Pigeon definitions, `dart run build_runner build -d` for packages using
+  `build_runner`.
 
-Additional resources specific to the packages repository:
-- [Setting up the Packages development
-  environment](https://github.com/flutter/flutter/blob/master/docs/ecosystem/contributing/Setting-up-the-Packages-development-environment.md),
-  which covers the setup process for this repository.
-- [Packages repository structure](https://github.com/flutter/flutter/blob/master/docs/ecosystem/Plugins-and-Packages-repository-structure.md),
-  to get an overview of how this repository is laid out.
-- [Contributing to Plugins and Packages](https://github.com/flutter/flutter/blob/master/docs/ecosystem/contributing/README.md),
-  for more information about how to make PRs for this repository, especially when
-  changing federated plugins.
-- [Plugin tests](https://github.com/flutter/flutter/blob/master/docs/ecosystem/testing/Plugin-Tests.md),
-  which explains the different kinds of tests used for plugins, where to find them, and how to run them.
-  As explained in the Flutter guide,
-  [**PRs need tests**](https://github.com/flutter/flutter/blob/master/docs/contributing/Tree-hygiene.md#tests), so
-  this is critical to read before submitting a plugin PR.
+## Versioning and changelogs
 
-### Code review processes and automation
+Versions are never bumped automatically. Release a package deliberately, in the
+same PR as the change (or a follow-up PR) that touches its non-test code:
 
-PRs will automatically be assigned to
-[code owners](https://github.com/flutter/packages/blob/main/CODEOWNERS)
-for review.
-If a code owner is creating a PR, they should explicitly pick another
-[Flutter team member](https://github.com/flutter/flutter/blob/master/docs/contributing/Contributor-access.md)
-as a code reviewer.
+1. Bump `version:` in that package's `pubspec.yaml` ([semantic versioning](https://semver.org/):
+   patch for fixes, minor for features or public API additions, major for breaking changes).
+2. Add a matching entry at the top of that package's `CHANGELOG.md`.
 
-### Style
+Changes that should not release (docs, tests, CI) leave the version alone.
+Merging a version bump to `main` publishes that package. For federated plugins,
+bump the platform interface and implementations together when the interface
+changes. See [docs/release_architecture.md](docs/release_architecture.md).
 
-Flutter packages and plugins follow Google style—or Flutter style for Dart—for the languages they
-use, and use auto-formatters:
-- [Dart](https://github.com/flutter/flutter/blob/master/docs/contributing/Style-guide-for-Flutter-repo.md) formatted
-  with `dart format`
-- [C++](https://google.github.io/styleguide/cppguide.html) formatted with `clang-format`
-  - **Note**: The Linux plugins generally follow idiomatic GObject-based C
-    style. See [the engine style
-    notes](https://github.com/flutter/engine/blob/main/CONTRIBUTING.md#style)
-    for more details, and exceptions.
-- [Java](https://google.github.io/styleguide/javaguide.html) formatted with
-  `google-java-format`
-- [Kotlin](https://developer.android.com/kotlin/style-guide) formatted with
-  `ktfmt`
-- [Objective-C](https://google.github.io/styleguide/objcguide.html) formatted with
-  `clang-format`
-- [Swift](https://google.github.io/swift/) formatted with `swift-format`
+## Labels
 
-### Releasing
+Labels are applied automatically from your PR title and changed files, so you
+normally do not set any. See [docs/labels.md](docs/labels.md) for what each label
+means and which ones maintainers add (`status: on hold`, `good first issue`,
+`help wanted`, ...).
 
-If you are a team member landing a PR, or just want to know what the release
-process is for package changes, see [the release
-documentation](https://github.com/flutter/flutter/blob/master/docs/ecosystem/release/README.md).
+## Merging
+
+A PR needs one approval and green `validate`, `dependency-review` and `pr-title`
+checks. Its `status:` label shows the stage (`needs approval`, `waiting for
+green`, `ci failed`, `automerge`). Once it is approved and green GitHub squash-merges
+it automatically; a maintainer can add `status: on hold` to stop that. Pushing a
+new commit dismisses earlier approvals. If a GitHub merge queue is enabled for
+`main`, `validate` already runs on `merge_group` events.
+
+## Review
+
+PRs are assigned to [code owners](.github/CODEOWNERS) automatically. Code owners
+opening a PR should request review from another team member.

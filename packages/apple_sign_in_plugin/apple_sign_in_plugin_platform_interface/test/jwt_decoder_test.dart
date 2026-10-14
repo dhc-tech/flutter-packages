@@ -46,15 +46,12 @@ void main() {
       expect(() => JwtDecoder.decode('a.b.c.d'), throwsFormatException);
     });
 
-    test(
-      'tryDecode returns Map for valid token and null for invalid token',
-      () {
-        final String token = _createTestJwt(payload: {'name': 'Test User'});
-        expect(JwtDecoder.tryDecode(token), isNotNull);
-        expect(JwtDecoder.tryDecode('bad.token.signature'), isNull);
-        expect(JwtDecoder.tryDecode(''), isNull);
-      },
-    );
+    test('tryDecode returns Map for valid token and null for invalid token', () {
+      final String token = _createTestJwt(payload: {'name': 'Test User'});
+      expect(JwtDecoder.tryDecode(token), isNotNull);
+      expect(JwtDecoder.tryDecode('bad.token.signature'), isNull);
+      expect(JwtDecoder.tryDecode(''), isNull);
+    });
 
     test('isExpired detects active vs expired tokens', () {
       final int nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -80,9 +77,7 @@ void main() {
     test('getExpirationDate and getRemainingTime calculate correctly', () {
       final int nowSec = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final int targetExp = nowSec + 1000;
-      final String token = _createTestJwt(
-        payload: {'exp': targetExp, 'iat': nowSec - 50},
-      );
+      final String token = _createTestJwt(payload: {'exp': targetExp, 'iat': nowSec - 50});
 
       final DateTime? expDate = JwtDecoder.getExpirationDate(token);
       expect(expDate, isNotNull);

@@ -45,8 +45,9 @@ class InteractiveMenu {
   }
 
   String? _promptUser(String label, {String? defaultValue}) {
-    final displayDefault =
-        defaultValue != null ? ' (${_painter.textPen(defaultValue)})' : '';
+    final displayDefault = defaultValue != null
+        ? ' (${_painter.textPen(defaultValue)})'
+        : '';
     stdout.write('  $label$displayDefault: ');
     final String? input = stdin.readLineSync()?.trim();
     return (input == null || input.isEmpty) ? defaultValue : input;
@@ -62,8 +63,9 @@ class InteractiveMenu {
     while (true) {
       _clearScreen();
       final bool isFlutter = await isFlutterProject();
-      final status =
-          isFlutter ? 'Flutter Project Detected' : 'No Flutter Project Found';
+      final status = isFlutter
+          ? 'Flutter Project Detected'
+          : 'No Flutter Project Found';
       final statusPen = isFlutter ? (AnsiPen()..green()) : (AnsiPen()..red());
 
       _painter.drawHeader('DIG CLI DASHBOARD', width: _width);
@@ -95,10 +97,11 @@ class InteractiveMenu {
       }
 
       final String? response = stdin.readLineSync()?.trim();
-      if (response == '0') {
+      // A null read means stdin is closed; looping on it would spin forever.
+      if (response == null || response == '0') {
         exit(0);
       }
-      if (response == null || response.isEmpty) {
+      if (response.isEmpty) {
         continue;
       }
 
@@ -148,8 +151,10 @@ class InteractiveMenu {
         case '1':
         case '2':
           final type = r == '1' ? 'apk' : 'bundle';
-          final String? out =
-              _promptUser('Output directory', defaultValue: 'Desktop');
+          final String? out = _promptUser(
+            'Output directory',
+            defaultValue: 'Desktop',
+          );
           final String? name = _promptUser('Custom name prefix (optional)');
           final args = ['create', type];
           if (out != 'Desktop') {
@@ -162,8 +167,10 @@ class InteractiveMenu {
           await runner.run(args);
           await _pause();
         case '3':
-          final String? out =
-              _promptUser('Output directory', defaultValue: 'Desktop');
+          final String? out = _promptUser(
+            'Output directory',
+            defaultValue: 'Desktop',
+          );
           final String? name = _promptUser('Custom name prefix (optional)');
           final args = ['ios'];
           if (out != 'Desktop') {
@@ -197,7 +204,7 @@ class InteractiveMenu {
       switch (r) {
         case '1':
           await Process.run('flutter', ['clean']);
-          kLog('  Clean completed.', type: LogType.success);
+          kLog('  Clean completed.', type: .success);
           await _pause();
         case '2':
           await _handleFullReset();
@@ -331,7 +338,7 @@ class InteractiveMenu {
             }
 
             if (args.length == 1) {
-              kLog('  No changes provided.', type: LogType.warning);
+              kLog('  No changes provided.', type: .warning);
             } else {
               runner.addCommand(RenameCommand());
               await runner.run(args);
@@ -407,19 +414,16 @@ class InteractiveMenu {
       stdout.write('  New version v$latest available. Install? (y/N): ');
       if (stdin.readLineSync()?.trim().toLowerCase() == 'y') {
         final String verArg = beta ? latest : '';
-        await Process.start(
-            'dart',
-            [
-              'pub',
-              'global',
-              'activate',
-              'dig_cli',
-              verArg,
-            ],
-            mode: ProcessStartMode.inheritStdio);
+        await Process.start('dart', [
+          'pub',
+          'global',
+          'activate',
+          'dig_cli',
+          verArg,
+        ], mode: ProcessStartMode.inheritStdio);
       }
     } else {
-      kLog('  You are on the latest version.', type: LogType.success);
+      kLog('  You are on the latest version.', type: .success);
     }
   }
 }

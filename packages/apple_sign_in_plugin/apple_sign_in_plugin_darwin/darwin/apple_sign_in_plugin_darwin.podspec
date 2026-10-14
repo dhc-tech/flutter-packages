@@ -11,7 +11,7 @@ Downloaded by pub (not CocoaPods).
                        DESC
   s.homepage         = 'https://github.com/dhc-tech/flutter-packages'
   s.license          = { :type => 'MIT', :file => '../LICENSE' }
-  s.author           = { 'DHC Tech' => 'digvijaysinh2204@gmail.com' }
+  s.author           = { 'DHC Tech' => 'Digvijaysinh2204@gmail.com' }
   s.source           = { :http => 'https://github.com/dhc-tech/flutter-packages/tree/main/packages/apple_sign_in_plugin_darwin' }
   s.documentation_url = 'https://pub.dev/packages/apple_sign_in_plugin_darwin'
   s.source_files = 'apple_sign_in_plugin_darwin/Sources/apple_sign_in_plugin_darwin/**/*.swift'

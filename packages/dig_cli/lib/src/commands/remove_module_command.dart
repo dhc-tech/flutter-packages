@@ -33,7 +33,7 @@ class RemoveModuleCommand extends Command<dynamic> {
     if (!await isFlutterProject()) {
       kLog(
         '❗ This command must be run inside a Flutter project.',
-        type: LogType.error,
+        type: .error,
       );
       return;
     }
@@ -49,7 +49,7 @@ class RemoveModuleCommand extends Command<dynamic> {
     }
 
     if (moduleName == null || moduleName.isEmpty) {
-      kLog('❗ Module name is required.', type: LogType.error);
+      kLog('❗ Module name is required.', type: .error);
       return;
     }
 
@@ -65,7 +65,7 @@ class RemoveModuleCommand extends Command<dynamic> {
     final moduleDir = Directory(p.join('lib', 'app', 'module', slug));
 
     if (!moduleDir.existsSync()) {
-      kLog('❗ Module $slug does not exist.', type: LogType.error);
+      kLog('❗ Module $slug does not exist.', type: .error);
       return;
     }
 
@@ -77,12 +77,12 @@ class RemoveModuleCommand extends Command<dynamic> {
           moduleDir.deleteSync(recursive: true);
           kLog(
             '  - Deleted module directory: ${moduleDir.path}',
-            type: LogType.success,
+            type: .success,
           );
         } else {
           kLog(
             '  - Module directory already gone: ${moduleDir.path}',
-            type: LogType.warning,
+            type: .warning,
           );
         }
 
@@ -106,10 +106,7 @@ class RemoveModuleCommand extends Command<dynamic> {
     painter.drawRow('Route', 'AppRoute.${_toCamelCase(slug)}');
     painter.drawFooter();
 
-    kLog(
-      '\n✅ Module $className has been completely removed!',
-      type: LogType.success,
-    );
+    kLog('\n✅ Module $className has been completely removed!', type: .success);
     kLog(
       '💡 Note: You may need to run "flutter pub get" if imports are lingering.',
     );
@@ -127,17 +124,14 @@ class RemoveModuleCommand extends Command<dynamic> {
     final exportLine = "export '$slug/${slug}_export.dart';";
 
     if (!content.contains(exportLine)) {
-      kLog(
-        '  - Export line not found in module_export.dart',
-        type: LogType.warning,
-      );
+      kLog('  - Export line not found in module_export.dart', type: .warning);
       return;
     }
 
     final List<String> lines = content.split('\n');
     lines.removeWhere((l) => l.trim() == exportLine);
     await exportFile.writeAsString(lines.join('\n'));
-    kLog('  - Removed export from module_export.dart', type: LogType.success);
+    kLog('  - Removed export from module_export.dart', type: .success);
   }
 
   Future<void> _unregisterRoute(String className, String slug) async {
@@ -150,17 +144,14 @@ class RemoveModuleCommand extends Command<dynamic> {
     final String routeName = _toCamelCase(slug);
 
     if (!content.contains(routeName)) {
-      kLog(
-        '  - Route definition not found in app_route.dart',
-        type: LogType.warning,
-      );
+      kLog('  - Route definition not found in app_route.dart', type: .warning);
       return;
     }
 
     final List<String> lines = content.split('\n');
     lines.removeWhere((l) => l.contains('static const String $routeName ='));
     await file.writeAsString(lines.join('\n'));
-    kLog('  - Removed static route from app_route.dart', type: LogType.success);
+    kLog('  - Removed static route from app_route.dart', type: .success);
   }
 
   Future<void> _unregisterPage(String className, String slug) async {
@@ -174,10 +165,7 @@ class RemoveModuleCommand extends Command<dynamic> {
     final blockId = 'AppRoute.$routeName';
 
     if (!content.contains(blockId)) {
-      kLog(
-        '  - GetPage block not found in app_page.dart',
-        type: LogType.warning,
-      );
+      kLog('  - GetPage block not found in app_page.dart', type: .warning);
       return;
     }
 
@@ -238,12 +226,12 @@ class RemoveModuleCommand extends Command<dynamic> {
       await file.writeAsString(content);
       kLog(
         '  - Surgically removed GetPage block from app_page.dart',
-        type: LogType.success,
+        type: .success,
       );
     } else {
       kLog(
         '  - Could not safely calculate block bounds for $routeName',
-        type: LogType.warning,
+        type: .warning,
       );
     }
   }

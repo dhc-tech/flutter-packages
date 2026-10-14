@@ -4,8 +4,10 @@ description: "Demonstrates how to use the attachment_engine plugin."
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
+resolution: workspace
+
 environment:
-  sdk: ^3.12.2
+  sdk: ^3.13.5
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -23,6 +25,7 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
 
+  material_ui: any
 dev_dependencies:
   integration_test:
     sdk: flutter

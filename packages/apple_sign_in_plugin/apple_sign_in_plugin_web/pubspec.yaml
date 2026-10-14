@@ -1,12 +1,14 @@
 name: apple_sign_in_plugin_web
 description: Web implementation of the apple_sign_in_plugin package, using Apple's official Sign in with Apple JS SDK via JS interop.
 repository: https://github.com/dhc-tech/flutter-packages/tree/main/packages/apple_sign_in_plugin/apple_sign_in_plugin_web
-issue_tracker: https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+apple_sign_in_plugin_web%22
-version: 0.0.1-dev.1
+issue_tracker: https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+apple_sign_in_plugin%22
+version: 0.0.1-dev.2
+
+resolution: workspace
 
 environment:
-  sdk: '>=3.5.0 <4.0.0'
-  flutter: ">=3.16.0"
+  sdk: ^3.13.5
+  flutter: ">=3.47.7"
 
 flutter:
   plugin:

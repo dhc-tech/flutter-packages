@@ -8,11 +8,10 @@
 
 #include "video_channel.h"
 
+#include <flutter/standard_method_codec.h>
 #include <mfapi.h>
 #include <mferror.h>
 #include <mfidl.h>
-
-#include <flutter/standard_method_codec.h>
 
 using flutter::EncodableMap;
 using flutter::EncodableValue;
@@ -76,34 +75,32 @@ class VideoMediaEngineNotify
 class VideoPlayerEntry {
  public:
   VideoPlayerEntry(flutter::BinaryMessenger* messenger, HWND parent_window,
-                    const std::string& player_id)
+                   const std::string& player_id)
       : player_id_(player_id) {
     EnsureWindowClassRegistered(GetModuleHandleW(nullptr));
     // Render-mode HWND target (see video_channel.h "Embedding tradeoff").
     // Created hidden/zero-sized; `SetLayout` moves and shows it once the
     // Dart-side widget reports real bounds.
-    child_hwnd_ = CreateWindowExW(
-        0, kChildWindowClassName, L"", WS_CHILD, 0, 0, 0, 0, parent_window,
-        nullptr, GetModuleHandleW(nullptr), nullptr);
+    child_hwnd_ = CreateWindowExW(0, kChildWindowClassName, L"", WS_CHILD, 0, 0,
+                                  0, 0, parent_window, nullptr,
+                                  GetModuleHandleW(nullptr), nullptr);
 
     event_channel_ = std::make_unique<EventChannel<EncodableValue>>(
         messenger, kEventChannelPrefix + player_id,
         &flutter::StandardMethodCodec::GetInstance());
-    auto handler =
-        std::make_unique<flutter::StreamHandlerFunctions<EncodableValue>>(
-            [this](const EncodableValue*,
-                   std::unique_ptr<EventSink<EncodableValue>>&& events)
-                -> std::unique_ptr<
-                    flutter::StreamHandlerError<EncodableValue>> {
-              event_sink_ = std::move(events);
-              return nullptr;
-            },
-            [this](const EncodableValue*)
-                -> std::unique_ptr<
-                    flutter::StreamHandlerError<EncodableValue>> {
-              event_sink_ = nullptr;
-              return nullptr;
-            });
+    auto handler = std::make_unique<
+        flutter::StreamHandlerFunctions<EncodableValue>>(
+        [this](const EncodableValue*,
+               std::unique_ptr<EventSink<EncodableValue>>&& events)
+            -> std::unique_ptr<flutter::StreamHandlerError<EncodableValue>> {
+          event_sink_ = std::move(events);
+          return nullptr;
+        },
+        [this](const EncodableValue*)
+            -> std::unique_ptr<flutter::StreamHandlerError<EncodableValue>> {
+          event_sink_ = nullptr;
+          return nullptr;
+        });
     event_channel_->SetStreamHandler(std::move(handler));
   }
 
@@ -114,8 +111,7 @@ class VideoPlayerEntry {
 
     ComPtr<IMFMediaEngineClassFactory> factory;
     HRESULT hr = CoCreateInstance(CLSID_MFMediaEngineClassFactory, nullptr,
-                                   CLSCTX_INPROC_SERVER,
-                                   IID_PPV_ARGS(&factory));
+                                  CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory));
     if (FAILED(hr)) return hr;
 
     ComPtr<IMFAttributes> attributes;
@@ -127,7 +123,7 @@ class VideoPlayerEntry {
     hr = attributes->SetUnknown(MF_MEDIA_ENGINE_CALLBACK, notify_.Get());
     if (FAILED(hr)) return hr;
     hr = attributes->SetUINT64(MF_MEDIA_ENGINE_PLAYBACK_HWND,
-                                reinterpret_cast<UINT64>(child_hwnd_));
+                               reinterpret_cast<UINT64>(child_hwnd_));
     if (FAILED(hr)) return hr;
 
     return factory->CreateInstance(0, attributes.Get(), &media_engine_);
@@ -210,7 +206,9 @@ class VideoPlayerEntry {
     }
   }
 
-  void StartProgressLoop() { timer_id_ = SetTimer(nullptr, 0, kProgressTimerMs, nullptr); }
+  void StartProgressLoop() {
+    timer_id_ = SetTimer(nullptr, 0, kProgressTimerMs, nullptr);
+  }
 
   void Emit(const std::string& state) {
     if (!event_sink_) return;
@@ -229,7 +227,7 @@ class VideoPlayerEntry {
     EncodableMap map;
     map[EncodableValue("state")] =
         EncodableValue(media_engine_->IsPaused() ? std::string("paused")
-                                                  : std::string("playing"));
+                                                 : std::string("playing"));
     map[EncodableValue("positionMs")] =
         EncodableValue(static_cast<int>(position_seconds * 1000));
     map[EncodableValue("durationMs")] =
@@ -249,17 +247,16 @@ class VideoPlayerEntry {
 };
 
 VideoChannel::VideoChannel(flutter::PluginRegistrarWindows* registrar,
-                            HWND top_level_window)
+                           HWND top_level_window)
     : registrar_(registrar), top_level_window_(top_level_window) {
   MFStartup(MF_VERSION, MFSTARTUP_LITE);
 
   channel_ = std::make_unique<flutter::MethodChannel<EncodableValue>>(
       registrar->messenger(), kMethodChannelName,
       &flutter::StandardMethodCodec::GetInstance());
-  channel_->SetMethodCallHandler(
-      [this](const auto& call, auto result) {
-        HandleMethodCall(call, std::move(result));
-      });
+  channel_->SetMethodCallHandler([this](const auto& call, auto result) {
+    HandleMethodCall(call, std::move(result));
+  });
 }
 
 VideoChannel::~VideoChannel() {
@@ -270,8 +267,8 @@ VideoChannel::~VideoChannel() {
 VideoPlayerEntry* VideoChannel::EnsureEntry(const std::string& player_id) {
   auto it = players_.find(player_id);
   if (it != players_.end()) return it->second.get();
-  auto entry = std::make_unique<VideoPlayerEntry>(
-      registrar_->messenger(), top_level_window_, player_id);
+  auto entry = std::make_unique<VideoPlayerEntry>(registrar_->messenger(),
+                                                  top_level_window_, player_id);
   auto* raw = entry.get();
   players_[player_id] = std::move(entry);
   return raw;
@@ -350,7 +347,7 @@ void VideoChannel::HandleMethodCall(
       return 0;
     };
     EnsureEntry(player_id)->SetLayout(get_int("left"), get_int("top"),
-                                       get_int("width"), get_int("height"));
+                                      get_int("width"), get_int("height"));
     result->Success();
   } else if (method == "dispose") {
     DisposeEntry(player_id);

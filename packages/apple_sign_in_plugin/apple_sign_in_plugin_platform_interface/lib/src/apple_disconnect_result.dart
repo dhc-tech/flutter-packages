@@ -2,10 +2,6 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-// Copyright 2013 The Flutter Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
 import 'package:flutter/foundation.dart';
 
 /// The status resulting from an `AppleSignIn.disconnect` operation.
@@ -36,10 +32,7 @@ enum AppleDisconnectStatus {
 @immutable
 class AppleDisconnectResult {
   /// Creates an [AppleDisconnectResult].
-  const AppleDisconnectResult({
-    required this.status,
-    this.message,
-  });
+  const AppleDisconnectResult({required this.status, this.message});
 
   /// The disconnect status.
   final AppleDisconnectStatus status;

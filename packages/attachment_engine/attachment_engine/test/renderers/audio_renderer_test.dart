@@ -6,7 +6,7 @@ import 'dart:async';
 
 import 'package:attachment_engine/attachment_engine.dart';
 import 'package:attachment_engine_platform_interface/attachment_engine_platform_interface.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Records calls and lets a test push synthetic native events, standing in

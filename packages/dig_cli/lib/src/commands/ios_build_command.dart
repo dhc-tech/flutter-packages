@@ -90,15 +90,12 @@ Future<void> buildIos({
 }) async {
   // Check if running on macOS
   if (!Platform.isMacOS) {
-    kLog('❗ iOS builds can only be created on macOS.', type: LogType.error);
+    kLog('❗ iOS builds can only be created on macOS.', type: .error);
     return;
   }
 
   if (!await isFlutterProject()) {
-    kLog(
-      '❗ This command must be run inside a Flutter project.',
-      type: LogType.error,
-    );
+    kLog('❗ This command must be run inside a Flutter project.', type: .error);
     return;
   }
 
@@ -109,7 +106,7 @@ Future<void> buildIos({
     if (projectName == null || projectName.isEmpty) {
       kLog(
         '❗ Project name not found and no custom name was provided!',
-        type: LogType.error,
+        type: .error,
       );
       return;
     }
@@ -136,7 +133,7 @@ Future<void> buildIos({
 
     final Directory? projectRoot = findProjectRoot();
     if (projectRoot == null) {
-      kLog('❗ Could not find project root.', type: LogType.error);
+      kLog('❗ Could not find project root.', type: .error);
       return;
     }
 
@@ -145,40 +142,33 @@ Future<void> buildIos({
 
     final ProcessResult buildResult = await runWithSpinner(
       '🚧 Running flutter build ipa --release --export-method $method...',
-      () => Process.run(
-          'flutter',
-          [
-            'build',
-            'ipa',
-            '--release',
-            '--export-method',
-            method,
-          ],
-          workingDirectory: projectRoot.path),
+      () => Process.run('flutter', [
+        'build',
+        'ipa',
+        '--release',
+        '--export-method',
+        method,
+      ], workingDirectory: projectRoot.path),
     );
 
     if (buildResult.exitCode != 0) {
-      kLog('❗ iOS build failed. See error below:', type: LogType.error);
+      kLog('❗ iOS build failed. See error below:', type: .error);
       if (buildResult.stdout.toString().trim().isNotEmpty) {
         kLog('\n--- Build Output ---');
         kLog(buildResult.stdout.toString());
       }
       if (buildResult.stderr.toString().trim().isNotEmpty) {
-        kLog('\n--- Error Log ---', type: LogType.error);
-        kLog(buildResult.stderr.toString(), type: LogType.error);
+        kLog('\n--- Error Log ---', type: .error);
+        kLog(buildResult.stderr.toString(), type: .error);
       }
-      kLog(
-        '\n💡 Common fixes for iOS installation issues:',
-      );
+      kLog('\n💡 Common fixes for iOS installation issues:');
       kLog(
         '   • Make sure you use "ad-hoc" or "development" for testing on devices.',
       );
       kLog(
         '   • Verify your UDIDs are added to the provisioning profile (for ad-hoc).',
       );
-      kLog(
-        '   • App Store builds cannot be installed directly on devices.',
-      );
+      kLog('   • App Store builds cannot be installed directly on devices.');
       return;
     }
 
@@ -186,7 +176,7 @@ Future<void> buildIos({
     final ipaDir = Directory(p.join(projectRoot.path, 'build', 'ios', 'ipa'));
 
     if (!ipaDir.existsSync()) {
-      kLog('❗ IPA output directory not found.', type: LogType.error);
+      kLog('❗ IPA output directory not found.', type: .error);
       return;
     }
 
@@ -196,7 +186,7 @@ Future<void> buildIos({
         .toList();
 
     if (ipaFiles.isEmpty) {
-      kLog('❗ No IPA file found in build output.', type: LogType.error);
+      kLog('❗ No IPA file found in build output.', type: .error);
       return;
     }
 
@@ -212,28 +202,26 @@ Future<void> buildIos({
     final int fileSize = await destFile.length();
     final String sizeInMB = (fileSize / (1024 * 1024)).toStringAsFixed(2);
 
-    kLog('\n✅ iOS IPA created successfully!', type: LogType.success);
+    kLog('\n✅ iOS IPA created successfully!', type: .success);
     kLog('-------------------------------------------');
-    kLog('📁 Location: ${destFile.path}', type: LogType.success);
+    kLog('📁 Location: ${destFile.path}', type: .success);
     kLog('📊 Size: ${sizeInMB}MB');
     kLog('-------------------------------------------\n');
 
     kLog('\n📲 To install on device:');
     kLog('   1. Connect your iPhone to this Mac.');
     kLog('   2. Open "Finder" or "Apple Configurator 2".');
-    kLog(
-      '   3. Drag and drop the .ipa file onto your device.',
-    );
+    kLog('   3. Drag and drop the .ipa file onto your device.');
     if (method == 'app-store') {
       kLog(
         '\n⚠️  Warning: App Store builds cannot be installed directly. Use ad-hoc or development.',
-        type: LogType.warning,
+        type: .warning,
       );
     }
   } catch (e) {
     kLog(
       '❌ An unexpected error occurred during the iOS build: $e',
-      type: LogType.error,
+      type: .error,
     );
   }
 }

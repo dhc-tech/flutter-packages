@@ -1,3 +1,7 @@
+## 0.0.1-dev.3
+
+* Updates SDK constraints to Dart `^3.13.5` and Flutter `>=3.47.7`.
+
 ## 0.0.1-dev.2
 
 * Fixed the dependency constraint on `apple_sign_in_plugin_platform_interface`

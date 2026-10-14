@@ -13,61 +13,27 @@ updates:
     groups:
       all-github-actions:
         patterns: [ "*" ]
+    commit-message:
+      prefix: "ci(deps)"
     labels:
-      - "autosubmit"
       - "infra: dependencies"
       - "infra: workflows"
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-patch"]
 
-  # Dart & Flutter Pub packages
+  # Dart & Flutter pub dependencies. The repository is a pub workspace, so a
+  # single entry at the root resolves every package together.
   - package-ecosystem: "pub"
-    directory: "/packages/white_label_kit"
+    directory: "/"
     schedule:
       interval: "weekly"
     cooldown:
       default-days: 7
-    labels:
-      - "p: white_label_kit"
-      - "infra: dependencies"
-
-  - package-ecosystem: "pub"
-    directory: "/packages/dig_cli"
-    schedule:
-      interval: "weekly"
-    cooldown:
-      default-days: 7
-    labels:
-      - "p: dig_cli"
-      - "infra: dependencies"
-
-  - package-ecosystem: "pub"
-    directory: "/packages/apple_sign_in_plugin/apple_sign_in_plugin"
-    schedule:
-      interval: "weekly"
-    cooldown:
-      default-days: 7
-    labels:
-      - "p: apple_sign_in_plugin"
-      - "infra: dependencies"
-
-  - package-ecosystem: "pub"
-    directory: "/packages/apple_sign_in_plugin/apple_sign_in_plugin_platform_interface"
-    schedule:
-      interval: "weekly"
-    cooldown:
-      default-days: 7
-    labels:
-      - "p: apple_sign_in_plugin"
-      - "infra: dependencies"
-
-  - package-ecosystem: "pub"
-    directory: "/script/tool"
-    schedule:
-      interval: "weekly"
-    cooldown:
-      default-days: 7
+    groups:
+      pub-dependencies:
+        patterns: [ "*" ]
+    commit-message:
+      prefix: "chore(deps)"
     labels:
       - "infra: dependencies"
-      - "infra: workflows"

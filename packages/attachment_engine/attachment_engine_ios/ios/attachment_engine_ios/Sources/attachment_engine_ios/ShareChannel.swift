@@ -31,7 +31,8 @@ class ShareChannel: NSObject, ShareHostApi {
   @MainActor
   private func presentActivity(items: [Any]) throws {
     guard let presenter = ShareChannel.topViewController() else {
-      throw PigeonError(code: "share_failed", message: "No presenting view controller", details: nil)
+      throw PigeonError(
+        code: "share_failed", message: "No presenting view controller", details: nil)
     }
     let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
     if let popover = activityVC.popoverPresentationController {

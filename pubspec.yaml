@@ -1,0 +1,72 @@
+name: flutter_packages_workspace
+description: Root of the DHC Tech Flutter packages monorepo. Not published.
+publish_to: none
+
+environment:
+  sdk: ^3.13.5
+
+dev_dependencies:
+  melos: ^8.9.0
+
+workspace:
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin/example
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin_android/example
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin_android
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin_darwin/example
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin_darwin
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin_linux/example
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin_linux
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin_platform_interface/example
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin_platform_interface
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin_web/example
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin_web
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin_windows/example
+  - packages/apple_sign_in_plugin/apple_sign_in_plugin_windows
+  - packages/attachment_engine/attachment_engine/example
+  - packages/attachment_engine/attachment_engine
+  - packages/attachment_engine/attachment_engine_android/example
+  - packages/attachment_engine/attachment_engine_android
+  - packages/attachment_engine/attachment_engine_ios/example
+  - packages/attachment_engine/attachment_engine_ios
+  - packages/attachment_engine/attachment_engine_linux/example
+  - packages/attachment_engine/attachment_engine_linux
+  - packages/attachment_engine/attachment_engine_macos/example
+  - packages/attachment_engine/attachment_engine_macos
+  - packages/attachment_engine/attachment_engine_platform_interface/example
+  - packages/attachment_engine/attachment_engine_platform_interface
+  - packages/attachment_engine/attachment_engine_web/example
+  - packages/attachment_engine/attachment_engine_web
+  - packages/attachment_engine/attachment_engine_windows/example
+  - packages/attachment_engine/attachment_engine_windows
+  - packages/dig_cli
+  - packages/white_label_kit
+
+melos:
+  repository: https://github.com/dhc-tech/flutter-packages
+  ignore:
+    - "**/example"
+  scripts:
+    format:
+      description: Format all Dart code.
+      run: dart format .
+    format:check:
+      description: Fail if any Dart file is not formatted.
+      run: dart format --output=none --set-exit-if-changed .
+    analyze:
+      description: Analyze every package with zero tolerance for infos.
+      run: dart analyze --fatal-infos
+    test:
+      description: Run tests in every package that has a test/ directory.
+      run: .github/scripts/run_tests.sh
+    ci:
+      description: Run the full validate pipeline on a clean clone of the committed HEAD (run before every push).
+      run: .github/scripts/ci.sh local
+    publish:check:
+      description: Run `dart pub publish --dry-run` in every package.
+      run: melos exec -c 1 -- dart pub publish --dry-run
+      packageFilters:
+        noPrivate: true
+    outdated:
+      description: Show outdated dependencies in the workspace.
+      run: flutter pub outdated

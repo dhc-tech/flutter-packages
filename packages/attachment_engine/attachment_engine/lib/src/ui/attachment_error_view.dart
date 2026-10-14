@@ -2,7 +2,7 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../models/attachment_failure.dart';
 
@@ -19,13 +19,13 @@ class AttachmentErrorView extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: .min,
           children: [
             const Icon(Icons.error_outline, size: 40),
             const SizedBox(height: 12),
             Text(
               failure.localizedMessage,
-              textAlign: TextAlign.center,
+              textAlign: .center,
               key: const Key('attachment_error_message'),
             ),
             if (onRetry != null) ...[

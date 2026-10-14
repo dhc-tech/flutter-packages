@@ -247,6 +247,56 @@ class WhiteLabelConfig {
       }
     }
 
+    AndroidAdaptiveIconConfig? adaptiveIcon;
+    final dynamic adaptiveIconNode = android?['adaptive_icon'];
+    if (adaptiveIconNode != null) {
+      final Map<dynamic, dynamic>? adaptive = ConfigValidator.expectMap(
+        adaptiveIconNode,
+        'tenants.$id.android.adaptive_icon',
+        errors,
+      );
+      final String? foreground = adaptive?['foreground']?.toString();
+      final String? background = adaptive?['background']?.toString();
+      final String? backgroundColor = adaptive?['background_color']?.toString();
+      final String? monochrome = adaptive?['monochrome']?.toString();
+
+      for (final String path in [
+        foreground,
+        background,
+        monochrome,
+      ].whereType<String>()) {
+        final ValidationResult result = ConfigValidator.assetPath(
+          path,
+          tenantId: id,
+          projectRoot: projectRoot,
+        );
+        if (result is Invalid) {
+          errors.add('Tenant "$id": ${result.message}');
+        }
+      }
+      if (background != null && backgroundColor != null) {
+        errors.add(
+          'Tenant "$id": use either `adaptive_icon.background` or '
+          '`adaptive_icon.background_color`, not both.',
+        );
+      }
+      if (backgroundColor != null) {
+        final ValidationResult result = ConfigValidator.colorHex(
+          backgroundColor,
+        );
+        if (result is Invalid) {
+          errors.add('Tenant "$id": ${result.message}');
+        }
+      }
+
+      adaptiveIcon = AndroidAdaptiveIconConfig(
+        foreground: foreground,
+        background: background,
+        backgroundColor: backgroundColor,
+        monochrome: monochrome,
+      );
+    }
+
     final Map<dynamic, dynamic>? ios = ConfigValidator.expectMap(
       map['ios'],
       'tenants.$id.ios',
@@ -484,6 +534,7 @@ class WhiteLabelConfig {
         applicationId: applicationId,
         appName: androidAppName!,
         version: androidVersionOverride,
+        adaptiveIcon: adaptiveIcon,
       ),
       ios: IosTenantConfig(
         bundleId: bundleId,
