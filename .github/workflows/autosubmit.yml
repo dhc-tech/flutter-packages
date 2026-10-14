@@ -5,10 +5,8 @@ name: Autosubmit
 # check passes and the required approval is in, exactly as a manual merge
 # would. Removing the label turns auto-merge off again.
 #
-# Merges made with the default GITHUB_TOKEN do not trigger the `push` event, so
-# for hands-free publishing add an AUTOMERGE_PAT secret (a token with
-# `pull-requests: write` and `contents: write`); otherwise run the `release`
-# workflow manually after the merge. See docs/release_architecture.md.
+# Merges made with the default GITHUB_TOKEN do not trigger `push` workflows, so
+# `release` also runs hourly and publishes anything missing from pub.dev.
 
 on:
   # zizmor: ignore[dangerous-triggers] Safe: no checkout and no PR code is executed. The job verifies the actor has write access before touching auto-merge.
@@ -29,7 +27,6 @@ jobs:
       - name: Toggle auto-merge
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
-          github-token: ${{ secrets.AUTOMERGE_PAT || secrets.GITHUB_TOKEN }}
           script: |
             const { owner, repo } = context.repo;
             const pr = context.payload.pull_request;

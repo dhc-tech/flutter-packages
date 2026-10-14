@@ -1,22 +1,22 @@
 name: release
 
+# Publishes every package whose current `version:` is not on pub.dev yet and
+# tags it <package>-v<version>. It runs on every push to `main`, hourly, and on
+# demand. The hourly run makes releases self-healing: merges made with the
+# default GITHUB_TOKEN (auto-merge via `autosubmit`) do not trigger `push`
+# workflows, and a failed run is simply completed by the next one.
+
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: "23 * * * *"
   workflow_dispatch:
-    inputs:
-      base-sha:
-        description: >-
-          Base SHA/ref to diff package versions against (defaults to the
-          previous commit). Use it to publish version bumps that were merged
-          while this workflow was broken.
-        required: false
-        type: string
 
 # Declare default permissions as read only.
 permissions: read-all
 
-# Releases run one at a time so merges never publish concurrently.
+# Releases run one at a time so runs never publish concurrently.
 concurrency:
   group: release-publishing-lock
   cancel-in-progress: false
@@ -24,6 +24,8 @@ concurrency:
 jobs:
   release:
     name: release
+    # Scheduled runs only exist on the default branch of this repository.
+    if: github.repository == 'dhc-tech/flutter-packages'
     runs-on: ubuntu-latest
     permissions:
       # Pushes package tags and reads the validate check.
@@ -33,27 +35,34 @@ jobs:
       - name: Check out code
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          fetch-depth: 0 # Full history and tags are needed to diff versions.
+          ref: main
+          fetch-depth: 0 # Full history and tags are needed to tag releases.
           persist-credentials: false
 
       - name: Install Flutter
         uses: $/.github/workflows/internals/install_flutter
 
-      - name: Wait for validate check
+      - name: Check validate on this commit
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            const targetSha = context.sha;
-            core.info(`Waiting for validate check on ${targetSha}...`);
+            // Branch protection already required `validate` before the merge.
+            // If it ran again on this commit it must have passed; if it never
+            // ran (the merge came from GITHUB_TOKEN), trust the required PR checks.
+            const { owner, repo } = context.repo;
+            const { data: head } = await github.rest.repos.getBranch({ owner, repo, branch: 'main' });
+            const ref = head.commit.sha;
             for (let i = 0; i < 40; i++) {
               const { data } = await github.rest.checks.listForRef({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                ref: targetSha,
-                check_name: 'validate',
+                owner, repo, ref, check_name: 'validate',
               });
               const check = data.check_runs.find((c) => c.name === 'validate');
-              if (check && check.status === 'completed') {
+              if (!check) {
+                if (i >= 4) {
+                  core.info('No validate run on this commit; relying on the required PR checks.');
+                  return;
+                }
+              } else if (check.status === 'completed') {
                 if (check.conclusion === 'success') return;
                 core.setFailed(`validate finished with conclusion: ${check.conclusion}`);
                 return;
@@ -62,9 +71,8 @@ jobs:
             }
             core.setFailed('Timed out waiting for the validate check');
 
-      - name: Publish changed packages
+      - name: Publish unpublished packages
         env:
-          BASE_SHA: ${{ inputs.base-sha }}
           PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GIT_USER_NAME: ${{ secrets.USER_NAME }}
@@ -74,4 +82,4 @@ jobs:
           git config --global user.name "$GIT_USER_NAME"
           git config --global user.email "$GIT_USER_EMAIL"
           flutter pub get
-          .github/scripts/publish_changed.sh
+          .github/scripts/publish_unpublished.sh

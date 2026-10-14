@@ -13,14 +13,17 @@ automatically, so an unrelated change can never trigger a release.
 PR (code + deliberate `version:` bump + CHANGELOG entry)
   → `validate` workflow: format, analyze, tests, `dart pub publish --dry-run`
   → merge to main
-  → `release` workflow waits for `validate` on the merge commit
-  → .github/scripts/publish_changed.sh
-      for every package whose `version:` differs from the previous commit:
+  → `release` workflow (push to main, hourly, or manual)
+  → .github/scripts/publish_unpublished.sh
+      for every package whose `version:` is not on pub.dev yet:
         dart pub publish --force, then tag <package>-v<version>
 ```
 
 A change without a version bump merges normally and publishes nothing; it ships
-with the package's next bump.
+with the package's next bump. Because the script compares against pub.dev rather
+than a git diff, a skipped or half-finished run is completed by the next one, and
+merges that do not trigger `push` workflows (auto-merge with the default
+`GITHUB_TOKEN`) are still released by the hourly run. No extra token is needed.
 
 ## Components
 
@@ -29,7 +32,7 @@ with the package's next bump.
 | `.github/workflows/validate.yml` | Required check on PRs and `main`: formatting, analysis, tests, publish dry-run for every package. |
 | `.github/workflows/release.yml` | Runs on push to `main` (or manually). Waits for `validate`, then publishes. |
 | `.github/scripts/run_tests.sh` | Runs each package's tests; pure Dart packages use `dart test`, `*_web` packages use `flutter test --platform chrome`. |
-| `.github/scripts/publish_changed.sh` | Detects version changes, publishes in dependency order, tags and pushes. |
+| `.github/scripts/publish_unpublished.sh` | Finds package versions missing from pub.dev, publishes them in dependency order, tags and pushes. |
 | `.github/workflows/internals/install_flutter` | Installs the pinned Flutter version (`3.47.7`) shared by all workflows. |
 
 ## Publish order
@@ -46,12 +49,11 @@ is skipped, so re-running the workflow never duplicates or overwrites one.
 
 ## Manual and recovery runs
 
-- Re-run `release` from the Actions tab with `base-sha` set to publish bumps that
-  merged while the workflow was failing. The base commit is compared to `HEAD`.
+- Run `release` from the Actions tab at any time; it only publishes what is missing.
 - Preview locally without publishing:
 
   ```bash
-  DRY_RUN=1 BASE_SHA=origin/main~1 .github/scripts/publish_changed.sh
+  DRY_RUN=1 .github/scripts/publish_unpublished.sh
   ```
 
 ## Secrets
@@ -60,7 +62,6 @@ is skipped, so re-running the workflow never duplicates or overwrites one.
 |---|---|
 | `PUB_CREDENTIALS` | pub.dev credentials JSON (contents of the file created by `dart pub login`). The script writes it to `$PUB_CACHE/credentials.json`. |
 | `USER_NAME`, `USER_EMAIL` | Git identity used for tags. |
-| `AUTOMERGE_PAT` (optional) | Token used to enable auto-merge for `autosubmit` PRs. Merges made with the default `GITHUB_TOKEN` do not trigger the `release` workflow, so without this secret run `release` manually after such a merge. |
 
 ## Adding a package
 
