@@ -8,7 +8,6 @@
 - [ ] I followed the [Conventional Commits] standard for the PR title, e.g. `feat(white_label_kit): add new feature` or `fix(dig_cli): resolve build issue`.
 - [ ] I linked to at least one issue that this PR fixes in the description above.
 - [ ] I ran the code formatter and linter (`dart format .`).
-- [ ] I followed semantic versioning and updated the relevant package `CHANGELOG.md` and `pubspec.yaml` if applicable.
 - [ ] I updated or added any relevant documentation (doc comments with `///`).
 - [ ] I added new tests to check the changes made.
 - [ ] All existing and new tests are passing locally.

@@ -3,15 +3,75 @@
     - any-glob-to-any-file:
       - packages/apple_sign_in_plugin/apple_sign_in_plugin/**/*
 
+'p: apple_sign_in_plugin_android':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/apple_sign_in_plugin/apple_sign_in_plugin_android/**/*
+
 'p: apple_sign_in_plugin_darwin':
   - changed-files:
     - any-glob-to-any-file:
       - packages/apple_sign_in_plugin/apple_sign_in_plugin_darwin/**/*
 
+'p: apple_sign_in_plugin_linux':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/apple_sign_in_plugin/apple_sign_in_plugin_linux/**/*
+
 'p: apple_sign_in_plugin_platform_interface':
   - changed-files:
     - any-glob-to-any-file:
       - packages/apple_sign_in_plugin/apple_sign_in_plugin_platform_interface/**/*
+
+'p: apple_sign_in_plugin_web':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/apple_sign_in_plugin/apple_sign_in_plugin_web/**/*
+
+'p: apple_sign_in_plugin_windows':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/apple_sign_in_plugin/apple_sign_in_plugin_windows/**/*
+
+'p: attachment_engine':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/attachment_engine/attachment_engine/**/*
+
+'p: attachment_engine_android':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/attachment_engine/attachment_engine_android/**/*
+
+'p: attachment_engine_ios':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/attachment_engine/attachment_engine_ios/**/*
+
+'p: attachment_engine_linux':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/attachment_engine/attachment_engine_linux/**/*
+
+'p: attachment_engine_macos':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/attachment_engine/attachment_engine_macos/**/*
+
+'p: attachment_engine_platform_interface':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/attachment_engine/attachment_engine_platform_interface/**/*
+
+'p: attachment_engine_web':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/attachment_engine/attachment_engine_web/**/*
+
+'p: attachment_engine_windows':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/attachment_engine/attachment_engine_windows/**/*
 
 'p: dig_cli':
   - changed-files:
@@ -22,11 +82,6 @@
   - changed-files:
     - any-glob-to-any-file:
       - packages/white_label_kit/**/*
-
-'p: attachment_engine':
-  - changed-files:
-    - any-glob-to-any-file:
-      - packages/attachment_engine/**/*
 
 'infra: workflows':
   - changed-files:
