@@ -58,6 +58,12 @@ opened / pushed ─► needs approval ─(approved)─► waiting for green ─(
                                                       └─(check fails)─► ci failed ─(fixed)─► waiting for green
 ```
 
+Only approvals from people with write access count, and never the author's own
+(GitHub does not allow self-approval either). Only people with write access can
+use `status: on hold`; the bot removes it otherwise. `status:` labels are
+managed by the bot: a label set by hand is corrected on the next run.
+GitHub itself only lets collaborators with triage access or more apply labels.
+
 Pushing a new commit dismisses earlier approvals (shown as `github-actions[bot]`),
 so code nobody reviewed can never auto-merge. Only branch protection decides
 whether the merge is allowed; the workflow just turns on auto-merge.

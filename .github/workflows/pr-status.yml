@@ -10,7 +10,10 @@ name: PR Status
 #                              is enabled and GitHub merges it
 #   status: on hold            set by a maintainer to stop auto-merge
 #
-# A new push dismisses earlier approvals (as github-actions[bot]) so unreviewed
+# Only approvals from people with write access count (never the author's own),
+# and only they can set `status: on hold`; the bot resets any other manual
+# `status:` label on its next run. A new push dismisses earlier approvals (as
+# github-actions[bot]) so unreviewed
 # code can never auto-merge. Runs on PR, review and CI-finished events, plus every 15
 # minutes for PRs whose events cannot write (forks) and for checks that are not
 # GitHub Actions workflows (for example CodeRabbit).
@@ -88,11 +91,29 @@ jobs:
               return open.map((p) => p.number);
             }
 
-            // Latest verdict per reviewer; dismissed reviews no longer count.
-            function verdict(reviews) {
+            const WRITE_ACCESS = ['admin', 'maintain', 'write'];
+            const accessCache = new Map();
+            async function hasWriteAccess(login) {
+              if (!accessCache.has(login)) {
+                try {
+                  const { data } = await github.rest.repos.getCollaboratorPermissionLevel({
+                    owner, repo, username: login,
+                  });
+                  accessCache.set(login, WRITE_ACCESS.includes(data.permission));
+                } catch {
+                  accessCache.set(login, false);
+                }
+              }
+              return accessCache.get(login);
+            }
+
+            // Only people with write access can approve, and nobody approves their
+            // own PR. Latest verdict per reviewer; dismissed reviews no longer count.
+            async function verdict(reviews, author) {
               const latest = new Map();
               for (const r of reviews) {
                 if (!r.user || r.state === 'COMMENTED' || r.state === 'PENDING') continue;
+                if (r.user.login === author || !(await hasWriteAccess(r.user.login))) continue;
                 latest.set(r.user.login, r.state);
               }
               const states = [...latest.values()];
@@ -147,13 +168,23 @@ jobs:
                 reviews = reviews.map((r) => (r.state === 'APPROVED' ? { ...r, state: 'DISMISSED' } : r));
               }
 
-              const current = pr.labels.map((l) => l.name);
+              let current = pr.labels.map((l) => l.name);
+
+              // Only people with write access can put a PR on hold.
+              const heldBy = context.payload.action === 'labeled' && context.payload.label?.name === LABEL.hold
+                ? context.actor : null;
+              if (heldBy && !(await hasWriteAccess(heldBy))) {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number: number, name: LABEL.hold });
+                current = current.filter((n) => n !== LABEL.hold);
+                core.warning(`${heldBy} has no write access; removed ${LABEL.hold} from #${number}.`);
+              }
+
               let desired;
               if (current.includes(LABEL.hold)) {
                 desired = null;
                 if (pr.auto_merge) await setAutoMerge(pr, false);
               } else {
-                const { approved, changesRequested } = verdict(reviews);
+                const { approved, changesRequested } = await verdict(reviews, pr.user?.login);
                 const checks = await checkSummary(pr.head.sha);
                 if (pr.draft || changesRequested || !approved) desired = LABEL.needs;
                 else if (checks.failing > 0) desired = LABEL.failed;

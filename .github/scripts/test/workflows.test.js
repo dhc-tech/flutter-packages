@@ -24,7 +24,7 @@ function scriptOf(file) {
   return body.join('\n');
 }
 
-function fakeGithub({ comments = [], reviews = [], prs = {}, runs = [], statuses = [], openPrs = [], associated = [] } = {}) {
+function fakeGithub({ comments = [], reviews = [], prs = {}, runs = [], statuses = [], openPrs = [], associated = [], access = {} } = {}) {
   const calls = { created: [], added: [], removed: [], graphql: [], dismissed: [] };
   return {
     calls,
@@ -49,6 +49,9 @@ function fakeGithub({ comments = [], reviews = [], prs = {}, runs = [], statuses
         },
         checks: { listForRef: async () => ({ data: { check_runs: runs } }) },
         repos: {
+          // Anyone not listed in `access` has write access, so only tests about
+          // permissions need to say who does not.
+          getCollaboratorPermissionLevel: async ({ username }) => ({ data: { permission: access[username] ?? 'write' } }),
           getCombinedStatusForRef: async () => ({ data: { statuses } }),
           listPullRequestsAssociatedWithCommit: async () => ({ data: associated }),
         },
@@ -176,7 +179,7 @@ const green = (name = 'validate') => ({ name, status: 'completed', conclusion: '
 const running = (name = 'validate') => ({ name, status: 'in_progress', conclusion: null });
 const failed = (name = 'validate', conclusion = 'failure') => ({ name, status: 'completed', conclusion });
 const pr = (over = {}) => ({
-  number: 7, node_id: 'PR_7', state: 'open', draft: false, labels: [], auto_merge: null,
+  number: 7, node_id: 'PR_7', state: 'open', draft: false, labels: [], auto_merge: null, user: { login: 'author' },
   head: { sha: 'abc' }, ...over,
 });
 const prEvent = (action = 'opened', number = 7) => ({
@@ -279,6 +282,54 @@ test('pr-status: only a reviewer\'s latest verdict counts and comments are ignor
   assert.deepEqual(fixed.added, [['status: automerge']]);
   const onlyComments = await status({ reviews: [review('c', 'COMMENTED')], runs: [green()] });
   assert.deepEqual(onlyComments.added, [['status: needs approval']]);
+});
+
+test('pr-status: approvals from people without write access do not count', async () => {
+  for (const permission of ['read', 'triage', 'none']) {
+    const c = await status({ reviews: [review('stranger', 'APPROVED')], runs: [green()], access: { stranger: permission } });
+    assert.deepEqual(c.added, [['status: needs approval']], permission);
+    assert.equal(enabled(c).length, 0, permission);
+  }
+  for (const permission of ['write', 'maintain', 'admin']) {
+    const c = await status({ reviews: [review('m', 'APPROVED')], runs: [green()], access: { m: permission } });
+    assert.deepEqual(c.added, [['status: automerge']], permission);
+  }
+});
+
+test('pr-status: the author cannot approve their own PR', async () => {
+  const c = await status({ reviews: [review('author', 'APPROVED')], runs: [green()] });
+  assert.deepEqual(c.added, [['status: needs approval']]);
+  assert.equal(enabled(c).length, 0);
+});
+
+test('pr-status: a lookup failure for a reviewer means no access', async () => {
+  const f = fakeGithub({ prs: { 7: pr() }, reviews: [review('ghost', 'APPROVED')], runs: [green()] });
+  f.github.rest.repos.getCollaboratorPermissionLevel = async () => { throw new Error('404'); };
+  await run('pr-status.yml', { github: f.github, context: prEvent() });
+  assert.deepEqual(f.calls.added, [['status: needs approval']]);
+});
+
+test('pr-status: only people with write access can put a PR on hold', async () => {
+  const hold = { name: 'status: on hold' };
+  const ctx = (actor) => ({ repo, actor, eventName: 'pull_request_target', payload: { action: 'labeled', label: hold, pull_request: { number: 7 } } });
+  const stranger = fakeGithub({
+    prs: { 7: pr({ labels: [hold] }) }, reviews: [review('m', 'APPROVED')], runs: [green()], access: { rando: 'triage' },
+  });
+  await run('pr-status.yml', { github: stranger.github, context: ctx('rando') });
+  assert.deepEqual(stranger.calls.removed, ['status: on hold']);
+  assert.deepEqual(stranger.calls.added, [['status: automerge']], 'the hold is ignored, so the PR proceeds');
+
+  const maintainer = fakeGithub({ prs: { 7: pr({ labels: [hold] }) }, reviews: [review('m', 'APPROVED')], runs: [green()] });
+  await run('pr-status.yml', { github: maintainer.github, context: ctx('boss') });
+  assert.deepEqual(maintainer.calls.removed, []);
+  assert.deepEqual(maintainer.calls.added, []);
+  assert.equal(enabled(maintainer.calls).length, 0);
+});
+
+test('pr-status: a hand-set status label is corrected on the next run', async () => {
+  const c = await status({ pr: { labels: [{ name: 'status: automerge' }] }, reviews: [], runs: [green()] });
+  assert.deepEqual(c.removed, ['status: automerge']);
+  assert.deepEqual(c.added, [['status: needs approval']]);
 });
 
 test('pr-status: on hold clears managed labels and turns auto-merge off', async () => {
