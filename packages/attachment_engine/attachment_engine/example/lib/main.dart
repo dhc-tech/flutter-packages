@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:attachment_engine/attachment_engine.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'config_demo_page.dart';
 

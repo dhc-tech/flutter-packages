@@ -22,8 +22,9 @@ G_BEGIN_DECLS
 
 #define ATTACHMENT_ENGINE_AUDIO_CHANNEL_TYPE \
   (attachment_engine_audio_channel_get_type())
-G_DECLARE_FINAL_TYPE(AttachmentEngineAudioChannel, attachment_engine_audio_channel,
-                      ATTACHMENT_ENGINE, AUDIO_CHANNEL, GObject)
+G_DECLARE_FINAL_TYPE(AttachmentEngineAudioChannel,
+                     attachment_engine_audio_channel, ATTACHMENT_ENGINE,
+                     AUDIO_CHANNEL, GObject)
 
 // Replaces `just_audio` on Linux. Method channel
 // "attachment_engine/audio" (load/play/pause/seek/setSpeed/setVolume/

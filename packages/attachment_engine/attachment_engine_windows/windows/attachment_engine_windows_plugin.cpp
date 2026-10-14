@@ -29,14 +29,12 @@ AttachmentEngineWindowsPlugin::AttachmentEngineWindowsPlugin(
   // sink).
   HWND top_level_window = registrar->GetView()->GetNativeWindow();
 
-  share_channel_ = std::make_unique<ShareChannel>(
-      registrar->messenger(), top_level_window);
+  share_channel_ =
+      std::make_unique<ShareChannel>(registrar->messenger(), top_level_window);
 
-  audio_channel_ =
-      std::make_unique<AudioChannel>(registrar->messenger());
+  audio_channel_ = std::make_unique<AudioChannel>(registrar->messenger());
 
-  video_channel_ = std::make_unique<VideoChannel>(
-      registrar, top_level_window);
+  video_channel_ = std::make_unique<VideoChannel>(registrar, top_level_window);
 }
 
 AttachmentEngineWindowsPlugin::~AttachmentEngineWindowsPlugin() = default;

@@ -17,7 +17,9 @@ import Quartz
 /// only while a preview is active, and yields it back on close.
 ///
 /// Implements the Pigeon-generated `OfficeHostApi`.
-class OfficePreviewChannel: NSObject, OfficeHostApi, QLPreviewPanelDataSource, QLPreviewPanelDelegate {
+class OfficePreviewChannel: NSObject, OfficeHostApi, QLPreviewPanelDataSource,
+  QLPreviewPanelDelegate
+{
   private var previewItemURL: NSURL?
 
   func register(with messenger: FlutterBinaryMessenger) {

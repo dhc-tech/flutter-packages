@@ -35,8 +35,9 @@ G_BEGIN_DECLS
 
 #define ATTACHMENT_ENGINE_VIDEO_CHANNEL_TYPE \
   (attachment_engine_video_channel_get_type())
-G_DECLARE_FINAL_TYPE(AttachmentEngineVideoChannel, attachment_engine_video_channel,
-                      ATTACHMENT_ENGINE, VIDEO_CHANNEL, GObject)
+G_DECLARE_FINAL_TYPE(AttachmentEngineVideoChannel,
+                     attachment_engine_video_channel, ATTACHMENT_ENGINE,
+                     VIDEO_CHANNEL, GObject)
 
 // Replaces `video_player` on Linux. Method channel
 // "attachment_engine/video" (load/play/pause/seek/setSpeed/setVolume/

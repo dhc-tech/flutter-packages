@@ -24,11 +24,7 @@ import 'native_audio_channel.dart'
 /// The actual channel transport is owned by the platform implementation
 /// package (`attachment_engine_android` / `attachment_engine_ios`).
 class NativeVideoController {
-  NativeVideoController() : playerId = (_nextId++).toString() {
-    _eventSub = AttachmentEnginePlatform.instance
-        .videoEvents(playerId)
-        .listen(_onEvent, onError: (_) {});
-  }
+  NativeVideoController() : playerId = (_nextId++).toString();
 
   static int _nextId = 0;
 
@@ -70,9 +66,41 @@ class NativeVideoController {
     _statusController.add(_status);
   }
 
-  Future<void> load({String? filePath, String? url}) => AttachmentEnginePlatform
-      .instance
-      .videoLoad(playerId, filePath: filePath, url: url);
+  /// Awaits the native `load` call *before* subscribing to this player's
+  /// event stream. The iOS/Android implementations create and register the
+  /// `video_events/{playerId}` `EventChannel` handler *inside* their
+  /// native `load` handler, not eagerly — so the handler is only
+  /// guaranteed to exist once that call has actually completed.
+  ///
+  /// An earlier version of this fired the `listen()` request right after
+  /// (not awaiting) the `load` call, reasoning that two platform-channel
+  /// sends issued in the same synchronous Dart tick would arrive in order.
+  /// That held for a plain synchronous native handler, but this host API is
+  /// Pigeon-generated as `async throws` on `@MainActor` on iOS — invoking
+  /// it hops through a Swift `Task`/continuation rather than running
+  /// synchronously inline, so the `listen` message (dispatched immediately,
+  /// no such hop) could still reach the engine and get routed to the
+  /// EventChannel *before* the load handler had run far enough to register
+  /// its stream handler, throwing `MissingPluginException` and starving
+  /// this controller of every future status event. Awaiting removes the
+  /// race entirely — the tradeoff is that any event the native side emits
+  /// synchronously *during* `load` itself (e.g. an initial "buffering"
+  /// state) fires before anything is subscribed and is lost; harmless here
+  /// since [status] already reports "idle"/"buffering" until the first
+  /// event received after subscribing updates it.
+  Future<void> load({String? filePath, String? url}) async {
+    try {
+      await AttachmentEnginePlatform.instance.videoLoad(
+        playerId,
+        filePath: filePath,
+        url: url,
+      );
+    } finally {
+      _eventSub ??= AttachmentEnginePlatform.instance
+          .videoEvents(playerId)
+          .listen(_onEvent, onError: (_) {});
+    }
+  }
 
   Future<void> play() => AttachmentEnginePlatform.instance.videoPlay(playerId);
 

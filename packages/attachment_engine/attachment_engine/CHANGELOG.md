@@ -1,3 +1,10 @@
+## 0.0.1-dev.6
+
+* Migrated to Flutter 3.47.7 and decoupled design packages (`package:material_ui` and `package:cupertino_ui`).
+* Added unified `RendererErrorState` visual across renderers.
+* Updated enum and member syntax to use Dart dot shorthand.
+* Upgraded Android video surface detach lifecycle handling.
+
 ## 0.0.1-dev.5
 
 * Fix: `VideoAttachmentRenderer` never rendered anything for a failed load —

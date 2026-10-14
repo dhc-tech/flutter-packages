@@ -30,11 +30,12 @@ FLUTTER_PLUGIN_EXPORT GType attachment_engine_linux_plugin_get_type();
 
 #define ATTACHMENT_ENGINE_LINUX_PLUGIN_TYPE \
   (attachment_engine_linux_plugin_get_type())
-#define ATTACHMENT_ENGINE_LINUX_PLUGIN(obj)                           \
+#define ATTACHMENT_ENGINE_LINUX_PLUGIN(obj)                               \
   (G_TYPE_CHECK_INSTANCE_CAST((obj), ATTACHMENT_ENGINE_LINUX_PLUGIN_TYPE, \
-                               AttachmentEngineLinuxPlugin))
+                              AttachmentEngineLinuxPlugin))
 
-FLUTTER_PLUGIN_EXPORT void attachment_engine_linux_plugin_register_with_registrar(
+FLUTTER_PLUGIN_EXPORT void
+attachment_engine_linux_plugin_register_with_registrar(
     FlPluginRegistrar* registrar);
 
 G_END_DECLS

@@ -18,14 +18,12 @@
 #include "share_channel.h"
 
 #include <ShObjIdl_core.h>
+#include <flutter/standard_method_codec.h>
 #include <shlwapi.h>
-#include <wrl/client.h>
-
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Storage.h>
-
-#include <flutter/standard_method_codec.h>
+#include <wrl/client.h>
 
 using flutter::EncodableMap;
 using flutter::EncodableValue;
@@ -43,14 +41,13 @@ constexpr char kChannelName[] = "attachment_engine/share";
 }  // namespace
 
 ShareChannel::ShareChannel(flutter::BinaryMessenger* messenger,
-                            HWND top_level_window)
+                           HWND top_level_window)
     : top_level_window_(top_level_window) {
   channel_ = std::make_unique<flutter::MethodChannel<EncodableValue>>(
       messenger, kChannelName, &flutter::StandardMethodCodec::GetInstance());
-  channel_->SetMethodCallHandler(
-      [this](const auto& call, auto result) {
-        HandleMethodCall(call, std::move(result));
-      });
+  channel_->SetMethodCallHandler([this](const auto& call, auto result) {
+    HandleMethodCall(call, std::move(result));
+  });
 }
 
 ShareChannel::~ShareChannel() { channel_->SetMethodCallHandler(nullptr); }
@@ -85,8 +82,8 @@ void ShareChannel::HandleMethodCall(
     const HRESULT hr = ShowShareUi(&path, text_ptr);
     if (FAILED(hr)) {
       result->Error("share_failed", "ShowShareUIForWindow failed",
-                     std::make_unique<EncodableValue>(
-                         EncodableValue(static_cast<int>(hr))));
+                    std::make_unique<EncodableValue>(
+                        EncodableValue(static_cast<int>(hr))));
       return;
     }
     result->Success();
@@ -105,8 +102,8 @@ void ShareChannel::HandleMethodCall(
     const HRESULT hr = ShowShareUi(nullptr, &text);
     if (FAILED(hr)) {
       result->Error("share_failed", "ShowShareUIForWindow failed",
-                     std::make_unique<EncodableValue>(
-                         EncodableValue(static_cast<int>(hr))));
+                    std::make_unique<EncodableValue>(
+                        EncodableValue(static_cast<int>(hr))));
       return;
     }
     result->Success();
@@ -117,20 +114,18 @@ void ShareChannel::HandleMethodCall(
 }
 
 HRESULT ShareChannel::ShowShareUi(const std::string* path_utf8,
-                                   const std::string* text_utf8) {
+                                  const std::string* text_utf8) {
   // 1. Get the Win32->WinRT interop factory for DataTransferManager.
   ComPtr<IDataTransferManagerInterop> interop;
-  HRESULT hr = CoCreateInstance(
-      __uuidof(DataTransferManager), nullptr, CLSCTX_INPROC_SERVER,
-      IID_PPV_ARGS(&interop));
+  HRESULT hr = CoCreateInstance(__uuidof(DataTransferManager), nullptr,
+                                CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&interop));
   if (FAILED(hr)) return hr;
 
   // 2. Bind a DataTransferManager to our top-level HWND.
   winrt_dt::DataTransferManager data_transfer_manager{nullptr};
-  hr = interop->GetForWindow(
-      top_level_window_,
-      winrt::guid_of<winrt_dt::DataTransferManager>(),
-      winrt::put_abi(data_transfer_manager));
+  hr = interop->GetForWindow(top_level_window_,
+                             winrt::guid_of<winrt_dt::DataTransferManager>(),
+                             winrt::put_abi(data_transfer_manager));
   if (FAILED(hr)) return hr;
 
   // 3. Copy the payload by value into the lambda: DataRequested fires
@@ -139,24 +134,24 @@ HRESULT ShareChannel::ShowShareUi(const std::string* path_utf8,
   std::wstring path_copy;
   bool has_path = false;
   if (path_utf8 != nullptr) {
-    const int wlen = MultiByteToWideChar(CP_UTF8, 0, path_utf8->c_str(), -1,
-                                          nullptr, 0);
+    const int wlen =
+        MultiByteToWideChar(CP_UTF8, 0, path_utf8->c_str(), -1, nullptr, 0);
     path_copy.resize(wlen > 0 ? wlen - 1 : 0);
     if (wlen > 0) {
       MultiByteToWideChar(CP_UTF8, 0, path_utf8->c_str(), -1, path_copy.data(),
-                           wlen);
+                          wlen);
     }
     has_path = true;
   }
   std::wstring text_copy;
   bool has_text = false;
   if (text_utf8 != nullptr && !text_utf8->empty()) {
-    const int wlen = MultiByteToWideChar(CP_UTF8, 0, text_utf8->c_str(), -1,
-                                          nullptr, 0);
+    const int wlen =
+        MultiByteToWideChar(CP_UTF8, 0, text_utf8->c_str(), -1, nullptr, 0);
     text_copy.resize(wlen > 0 ? wlen - 1 : 0);
     if (wlen > 0) {
       MultiByteToWideChar(CP_UTF8, 0, text_utf8->c_str(), -1, text_copy.data(),
-                           wlen);
+                          wlen);
     }
     has_text = true;
   }

@@ -37,7 +37,7 @@ class UnknownAttachmentRenderer extends AttachmentRenderer {
     final allowExternal = externalOpenConfig.allowExternalFallback;
     return Center(
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: .min,
         children: [
           const SizedBox(height: 8),
           Text(attachment.name),

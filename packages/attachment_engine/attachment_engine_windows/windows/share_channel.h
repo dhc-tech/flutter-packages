@@ -52,7 +52,7 @@ class ShareChannel {
   // and/or `text_utf8` (optional). Returns an HRESULT; failures are
   // reported back to Dart as a `share_failed` PlatformException.
   HRESULT ShowShareUi(const std::string* path_utf8,
-                       const std::string* text_utf8);
+                      const std::string* text_utf8);
 
   HWND top_level_window_;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel_;

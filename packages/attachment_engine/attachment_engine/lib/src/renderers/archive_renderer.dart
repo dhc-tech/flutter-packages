@@ -4,12 +4,13 @@
 
 import 'dart:io';
 
-import 'package:flutter/widgets.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../archive/zip_reader.dart';
 import '../models/attachment.dart';
 import '../models/attachment_type.dart';
 import 'renderer.dart';
+import 'renderer_error_state.dart';
 
 /// Safely extracts a zip [archiveFile] into [targetDir], rejecting any
 /// entry that could escape the target directory via `..`, an absolute
@@ -96,7 +97,10 @@ class ArchiveAttachmentRenderer extends AttachmentRenderer {
   Widget build(BuildContext context, Attachment attachment) {
     final path = attachment.localPath;
     if (path == null) {
-      return const Center(child: Text('Archive unavailable'));
+      return const RendererErrorState(
+        message: 'Archive unavailable',
+        icon: Icons.folder_zip_outlined,
+      );
     }
     return FutureBuilder<List<ZipEntry>>(
       future: _listEntries(path),

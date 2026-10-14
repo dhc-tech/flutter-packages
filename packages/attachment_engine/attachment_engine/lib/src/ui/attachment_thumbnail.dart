@@ -4,7 +4,7 @@
 
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../models/attachment.dart';
 import '../models/attachment_type.dart';
@@ -24,15 +24,14 @@ class AttachmentThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (attachment.attachmentType == AttachmentType.image &&
-        attachment.localPath != null) {
+    if (attachment.attachmentType == .image && attachment.localPath != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: Image.file(
           File(attachment.localPath!),
           width: size,
           height: size,
-          fit: BoxFit.cover,
+          fit: .cover,
         ),
       );
     }
@@ -45,29 +44,29 @@ class AttachmentThumbnail extends StatelessWidget {
 
   IconData _iconFor(AttachmentType type) {
     switch (type) {
-      case AttachmentType.image:
+      case .image:
         return Icons.image;
-      case AttachmentType.pdf:
+      case .pdf:
         return Icons.picture_as_pdf;
-      case AttachmentType.document:
-      case AttachmentType.office:
+      case .document:
+      case .office:
         return Icons.description;
-      case AttachmentType.text:
+      case .text:
         return Icons.article;
-      case AttachmentType.csv:
+      case .csv:
         return Icons.table_chart;
-      case AttachmentType.html:
+      case .html:
         return Icons.public;
-      case AttachmentType.scorm:
-      case AttachmentType.h5p:
+      case .scorm:
+      case .h5p:
         return Icons.school;
-      case AttachmentType.video:
+      case .video:
         return Icons.movie;
-      case AttachmentType.audio:
+      case .audio:
         return Icons.audiotrack;
-      case AttachmentType.archive:
+      case .archive:
         return Icons.folder_zip;
-      case AttachmentType.unknown:
+      case .unknown:
         return Icons.insert_drive_file;
     }
   }

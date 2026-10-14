@@ -1,0 +1,2 @@
+# attachment_engine_windows uses package-specific analysis rules.
+allow_custom_analysis_options: true

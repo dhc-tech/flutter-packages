@@ -5,11 +5,12 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart' show compute;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../models/attachment.dart';
 import '../models/attachment_type.dart';
 import 'renderer.dart';
+import 'renderer_error_state.dart';
 import 'text_renderer.dart' show CircularProgressIndicatorPlaceholder;
 
 /// Below this content length, [CsvAttachmentRenderer.parseCsv] runs
@@ -200,18 +201,10 @@ class _CsvViewState extends State<_CsvView> {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           final label = _delimiter == '\t' ? 'TSV' : 'CSV';
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Unable to read this $label file'),
-                const SizedBox(height: 12),
-                OutlinedButton(
-                  onPressed: () => setState(_load),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
+          return RendererErrorState(
+            message: 'Unable to read this $label file',
+            icon: Icons.table_chart_outlined,
+            onRetry: () => setState(_load),
           );
         }
         if (!snapshot.hasData) {
@@ -247,7 +240,7 @@ class _CsvViewState extends State<_CsvView> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
+                  scrollDirection: .horizontal,
                   child: Table(
                     defaultColumnWidth: const IntrinsicColumnWidth(),
                     border: const TableBorder.symmetric(

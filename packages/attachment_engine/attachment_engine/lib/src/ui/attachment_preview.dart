@@ -4,10 +4,9 @@
 
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../models/attachment.dart';
-import '../models/attachment_type.dart';
 import '../util/chunked_file_reader.dart';
 import 'attachment_thumbnail.dart';
 
@@ -23,15 +22,15 @@ class AttachmentPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (attachment.attachmentType) {
-      case AttachmentType.image:
+      case .image:
         if (attachment.localPath != null) {
-          return Image.file(File(attachment.localPath!), fit: BoxFit.cover);
+          return Image.file(File(attachment.localPath!), fit: .cover);
         }
         if (attachment.remoteUrl != null) {
-          return Image.network(attachment.remoteUrl!, fit: BoxFit.cover);
+          return Image.network(attachment.remoteUrl!, fit: .cover);
         }
         return AttachmentThumbnail(attachment: attachment);
-      case AttachmentType.text:
+      case .text:
         return _TextSnippet(attachment: attachment);
       default:
         return AttachmentThumbnail(attachment: attachment, size: 64);
@@ -57,7 +56,7 @@ class _TextSnippet extends StatelessWidget {
       builder: (context, snapshot) {
         final text = snapshot.data ?? '';
         final snippet = text.length > 200 ? '${text.substring(0, 200)}…' : text;
-        return Text(snippet, maxLines: 3, overflow: TextOverflow.ellipsis);
+        return Text(snippet, maxLines: 3, overflow: .ellipsis);
       },
     );
   }

@@ -36,11 +36,13 @@ class DownloadChannel: NSObject, DownloadHostApi, URLSessionDownloadDelegate {
     eventChannel = FlutterEventChannel(
       name: DownloadChannel.eventChannelName, binaryMessenger: messenger)
     eventChannel.setStreamHandler(
-      DownloadStreamHandler(onListen: { [weak self] sink in
-        self?.eventSink = sink
-      }, onCancel: { [weak self] in
-        self?.eventSink = nil
-      }))
+      DownloadStreamHandler(
+        onListen: { [weak self] sink in
+          self?.eventSink = sink
+        },
+        onCancel: { [weak self] in
+          self?.eventSink = nil
+        }))
   }
 
   func unregister(with messenger: FlutterBinaryMessenger) {
@@ -50,12 +52,16 @@ class DownloadChannel: NSObject, DownloadHostApi, URLSessionDownloadDelegate {
   }
 
   @MainActor
-  func startDownload(url: String, headers: [String: String], destPath: String) async throws -> String {
+  func startDownload(url: String, headers: [String: String], destPath: String) async throws
+    -> String
+  {
     try beginDownload(urlString: url, headers: headers, destPath: destPath, resume: false)
   }
 
   @MainActor
-  func resumeDownload(url: String, headers: [String: String], destPath: String) async throws -> String {
+  func resumeDownload(url: String, headers: [String: String], destPath: String) async throws
+    -> String
+  {
     try beginDownload(urlString: url, headers: headers, destPath: destPath, resume: true)
   }
 
@@ -80,7 +86,8 @@ class DownloadChannel: NSObject, DownloadHostApi, URLSessionDownloadDelegate {
     // platform ATS defaults. (No caller-facing override is exposed through
     // the shared Pigeon contract.)
     if url.scheme?.lowercased() == "http" {
-      throw PigeonError(code: "insecure_url", message: "Plain HTTP URLs are rejected by default", details: nil)
+      throw PigeonError(
+        code: "insecure_url", message: "Plain HTTP URLs are rejected by default", details: nil)
     }
     let downloadId = UUID().uuidString
 

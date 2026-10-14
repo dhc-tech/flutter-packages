@@ -1,0 +1,2 @@
+# attachment_engine_platform_interface uses package-specific analysis rules.
+allow_custom_analysis_options: true

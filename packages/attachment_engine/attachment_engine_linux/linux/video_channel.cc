@@ -97,7 +97,7 @@ static gboolean emit_progress(gpointer user_data) {
 }
 
 static gboolean on_bus_message(GstBus*, GstMessage* message,
-                                gpointer user_data) {
+                               gpointer user_data) {
   auto* entry = static_cast<VideoPlayerEntry*>(user_data);
   switch (GST_MESSAGE_TYPE(message)) {
     case GST_MESSAGE_ASYNC_DONE:
@@ -120,7 +120,7 @@ static gboolean on_bus_message(GstBus*, GstMessage* message,
 }
 
 static VideoPlayerEntry* ensure_entry(AttachmentEngineVideoChannel* self,
-                                       const std::string& player_id) {
+                                      const std::string& player_id) {
   auto it = self->players->find(player_id);
   if (it != self->players->end()) return it->second.get();
 
@@ -157,15 +157,17 @@ static VideoPlayerEntry* ensure_entry(AttachmentEngineVideoChannel* self,
 
   std::string channel_name = kEventChannelPrefix + player_id;
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
-  entry->event_channel = fl_event_channel_new(self->messenger, channel_name.c_str(),
-                                               FL_METHOD_CODEC(codec));
+  entry->event_channel = fl_event_channel_new(
+      self->messenger, channel_name.c_str(), FL_METHOD_CODEC(codec));
   fl_event_channel_set_stream_handlers(
       entry->event_channel,
-      [](FlEventChannel*, FlValue*, gpointer user_data) -> FlMethodErrorResponse* {
+      [](FlEventChannel*, FlValue*,
+         gpointer user_data) -> FlMethodErrorResponse* {
         static_cast<VideoPlayerEntry*>(user_data)->has_listener = true;
         return nullptr;
       },
-      [](FlEventChannel*, FlValue*, gpointer user_data) -> FlMethodErrorResponse* {
+      [](FlEventChannel*, FlValue*,
+         gpointer user_data) -> FlMethodErrorResponse* {
         static_cast<VideoPlayerEntry*>(user_data)->has_listener = false;
         return nullptr;
       },
@@ -177,14 +179,15 @@ static VideoPlayerEntry* ensure_entry(AttachmentEngineVideoChannel* self,
 }
 
 static void dispose_entry(AttachmentEngineVideoChannel* self,
-                           const std::string& player_id) {
+                          const std::string& player_id) {
   auto it = self->players->find(player_id);
   if (it == self->players->end()) return;
   auto& entry = it->second;
   if (entry->progress_timer_id) g_source_remove(entry->progress_timer_id);
   if (entry->bus_watch_id) g_source_remove(entry->bus_watch_id);
   if (entry->video_widget && entry->overlay_fixed) {
-    gtk_container_remove(GTK_CONTAINER(entry->overlay_fixed), entry->video_widget);
+    gtk_container_remove(GTK_CONTAINER(entry->overlay_fixed),
+                         entry->video_widget);
   }
   if (entry->playbin) {
     gst_element_set_state(entry->playbin, GST_STATE_NULL);
@@ -200,21 +203,22 @@ static const char* fl_value_get_str_or(FlValue* map, const char* key) {
              : nullptr;
 }
 
-static int64_t fl_value_get_int_or(FlValue* map, const char* key, int64_t fallback) {
+static int64_t fl_value_get_int_or(FlValue* map, const char* key,
+                                   int64_t fallback) {
   FlValue* v = fl_value_lookup_string(map, key);
   return v ? fl_value_get_int(v) : fallback;
 }
 
 static void handle_method_call(FlMethodChannel*, FlMethodCall* method_call,
-                                gpointer user_data) {
+                               gpointer user_data) {
   auto* self = ATTACHMENT_ENGINE_VIDEO_CHANNEL(user_data);
   FlValue* args = fl_method_call_get_args(method_call);
   const char* method = fl_method_call_get_name(method_call);
 
   const char* player_id_c = fl_value_get_str_or(args, "playerId");
   if (!player_id_c) {
-    g_autoptr(FlMethodErrorResponse) response =
-        fl_method_error_response_new("bad_args", "playerId is required", nullptr);
+    g_autoptr(FlMethodErrorResponse) response = fl_method_error_response_new(
+        "bad_args", "playerId is required", nullptr);
     fl_method_call_respond(method_call, FL_METHOD_RESPONSE(response), nullptr);
     return;
   }
@@ -306,7 +310,8 @@ static void attachment_engine_video_channel_class_init(
 
 static void attachment_engine_video_channel_init(
     AttachmentEngineVideoChannel* self) {
-  self->players = new std::map<std::string, std::unique_ptr<VideoPlayerEntry>>();
+  self->players =
+      new std::map<std::string, std::unique_ptr<VideoPlayerEntry>>();
 }
 
 AttachmentEngineVideoChannel* attachment_engine_video_channel_new(
@@ -319,8 +324,8 @@ AttachmentEngineVideoChannel* attachment_engine_video_channel_new(
   self->registrar = registrar;
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
   self->channel = fl_method_channel_new(messenger, kMethodChannelName,
-                                         FL_METHOD_CODEC(codec));
+                                        FL_METHOD_CODEC(codec));
   fl_method_channel_set_method_call_handler(self->channel, handle_method_call,
-                                             self, nullptr);
+                                            self, nullptr);
   return self;
 }

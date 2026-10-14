@@ -1,3 +1,7 @@
+## 0.0.1-dev.2
+
+* Updates SDK constraints to Dart `^3.13.0` and Flutter `>=3.47.7`.
+
 ## 0.0.1-dev.1
 
 * Initial development release: share (`shareText`, via the Web Share API)

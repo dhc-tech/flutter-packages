@@ -2,7 +2,7 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../models/attachment_capabilities.dart';
 
@@ -54,6 +54,6 @@ class AttachmentActions extends StatelessWidget {
         ),
       );
     }
-    return Row(mainAxisSize: MainAxisSize.min, children: actions);
+    return Row(mainAxisSize: .min, children: actions);
   }
 }

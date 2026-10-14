@@ -46,11 +46,7 @@ class NativePlaybackStatus {
 /// the platform implementation package (`attachment_engine_android` /
 /// `attachment_engine_ios`).
 class NativeAudioController {
-  NativeAudioController() : playerId = (_nextId++).toString() {
-    _eventSub = AttachmentEnginePlatform.instance
-        .audioEvents(playerId)
-        .listen(_onEvent, onError: (_) {});
-  }
+  NativeAudioController() : playerId = (_nextId++).toString();
 
   static int _nextId = 0;
 
@@ -93,11 +89,34 @@ class NativeAudioController {
     _statusController.add(_status);
   }
 
-  Future<void> setFilePath(String path) =>
-      AttachmentEnginePlatform.instance.audioLoad(playerId, filePath: path);
+  Future<void> setFilePath(String path) => _load(filePath: path);
 
-  Future<void> setUrl(String url) =>
-      AttachmentEnginePlatform.instance.audioLoad(playerId, url: url);
+  Future<void> setUrl(String url) => _load(url: url);
+
+  /// Awaits the native `load` call *before* subscribing to this player's
+  /// event stream — see the matching (more detailed) note on
+  /// `NativeVideoController.load`: the iOS/Android implementations create
+  /// and register the `audio_events/{playerId}` `EventChannel` handler
+  /// *inside* their native `load` handler, and that handler is Pigeon's
+  /// `async throws` on `@MainActor` on iOS, which hops through a Swift
+  /// `Task` rather than running synchronously — so firing the `listen()`
+  /// request right after (not awaiting) `load`, on the assumption that two
+  /// same-tick platform-channel sends arrive in order, could still race the
+  /// handler's registration and throw `MissingPluginException`. Awaiting
+  /// removes the race entirely.
+  Future<void> _load({String? filePath, String? url}) async {
+    try {
+      await AttachmentEnginePlatform.instance.audioLoad(
+        playerId,
+        filePath: filePath,
+        url: url,
+      );
+    } finally {
+      _eventSub ??= AttachmentEnginePlatform.instance
+          .audioEvents(playerId)
+          .listen(_onEvent, onError: (_) {});
+    }
+  }
 
   Future<void> play() => AttachmentEnginePlatform.instance.audioPlay(playerId);
 

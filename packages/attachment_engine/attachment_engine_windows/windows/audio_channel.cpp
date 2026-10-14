@@ -11,11 +11,10 @@
 
 #include "audio_channel.h"
 
+#include <flutter/standard_method_codec.h>
 #include <mfapi.h>
 #include <mferror.h>
 #include <mfidl.h>
-
-#include <flutter/standard_method_codec.h>
 
 using flutter::EncodableMap;
 using flutter::EncodableValue;
@@ -36,8 +35,7 @@ constexpr UINT kProgressTimerMs = 250;
 
 std::wstring Utf8ToWide(const std::string& s) {
   if (s.empty()) return L"";
-  const int wlen =
-      MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, nullptr, 0);
+  const int wlen = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, nullptr, 0);
   std::wstring result(wlen > 0 ? wlen - 1 : 0, L'\0');
   if (wlen > 0) {
     MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, result.data(), wlen);
@@ -49,16 +47,15 @@ std::wstring Utf8ToWide(const std::string& s) {
 // IMFMediaEngineNotify callback: forwards MF_MEDIA_ENGINE_EVENT_* codes to
 // the owning AudioPlayerEntry so it can emit the matching `state` string.
 class MediaEngineNotifyImpl
-    : public RuntimeClass<
-          RuntimeClassFlags<Microsoft::WRL::ClassicCom>,
-          IMFMediaEngineNotify> {
+    : public RuntimeClass<RuntimeClassFlags<Microsoft::WRL::ClassicCom>,
+                          IMFMediaEngineNotify> {
  public:
   using Callback = std::function<void(DWORD)>;
   explicit MediaEngineNotifyImpl(Callback callback)
       : callback_(std::move(callback)) {}
 
   IFACEMETHODIMP EventNotify(DWORD event, DWORD_PTR /*param1*/,
-                              DWORD /*param2*/) override {
+                             DWORD /*param2*/) override {
     callback_(event);
     return S_OK;
   }
@@ -70,7 +67,7 @@ class MediaEngineNotifyImpl
 class AudioPlayerEntry {
  public:
   AudioPlayerEntry(flutter::BinaryMessenger* messenger,
-                    const std::string& player_id)
+                   const std::string& player_id)
       : player_id_(player_id) {
     event_channel_ = std::make_unique<EventChannel<EncodableValue>>(
         messenger, kEventChannelPrefix + player_id,
@@ -98,8 +95,7 @@ class AudioPlayerEntry {
 
     ComPtr<IMFMediaEngineClassFactory> factory;
     HRESULT hr = CoCreateInstance(CLSID_MFMediaEngineClassFactory, nullptr,
-                                   CLSCTX_INPROC_SERVER,
-                                   IID_PPV_ARGS(&factory));
+                                  CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&factory));
     if (FAILED(hr)) return hr;
 
     ComPtr<IMFAttributes> attributes;
@@ -113,7 +109,7 @@ class AudioPlayerEntry {
     // Audio-only: no video output attribute set, so the engine renders
     // straight to the default audio device.
     hr = attributes->SetUINT32(MF_MEDIA_ENGINE_AUDIO_CATEGORY,
-                                AudioCategory_Media);
+                               AudioCategory_Media);
     if (FAILED(hr)) return hr;
 
     return factory->CreateInstance(0, attributes.Get(), &media_engine_);
@@ -240,10 +236,9 @@ AudioChannel::AudioChannel(flutter::BinaryMessenger* messenger)
   channel_ = std::make_unique<flutter::MethodChannel<EncodableValue>>(
       messenger, kMethodChannelName,
       &flutter::StandardMethodCodec::GetInstance());
-  channel_->SetMethodCallHandler(
-      [this](const auto& call, auto result) {
-        HandleMethodCall(call, std::move(result));
-      });
+  channel_->SetMethodCallHandler([this](const auto& call, auto result) {
+    HandleMethodCall(call, std::move(result));
+  });
 }
 
 AudioChannel::~AudioChannel() {

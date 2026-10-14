@@ -73,7 +73,7 @@ static gboolean emit_progress(gpointer user_data) {
 }
 
 static gboolean on_bus_message(GstBus*, GstMessage* message,
-                                gpointer user_data) {
+                               gpointer user_data) {
   auto* entry = static_cast<AudioPlayerEntry*>(user_data);
   switch (GST_MESSAGE_TYPE(message)) {
     case GST_MESSAGE_ASYNC_DONE:
@@ -99,7 +99,7 @@ static gboolean on_bus_message(GstBus*, GstMessage* message,
 }
 
 static AudioPlayerEntry* ensure_entry(AttachmentEngineAudioChannel* self,
-                                       const std::string& player_id) {
+                                      const std::string& player_id) {
   auto it = self->players->find(player_id);
   if (it != self->players->end()) return it->second.get();
 
@@ -108,20 +108,22 @@ static AudioPlayerEntry* ensure_entry(AttachmentEngineAudioChannel* self,
   entry->playbin = gst_element_factory_make("playbin", nullptr);
 
   GstBus* bus = gst_element_get_bus(entry->playbin);
-  entry->bus_watch_id =
-      gst_bus_add_watch(bus, on_bus_message, entry.get());
+  entry->bus_watch_id = gst_bus_add_watch(bus, on_bus_message, entry.get());
   gst_object_unref(bus);
 
   std::string channel_name = kEventChannelPrefix + player_id;
-  entry->event_channel = fl_event_channel_new(
-      self->messenger, channel_name.c_str(), FL_METHOD_CODEC(fl_standard_method_codec_new()));
+  entry->event_channel =
+      fl_event_channel_new(self->messenger, channel_name.c_str(),
+                           FL_METHOD_CODEC(fl_standard_method_codec_new()));
   fl_event_channel_set_stream_handlers(
       entry->event_channel,
-      [](FlEventChannel*, FlValue*, gpointer user_data) -> FlMethodErrorResponse* {
+      [](FlEventChannel*, FlValue*,
+         gpointer user_data) -> FlMethodErrorResponse* {
         static_cast<AudioPlayerEntry*>(user_data)->has_listener = true;
         return nullptr;
       },
-      [](FlEventChannel*, FlValue*, gpointer user_data) -> FlMethodErrorResponse* {
+      [](FlEventChannel*, FlValue*,
+         gpointer user_data) -> FlMethodErrorResponse* {
         static_cast<AudioPlayerEntry*>(user_data)->has_listener = false;
         return nullptr;
       },
@@ -133,7 +135,7 @@ static AudioPlayerEntry* ensure_entry(AttachmentEngineAudioChannel* self,
 }
 
 static void dispose_entry(AttachmentEngineAudioChannel* self,
-                           const std::string& player_id) {
+                          const std::string& player_id) {
   auto it = self->players->find(player_id);
   if (it == self->players->end()) return;
   auto& entry = it->second;
@@ -154,15 +156,15 @@ static const char* fl_value_get_str_or(FlValue* map, const char* key) {
 }
 
 static void handle_method_call(FlMethodChannel*, FlMethodCall* method_call,
-                                gpointer user_data) {
+                               gpointer user_data) {
   auto* self = ATTACHMENT_ENGINE_AUDIO_CHANNEL(user_data);
   FlValue* args = fl_method_call_get_args(method_call);
   const char* method = fl_method_call_get_name(method_call);
 
   const char* player_id_c = fl_value_get_str_or(args, "playerId");
   if (!player_id_c) {
-    g_autoptr(FlMethodErrorResponse) response =
-        fl_method_error_response_new("bad_args", "playerId is required", nullptr);
+    g_autoptr(FlMethodErrorResponse) response = fl_method_error_response_new(
+        "bad_args", "playerId is required", nullptr);
     fl_method_call_respond(method_call, FL_METHOD_RESPONSE(response), nullptr);
     return;
   }
@@ -244,7 +246,8 @@ static void attachment_engine_audio_channel_class_init(
 
 static void attachment_engine_audio_channel_init(
     AttachmentEngineAudioChannel* self) {
-  self->players = new std::map<std::string, std::unique_ptr<AudioPlayerEntry>>();
+  self->players =
+      new std::map<std::string, std::unique_ptr<AudioPlayerEntry>>();
 }
 
 AttachmentEngineAudioChannel* attachment_engine_audio_channel_new(
@@ -256,8 +259,8 @@ AttachmentEngineAudioChannel* attachment_engine_audio_channel_new(
   self->messenger = messenger;
   g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
   self->channel = fl_method_channel_new(messenger, kMethodChannelName,
-                                         FL_METHOD_CODEC(codec));
+                                        FL_METHOD_CODEC(codec));
   fl_method_channel_set_method_call_handler(self->channel, handle_method_call,
-                                             self, nullptr);
+                                            self, nullptr);
   return self;
 }

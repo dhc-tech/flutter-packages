@@ -1,0 +1,2 @@
+# attachment_engine_linux uses package-specific analysis rules.
+allow_custom_analysis_options: true
