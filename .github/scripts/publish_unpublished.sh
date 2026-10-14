@@ -11,6 +11,9 @@
 #   DRY_RUN=1         Print what would be published without publishing/tagging.
 #   PUB_CREDENTIALS   pub.dev credentials JSON (required unless DRY_RUN=1).
 #   PUB_API           Base URL of the pub API (default: https://pub.dev/api).
+#   PUBLISH_TIMEOUT   Seconds to allow one `dart pub publish` (default: 600). A
+#                     publish that needs a pub.dev login would otherwise wait
+#                     forever for a browser, so it fails instead.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -64,10 +67,39 @@ done
 
 if [ "${DRY_RUN:-0}" != "1" ]; then
   : "${PUB_CREDENTIALS:?PUB_CREDENTIALS is required to publish}"
-  creds_dir="${PUB_CACHE:-$HOME/.pub-cache}"
-  mkdir -p "$creds_dir"
-  printf '%s' "$PUB_CREDENTIALS" > "$creds_dir/credentials.json"
+  # `dart pub` reads its credentials from the user config directory
+  # (~/.config/dart on Linux, ~/Library/Application Support/dart on macOS) and
+  # from the legacy $PUB_CACHE/credentials.json; write every place it may look.
+  case "$(uname -s)" in
+    Darwin) config_dir="$HOME/Library/Application Support/dart" ;;
+    *) config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/dart" ;;
+  esac
+  cache_dir="${PUB_CACHE:-$HOME/.pub-cache}"
+  mkdir -p "$config_dir" "$cache_dir"
+  printf '%s' "$PUB_CREDENTIALS" > "$config_dir/pub-credentials.json"
+  printf '%s' "$PUB_CREDENTIALS" > "$cache_dir/credentials.json"
 fi
+
+publish() {
+  local limit="${PUBLISH_TIMEOUT:-600}" rc=0 pid watchdog
+  dart pub publish --force </dev/null &
+  pid=$!
+  # Portable watchdog (no GNU `timeout` on macOS): kill the publish if it is
+  # still running after $limit seconds.
+  # Detached from stdout/stderr so its sleep cannot hold a caller's pipe open.
+  (sleep "$limit"; kill "$pid" 2>/dev/null) >/dev/null 2>&1 &
+  watchdog=$!
+  wait "$pid" || rc=$?
+  if kill -0 "$watchdog" 2>/dev/null; then
+    pkill -P "$watchdog" 2>/dev/null || true
+    kill "$watchdog" 2>/dev/null || true
+    wait "$watchdog" 2>/dev/null || true
+  else
+    echo "dart pub publish timed out after ${limit}s; it is probably waiting for a pub.dev login. Check that PUB_CREDENTIALS is valid and not expired." >&2
+    [ "$rc" -ne 0 ] || rc=1
+  fi
+  return "$rc"
+}
 
 for dir in "${ordered[@]}"; do
   name="$(field name "$dir")"
@@ -77,7 +109,7 @@ for dir in "${ordered[@]}"; do
     continue
   fi
   echo "==> Publishing $dir"
-  (cd "$dir" && dart pub publish --force)
+  (cd "$dir" && publish)
   if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
     echo "Tag $tag already exists; skipping."
   else
