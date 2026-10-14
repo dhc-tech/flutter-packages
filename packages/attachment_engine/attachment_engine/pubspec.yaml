@@ -11,6 +11,8 @@ topics:
   - media
   - downloader
 
+resolution: workspace
+
 environment:
   sdk: ^3.13.5
   flutter: '>=3.47.7'

@@ -2,6 +2,8 @@ name: attachment_engine_linux_example
 description: "Example app for attachment_engine_linux."
 publish_to: 'none'
 
+resolution: workspace
+
 environment:
   sdk: ^3.13.5
 

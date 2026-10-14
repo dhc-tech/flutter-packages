@@ -1,2 +1,0 @@
-# dig_cli is a standalone CLI tool using package:lints/recommended.yaml.
-allow_custom_analysis_options: true

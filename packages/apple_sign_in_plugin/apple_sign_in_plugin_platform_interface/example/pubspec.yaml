@@ -2,6 +2,8 @@ name: apple_sign_in_plugin_platform_interface_example
 description: "Example app demonstrating how a platform implementation registers itself against apple_sign_in_plugin_platform_interface."
 publish_to: 'none' # This package is not intended for publishing.
 
+resolution: workspace
+
 environment:
   sdk: ^3.13.5
 

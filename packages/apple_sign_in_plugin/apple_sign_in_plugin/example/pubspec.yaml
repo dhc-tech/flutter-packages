@@ -2,6 +2,8 @@ name: apple_sign_in_plugin_example
 description: "Example app for the apple_sign_in_plugin package."
 publish_to: 'none' # This package is not intended for publishing.
 
+resolution: workspace
+
 environment:
   sdk: ^3.13.5
 
