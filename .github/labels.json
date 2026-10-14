@@ -75,57 +75,57 @@
     "description": "Docs, README or changelog changes"
   },
   {
-    "name": "type:feat",
+    "name": "type: feat",
     "color": "0e8a16",
     "description": "New feature (from PR title, automatic)"
   },
   {
-    "name": "type:fix",
+    "name": "type: fix",
     "color": "d73a4a",
     "description": "Bug fix (from PR title, automatic)"
   },
   {
-    "name": "type:docs",
+    "name": "type: docs",
     "color": "0075ca",
     "description": "Documentation only (from PR title, automatic)"
   },
   {
-    "name": "type:style",
+    "name": "type: style",
     "color": "d4c5f9",
     "description": "Formatting only, no logic change (from PR title, automatic)"
   },
   {
-    "name": "type:refactor",
+    "name": "type: refactor",
     "color": "c5def5",
     "description": "Neither a fix nor a feature (from PR title, automatic)"
   },
   {
-    "name": "type:perf",
+    "name": "type: perf",
     "color": "fbca04",
     "description": "Performance improvement (from PR title, automatic)"
   },
   {
-    "name": "type:test",
+    "name": "type: test",
     "color": "bfd4f2",
     "description": "Adds or fixes tests (from PR title, automatic)"
   },
   {
-    "name": "type:build",
+    "name": "type: build",
     "color": "5319e7",
     "description": "Build system or dependencies (from PR title, automatic)"
   },
   {
-    "name": "type:ci",
+    "name": "type: ci",
     "color": "1d76db",
     "description": "CI configuration (from PR title, automatic)"
   },
   {
-    "name": "type:chore",
+    "name": "type: chore",
     "color": "cfd3d7",
     "description": "Maintenance, no production code change (from PR title, automatic)"
   },
   {
-    "name": "type:revert",
+    "name": "type: revert",
     "color": "b60205",
     "description": "Reverts a previous change (from PR title, automatic)"
   },
@@ -135,34 +135,34 @@
     "description": "Breaking API or behavior change (automatic from title or footer)"
   },
   {
-    "name": "status:blocked",
+    "name": "status: blocked",
     "color": "000000",
     "description": "Draft, has conflicts or otherwise not mergeable (automatic)"
   },
   {
-    "name": "status:changes-requested",
+    "name": "status: changes-requested",
     "color": "e11d21",
     "description": "A reviewer requested changes (automatic)"
   },
   {
-    "name": "status:ci-failed",
+    "name": "status: ci-failed",
     "color": "e11d21",
     "description": "A required check is failing (automatic)"
   },
   {
-    "name": "status:needs-review",
+    "name": "status: needs-review",
     "color": "fbca04",
     "description": "Waiting for review or checks (automatic)"
   },
   {
-    "name": "status:ready",
+    "name": "status: ready",
     "color": "0e8a16",
     "description": "Approved and checks green; merges automatically (automatic)"
   },
   {
     "name": "autosubmit",
     "color": "2ea44f",
-    "description": "Maintainers: squash-merge automatically once status:ready"
+    "description": "Maintainers: squash-merge automatically once status: ready"
   },
   {
     "name": "needs: triage",

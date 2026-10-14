@@ -1,60 +1,85 @@
 # Labels
 
-Labels keep issues and pull requests easy to find and drive the merge
-automation. Most are applied automatically; this page says which ones, when,
-and by whom. The full list (names, colors, descriptions) lives in
-[`.github/labels.json`](../.github/labels.json) and is synced to the repository
-by the `Sync Labels` workflow when that file changes on `main`.
+Labels make issues and pull requests easy to find and drive the merge
+automation. **Most are applied automatically**; this page says which ones, when
+to apply the rest, and what each one does. Names, colors and descriptions live
+in [`.github/labels.json`](../.github/labels.json) and are synced to the
+repository by the `Sync Labels` workflow.
+
+## Naming convention
+
+Every label belongs to a group and is written `group: value`:
+
+| Group | Answers | Applied by |
+|---|---|---|
+| `p: <package>` | Which package family? | Automatic (changed files / issue text) |
+| `platform: <name>` | Which platform implementation? | Automatic (changed files / issue text) |
+| `type: <kind>` | What kind of change? | Automatic (PR title) or issue template |
+| `status: <state>` | Where is this PR? | Automatic only |
+| `needs: <what>` | What is it waiting for? | Template, then maintainers |
+| `infra: <area>` | CI or dependency work | Automatic |
+
+A few standalone labels have a fixed meaning: `breaking-change`, `documentation`,
+`autosubmit`, `good first issue`, `help wanted`, `question`, `duplicate`,
+`invalid`, `wontfix`, `stale`.
 
 ## Pull requests
 
-You do not need to label a pull request. Make the **title** a
+**You do not need to label a pull request.** Write the title as a
 [Conventional Commit](https://www.conventionalcommits.org/) (`fix(dig_cli): ...`)
-and everything below is applied for you.
+and the labels below are applied for you. Do not add `status:` labels by hand;
+they are recomputed on every push.
 
-| Label | Applied | Meaning |
+| Label | When it appears | What to do |
 |---|---|---|
-| `p: apple_sign_in_plugin`, `p: attachment_engine`, `p: dig_cli`, `p: white_label_kit` | Automatically, from changed paths | Which package family the PR touches. |
-| `platform: android` / `ios` / `macos` / `darwin` / `linux` / `windows` / `web` / `interface` | Automatically, from changed paths | Which platform implementation package the PR touches. |
-| `type:feat`, `type:fix`, `type:docs`, ... | Automatically, from the PR title | Conventional Commit type of the change. |
-| `breaking-change` | Automatically, from `!` in the title or a `BREAKING CHANGE` footer | Breaking change; the maintainer picks a major version bump when releasing. |
-| `status:needs-review` | Automatically | Waiting for a review or for checks. |
-| `status:changes-requested` | Automatically | A reviewer asked for changes. Push fixes; it clears itself. |
-| `status:ci-failed` | Automatically | A required check is failing. Open the failing check and fix it. |
-| `status:blocked` | Automatically | Draft or merge conflicts. Mark ready or rebase. |
-| `status:ready` | Automatically | Approved and checks green. Merges automatically. |
-| `autosubmit` | **Maintainers** | Squash-merges the PR as soon as it is `status:ready`. Removed automatically if checks fail or changes are requested. |
-| `infra: workflows`, `documentation` | Automatically, from changed paths | CI or docs changes. |
-| `infra: dependencies` | Automatically for Dependabot | Dependency update. |
+| `p: apple_sign_in_plugin`, `p: attachment_engine`, `p: dig_cli`, `p: white_label_kit` | Your PR changes files in that package family | Nothing. |
+| `platform: android` / `ios` / `macos` / `darwin` / `linux` / `windows` / `web` / `interface` | Your PR changes a `*_<platform>` package | Nothing. |
+| `type: feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` | From the PR title prefix | Fix the title if it is wrong. |
+| `breaking-change` | Title has `!` or the body has a `BREAKING CHANGE` footer | Describe the migration in the PR. |
+| `status: needs-review` | Waiting for a review or running checks | Wait, or request a reviewer. |
+| `status: changes-requested` | A reviewer asked for changes | Push fixes; it clears itself. |
+| `status: ci-failed` | A required check is failing | Open the failing check and fix it. |
+| `status: blocked` | Draft or merge conflicts | Mark ready for review or rebase. |
+| `status: ready` | Approved and all checks green | Nothing; it can be merged. |
+| `autosubmit` | **Maintainer adds it** | Squash-merges the PR as soon as it is `status: ready`; removed automatically if checks fail or changes are requested. |
+| `infra: workflows`, `documentation` | Your PR changes `.github/` or markdown | Nothing. |
+| `infra: dependencies` | Dependabot opened the PR | Nothing. |
 
 ## Issues
 
-Opening an issue from a template adds `needs: triage` and a type label.
-A maintainer then triages it:
+Opening an issue from a template adds `type: fix` or `type: feat` and
+`needs: triage`. A maintainer or triager then labels it:
 
-| Label | Applied by | When |
+| Label | Who adds it | When |
 |---|---|---|
-| `needs: triage` | Template (automatic) | Waiting for a maintainer. Removed once triaged. |
-| `p: <package>`, `platform: <name>` | Automatic from the issue text, or a maintainer | Which package or platform is affected. |
-| `type:fix` / `type:feat` | Template or maintainer | Bug or feature request. |
-| `needs: info` | Maintainer | The reporter must add details (version, repro steps, logs). |
-| `good first issue` | Maintainer | Small, well-scoped, good for newcomers. |
-| `help wanted` | Maintainer | Contributions are welcome; comment before starting. |
-| `question` | Maintainer | A usage question rather than a bug. |
-| `duplicate`, `invalid`, `wontfix` | Maintainer | Closing reasons; add a comment explaining why. |
-| `stale` | Automatic | No activity for an extended period. |
+| `needs: triage` | Template (automatic) | New issue nobody has looked at yet. Remove it once triaged. |
+| `p: <package>`, `platform: <name>` | Automatic from the text; triager corrects it | Which package or platform is affected. |
+| `type: fix` / `type: feat` | Template; triager corrects it | Bug versus feature request. |
+| `needs: info` | Triager | Reporter must add a version, repro steps or logs. Remove it when they reply. |
+| `good first issue` | Triager | Small, well-scoped, safe for newcomers. |
+| `help wanted` | Triager | We welcome a contribution; ask to be assigned before starting. |
+| `question` | Triager | A usage question, not a bug; answer and close. |
+| `duplicate`, `invalid`, `wontfix` | Triager | Closing reasons; always leave a comment saying why. |
+| `stale` | Automatic | No activity for a long time; closes if nobody responds. |
 
-## Contributors
+## Triage checklist (maintainers and triagers)
 
-- Pick issues labeled `good first issue` or `help wanted`.
-- Name the package in your PR title; the rest is automatic.
-- Do not add `autosubmit` yourself; maintainers use it to merge.
+1. Read the issue and remove `needs: triage`.
+2. Make sure `p:` and `platform:` are right and add `type: fix` or `type: feat`.
+3. Not enough detail? Add `needs: info` and ask for what is missing.
+4. Not a bug or already tracked? Add `question`, `duplicate`, `invalid` or
+   `wontfix`, comment why, and close.
+5. Worth fixing but not by you? Add `help wanted`, plus `good first issue` if it
+   is beginner friendly.
 
-## Maintainers
+## Merging (maintainers)
 
-- Triage new issues: replace `needs: triage` with the right labels.
-- To merge a `status:ready` PR hands-free, add `autosubmit`.
-- To add or change a label, edit `.github/labels.json`; the workflow syncs it.
-  Path-based labels live in `.github/labeler.yml`, issue-text rules in
-  `.github/issue-labeler.yml`, and type/status logic in
-  `.github/workflows/pr-metadata.yml`.
+When a PR is `status: ready`, add `autosubmit` to squash-merge it hands-free.
+Do not add it to PRs that should wait for a version bump, a release window or
+another PR. Dependabot PRs are handled by `dependabot-auto-merge.yml`.
+
+## Changing labels
+
+Edit `.github/labels.json` (the workflow syncs it on `main`). Path-based rules
+live in `.github/labeler.yml`, issue-text rules in `.github/workflows/issue-labeler.yml`,
+and `type` / `status` logic in `.github/workflows/pr-metadata.yml`.

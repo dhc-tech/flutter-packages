@@ -72,7 +72,7 @@ means, which ones maintainers add (`autosubmit`, `good first issue`,
 
 ## Merging
 
-Once a PR is approved and every check is green it gets the `status:ready` label.
+Once a PR is approved and every check is green it gets the `status: ready` label.
 A maintainer adds the `autosubmit` label to squash-merge it automatically; the
 label is removed if checks fail or changes are requested. Dependabot PRs are
 handled separately by `dependabot-auto-merge.yml`. If a GitHub merge queue is

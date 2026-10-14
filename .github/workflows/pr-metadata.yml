@@ -11,11 +11,11 @@
 #   - breaking-change          (from `!` in the title or a BREAKING CHANGE
 #                                footer in the body)
 #   - dependencies             (authored by dependabot[bot])
-#   - status:blocked / status:changes-requested / status:ci-failed /
-#     status:needs-review / status:ready (mutually exclusive; recomputed
+#   - status: blocked / status: changes-requested / status: ci-failed /
+#     status: needs-review / status: ready (mutually exclusive; recomputed
 #     from scratch on every run, in that priority order)
 #
-# When status:ready is reached for a non-dependency PR, this enables
+# When status: ready is reached for a non-dependency PR, this enables
 # GitHub's own native auto-merge (GraphQL enablePullRequestAutoMerge) —
 # GitHub still withholds the actual merge until branch protection's
 # required checks and required reviews are satisfied, so this cannot
@@ -57,11 +57,11 @@ jobs:
         with:
           script: |
             const STATUS_LABELS = [
-              'status:blocked',
-              'status:changes-requested',
-              'status:ci-failed',
-              'status:needs-review',
-              'status:ready',
+              'status: blocked',
+              'status: changes-requested',
+              'status: ci-failed',
+              'status: needs-review',
+              'status: ready',
             ];
             const CONVENTIONAL_TYPES = [
               'feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert',
@@ -89,8 +89,8 @@ jobs:
             // ---- type:* (from the Conventional Commits PR title) ----
             const titleMatch = pr.title.match(/^(\w+)(\([^)]*\))?(!)?:/);
             const type = titleMatch && CONVENTIONAL_TYPES.includes(titleMatch[1]) ? titleMatch[1] : null;
-            for (const t of CONVENTIONAL_TYPES) removeLabel(`type:${t}`);
-            if (type) setLabel(`type:${type}`);
+            for (const t of CONVENTIONAL_TYPES) removeLabel(`type: ${t}`);
+            if (type) setLabel(`type: ${type}`);
 
             // ---- breaking-change ----
             const isBreaking =
@@ -151,18 +151,18 @@ jobs:
             const anyPending = relevantRuns.some((c) => c.status !== 'completed');
 
             let status;
-            if (pr.draft) status = 'status:blocked';
-            else if (pr.mergeable_state === 'dirty') status = 'status:blocked';
-            else if (hasChangesRequested) status = 'status:changes-requested';
-            else if (anyFailed) status = 'status:ci-failed';
-            else if (!hasApproval || anyPending) status = 'status:needs-review';
-            else status = 'status:ready';
+            if (pr.draft) status = 'status: blocked';
+            else if (pr.mergeable_state === 'dirty') status = 'status: blocked';
+            else if (hasChangesRequested) status = 'status: changes-requested';
+            else if (anyFailed) status = 'status: ci-failed';
+            else if (!hasApproval || anyPending) status = 'status: needs-review';
+            else status = 'status: ready';
 
             for (const s of STATUS_LABELS) removeLabel(s);
             setLabel(status);
 
             // Automatically remove autosubmit label if changes are requested, CI fails, or PR is blocked
-            if (['status:changes-requested', 'status:ci-failed', 'status:blocked'].includes(status)) {
+            if (['status: changes-requested', 'status: ci-failed', 'status: blocked'].includes(status)) {
               removeLabel('autosubmit');
             }
 
@@ -179,7 +179,7 @@ jobs:
 
             // ---- native auto-merge for PRs with autosubmit or when ready ----
             const hasAutosubmit = nextLabels.has('autosubmit');
-            if (status === 'status:ready' && !isDependencyPr) {
+            if (status === 'status: ready' && !isDependencyPr) {
               if (hasAutosubmit) {
                 try {
                   // Direct squash-merge if approved and all checks passed
