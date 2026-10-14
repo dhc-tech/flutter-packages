@@ -78,7 +78,7 @@ class AppleSignIn {
 
       final AppleBackendAdapter? adapter = backendAdapter;
       if (adapter != null) {
-        unawaited(adapter.onAuthorizationSuccess(credential));
+        unawaited(_notifyBackend(adapter, credential));
       }
 
       return session;
@@ -307,4 +307,21 @@ class AppleSignInPlugin {
 
   /// Calls [AppleSignIn.onCredentialRevoked] on [AppleSignIn.instance].
   static Stream<void> get onCredentialRevoked => AppleSignIn.instance.onCredentialRevoked;
+}
+
+/// Notifies [adapter] of a successful sign-in without letting its failure
+/// escape as an uncaught asynchronous error; sign-in itself already succeeded.
+Future<void> _notifyBackend(AppleBackendAdapter adapter, AppleCredential credential) async {
+  try {
+    await adapter.onAuthorizationSuccess(credential);
+  } catch (error, stack) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stack,
+        library: 'apple_sign_in_plugin',
+        context: ErrorDescription('while notifying the backend adapter of a successful sign-in'),
+      ),
+    );
+  }
 }

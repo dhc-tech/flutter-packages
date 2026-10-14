@@ -1,5 +1,6 @@
 ## 0.0.1-dev.2
 
+* Fixed a user cancel in the Apple popup being reported as `authorizationFailed`: the SDK's `{error: 'popup_closed_by_user'}` rejection is now recognised as `canceled`.
 * Updates SDK constraints to Dart `^3.13.5` and Flutter `>=3.47.7`.
 
 ## 0.0.1-dev.1

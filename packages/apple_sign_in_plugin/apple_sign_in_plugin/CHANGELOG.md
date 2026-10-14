@@ -1,5 +1,6 @@
 ## 2.0.0-dev.3
 
+* A failing `AppleBackendAdapter.onAuthorizationSuccess` no longer escapes as an uncaught asynchronous error; it is reported through `FlutterError.reportError` and sign-in still succeeds.
 * Updates SDK constraints to Dart `^3.13.5` and Flutter `>=3.47.7`.
 
 ## 2.0.0-dev.2
