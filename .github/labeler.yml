@@ -1,6 +1,7 @@
-# Path-based PR labels (actions/labeler). One `p:` label per package family,
-# `platform:` labels for platform implementation packages. Size, type, status
-# and dependency labels are managed by pr-metadata.yml.
+# Path-based PR labels (actions/labeler, run by pr-labels.yml). One `p:` label
+# per package family, `platform:` labels for platform implementation packages.
+# The `type:` and `breaking-change` labels come from the PR title in
+# pr-labels.yml; `infra: dependencies` is set by Dependabot.
 
 'p: apple_sign_in_plugin':
   - changed-files:
