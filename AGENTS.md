@@ -27,89 +27,45 @@ flutter doctor --verbose
 
 This is a monorepo containing Flutter packages maintained by DHC Tech.
 - First-party packages developed by DHC Tech are in `packages/`.
-- The repository tooling is in `script/tool/`.
+- All first-party packages are in `packages/`.
 
-Many packages are part of **federated plugins**. A federated plugin has a main package (e.g., `path_provider`) that defines the API used by plugin clients, a platform interface package (e.g., `path_provider_platform_interface`) that defines the interface that each platform implementation must implement, and one or more platform implementation packages (e.g., `path_provider_android`, `path_provider_ios`) that implement that platform interface. When working on a federated plugin, you may need to modify multiple packages.
+Many packages are part of **federated plugins**. A federated plugin has a main package (e.g., `apple_sign_in_plugin`) that defines the API used by plugin clients, a platform interface package (e.g., `apple_sign_in_plugin_platform_interface`) that defines the interface that each platform implementation must implement, and one or more platform implementation packages (e.g., `apple_sign_in_plugin_ios`, `apple_sign_in_plugin_web`) that implement that platform interface. When working on a federated plugin, you may need to modify multiple packages.
 
 For more details, see the main `README.md` and `CONTRIBUTING.md`.
 
 ## Core Tooling and Workflows
 
-The primary tool for this repository is `flutter_plugin_tools.dart`.
+This repository uses standard Flutter and Dart SDK tools for development, testing, and validation.
 
-### Initial Setup
+### Formatting
 
-First, define an environment variable for the repository root directory and initialize the tooling:
+Always format your code changes:
 ```bash
-# Define an environment variable for the repository root.
-export REPO_ROOT=$(pwd)
-
-# Verify that the environment variable is working correctly.
-echo "Repository root directory: $REPO_ROOT"
-
-dart pub get -C $REPO_ROOT/script/tool
+dart format .
 ```
 
-### Identifying Target Packages
+### Static Analysis
 
-Most tool commands take a `--packages` argument. You must correctly identify all packages affected by your changes. You can derive this from git diff.
-
-For example, to find changed files against the main branch of the upstream remote (assuming the upstream remote is named `origin`):
-
+Run analysis across all packages:
 ```bash
-git diff --name-only origin/main...HEAD
+dart analyze --fatal-infos
 ```
 
-Then, for each file path, find its enclosing package. A package is a directory containing a `pubspec.yaml` file. The directory name is usually the package name. Ignore `pubspec.yaml` files within `example/` directories when determining the package for a file.
+### Running Tests
 
-#### Targeting All Packages
-
-Running a tool command without a `--packages` argument will run the command on all packages. For example, a dependency can be updated for all packages in the repository:
-
+Run unit and widget tests:
 ```bash
-dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart update-dependency --pub-package <dependency_name>
+# Run tests for a specific package:
+flutter test packages/<package_name>
+
+# Run all tests across the repository:
+for pkg in $(find packages -mindepth 1 -maxdepth 2 -name pubspec.yaml -exec dirname {} \; | sort); do
+  if [ -d "$pkg/test" ]; then
+    echo "Running tests in $pkg"
+    (cd "$pkg" && flutter test)
+  fi
+done
 ```
-
-### Common Commands
-
-- **Formatting**: Always format your changes.
-
-  ```bash
-  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart format --packages <changed_packages>
-  ```
-- **Testing**: All changes must pass analysis and tests:
-
-  ```bash
-  # Run static analysis
-  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart analyze --packages <changed_packages>
-  # Run Dart unit tests
-  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart dart-test --packages <changed_packages>
-  ```
-
-  The tool can also run native and integration tests, but these may require a more complete environment than is available.
-- **Validation**: Run these checks to ensure that changes follow team guidelines:
-  ```bash
-  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart validate --packages <changed_packages>
-  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart publish-check --packages <changed_packages>
-  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart license-check
-  ```
-
-### Specialized Workflows
-
-- **Federated Plugin Development**: If you change multiple packages in a federated plugin that depend on each other, use `make-deps-path-based` to make their pubspec.yaml files use `path:` dependencies. This allows you to test them together locally.
-  ```bash
-  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart make-deps-path-based --target-dependencies=<changed_plugin_packages>
-  ```
-
-  The CI system will run tests with path-based dependencies automatically, so this is not required for PRs, but can be useful for local testing.
-- **Updating Dependencies**: To update a dependency across multiple packages:
-  ```bash
-  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart update-dependency --pub-package <dependency_name> --packages <packages_to_update>
-  ```
-- **Updating README Code Samples**: If you change example code that is included in a README.md:
-  ```bash
-  dart run $REPO_ROOT/script/tool/bin/flutter_plugin_tools.dart update-excerpts --packages <changed_packages>
-  ```
 
 ## Code Generators
 

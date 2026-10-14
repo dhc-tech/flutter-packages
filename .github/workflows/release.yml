@@ -38,10 +38,6 @@ jobs:
         persist-credentials: false
     - name: "Install Flutter"
       uses: ./.github/workflows/internals/install_flutter
-    - name: Set up tools
-      run: dart pub get
-      working-directory: ${{ github.workspace }}/script/tool
-
     # Wait for this SHA's 'validate' check to finish successfully before publishing
     - name: Wait for validate check
       uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
@@ -77,7 +73,12 @@ jobs:
         gh auth setup-git
         git config --global user.name ${{ secrets.USER_NAME }}
         git config --global user.email ${{ secrets.USER_EMAIL }}
-        dart ./script/tool/lib/src/main.dart publish --all-changed --base-sha="${BASE_SHA:-HEAD~}" --skip-confirmation --remote=origin
+        for pkg in $(git diff --name-only "${BASE_SHA:-HEAD~}" HEAD | grep -E '^packages/' | cut -d/ -f1-3 | sort -u); do
+          if [ -f "$pkg/pubspec.yaml" ]; then
+            echo "Publishing $pkg..."
+            (cd "$pkg" && dart pub publish --force)
+          fi
+        done
       env:
         BASE_SHA: ${{ inputs.base-sha }}
         PUB_CREDENTIALS: "${{ secrets.PUB_CREDENTIALS }}"
