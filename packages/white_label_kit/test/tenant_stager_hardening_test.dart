@@ -24,6 +24,61 @@ void main() {
   });
 
   test(
+    'stage() includes adaptive icon images in the selected tenant assets',
+    () {
+      final Directory tenantAssets = Directory(
+        p.join(projectRoot.path, 'tenants', 'acme'),
+      )..createSync(recursive: true);
+      File(p.join(tenantAssets.path, 'logo.png')).writeAsStringSync('LOGO');
+      File(p.join(tenantAssets.path, 'adaptive_foreground.png'))
+          .writeAsStringSync('FOREGROUND');
+      File(p.join(tenantAssets.path, 'adaptive_background.png'))
+          .writeAsStringSync('BACKGROUND');
+      File(p.join(tenantAssets.path, 'adaptive_monochrome.png'))
+          .writeAsStringSync('MONOCHROME');
+
+      const TenantConfig tenant = TenantConfig(
+        id: 'acme',
+        name: 'Acme',
+        android: AndroidTenantConfig(
+          applicationId: 'com.example.acme',
+          appName: 'Acme',
+          adaptiveIcon: AndroidAdaptiveIconConfig(
+            foreground: 'tenants/acme/adaptive_foreground.png',
+            background: 'tenants/acme/adaptive_background.png',
+            monochrome: 'tenants/acme/adaptive_monochrome.png',
+          ),
+        ),
+        ios: IosTenantConfig(bundleId: 'com.example.acme', appName: 'Acme'),
+        assets: TenantAssets(logo: 'tenants/acme/logo.png'),
+      );
+
+      final TenantStager stager = TenantStager(projectRoot.path);
+      stager.stage(tenant);
+
+      expect(
+        stager.stagedAssetNames('acme'),
+        unorderedEquals([
+          'logo.png',
+          'adaptive_foreground.png',
+          'adaptive_background.png',
+          'adaptive_monochrome.png',
+        ]),
+      );
+      expect(
+        File(
+          p.join(
+            stager.stagingDirFor('acme'),
+            'assets',
+            'adaptive_foreground.png',
+          ),
+        ).readAsStringSync(),
+        'FOREGROUND',
+      );
+    },
+  );
+
+  test(
     'stage() rejects a hand-built TenantConfig with a path-traversal asset',
     () {
       // Simulates a consumer bypassing WhiteLabelConfig/ConfigValidator

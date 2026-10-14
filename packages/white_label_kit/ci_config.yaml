@@ -1,0 +1,2 @@
+# white_label_kit uses strict analysis rules from package:lints/recommended.yaml.
+allow_custom_analysis_options: true

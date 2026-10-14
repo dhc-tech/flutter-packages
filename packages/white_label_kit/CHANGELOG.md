@@ -1,3 +1,10 @@
+## 0.0.7
+
+* Added opt-in per-tenant Android adaptive icon foreground, background image
+  or color, and monochrome configuration (`android.adaptive_icon`).
+* Tenants without `android.adaptive_icon` continue to generate regular launcher
+  icons without unintended adaptive masking.
+
 ## 0.0.6
 
 * New: Full Monorepo & Melos workspace support via `--project-root`,

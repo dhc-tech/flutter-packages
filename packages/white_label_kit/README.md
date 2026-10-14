@@ -130,12 +130,24 @@ tenants:
 Both flags are off by default — a tenant that declares neither sees no
 change in behavior at all.
 
-**The auto-created `icons_launcher-<id>.yaml` includes an adaptive icon**
-(Android 8.0+/API 26) by default — `adaptive_foreground_image` reuses the
-tenant's icon/logo, `adaptive_background_color` uses `theme.primary_color`
-(white if unset). A reasonable automatic default, not a substitute for a
-properly-padded, transparent foreground asset — hand-author the file
-with a dedicated foreground image for a polished result.
+The auto-created `icons_launcher-<id>.yaml` uses `assets.icon` (falling back
+to `assets.logo`) as the regular launcher image. Without
+`android.adaptive_icon`, it creates a regular launcher icon only. Adaptive
+layers are added only when declared on that tenant:
+
+```yaml
+android:
+  application_id: com.example.acme
+  adaptive_icon:
+    foreground: tenants/acme/adaptive_foreground.png
+    background: tenants/acme/adaptive_background.png
+    monochrome: tenants/acme/adaptive_monochrome.png # optional
+```
+
+Use `background_color` instead of `background` for a flat-color background.
+If `foreground` is omitted, the regular launcher image is used. Layer image
+paths follow the same tenant path validation and staging rules as
+`assets.icon`.
 
 **iOS storyboard registration is automatic — for the opt-in flag only.**
 `flutter_native_splash:create` only writes
