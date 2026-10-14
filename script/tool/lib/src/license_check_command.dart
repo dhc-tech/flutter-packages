@@ -381,8 +381,8 @@ class LicenseCheckCommand extends PackageCommand {
         .split('\n')
         .where((String path) => path.isNotEmpty)
         .map((String path) => rootDir.childFile(path))
-        // Filter out symbolic links to avoid checking files multiple times.
-        .where((File f) => !rootDir.fileSystem.isLinkSync(f.path));
+        // Filter out deleted files and symbolic links to avoid checking files multiple times.
+        .where((File f) => f.existsSync() && !rootDir.fileSystem.isLinkSync(f.path));
   }
 
   // Returns the directories containing mapped submodules, if any.

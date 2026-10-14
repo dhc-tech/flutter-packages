@@ -35,11 +35,10 @@ Additional resources specific to the packages repository:
 ### Code review processes and automation
 
 PRs will automatically be assigned to
-[code owners](https://github.com/flutter/packages/blob/main/CODEOWNERS)
+[code owners](https://github.com/dhc-tech/flutter-packages/blob/main/.github/CODEOWNERS)
 for review.
-If a code owner is creating a PR, they should explicitly pick another
-[Flutter team member](https://github.com/flutter/flutter/blob/master/docs/contributing/Contributor-access.md)
-as a code reviewer.
+If a code owner is creating a PR, they should explicitly assign another
+team member as a code reviewer.
 
 ### Style
 

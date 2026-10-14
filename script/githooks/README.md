@@ -1,6 +1,6 @@
 # Git Hooks
 
-This directory contains Git hooks for the `flutter/packages` repository.
+This directory contains Git hooks for the `dhc-tech/flutter-packages` repository.
 
 ## Installation
 

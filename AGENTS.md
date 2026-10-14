@@ -1,6 +1,6 @@
-# Agent Guide for the Flutter Packages Repository
+# Agent Guide for the DHC Tech Flutter Packages Repository
 
-This document provides guidance for AI agents to effectively contribute to the `flutter/packages` repository.
+This document provides guidance for AI agents to effectively contribute to the `dhc-tech/flutter-packages` repository.
 
 ## Guiding Principles for Contributions
 
@@ -14,7 +14,7 @@ This document provides guidance for AI agents to effectively contribute to the `
 To ensure a consistent and functional environment, configure your VM with the following setup. This provides the necessary Flutter SDK and dependencies for building and testing packages.
 
 ```bash
-curl -L https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.32.8-stable.tar.xz | tar -xJ -C $HOME
+curl -L https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.7-stable.tar.xz | tar -xJ -C $HOME
 export FLUTTER_HOME=$HOME/flutter
 export PATH=$FLUTTER_HOME/bin:$PATH
 flutter --disable-analytics
@@ -25,9 +25,8 @@ flutter doctor --verbose
 
 ## Repository Overview
 
-This is a monorepo containing many Flutter packages.
-- First-party packages developed entirely by the Flutter team are in `packages/`.
-- Packages that were originally developed by a third party, but are now maintained by the Flutter team are in `third_party/packages/`.
+This is a monorepo containing Flutter packages maintained by DHC Tech.
+- First-party packages developed by DHC Tech are in `packages/`.
 - The repository tooling is in `script/tool/`.
 
 Many packages are part of **federated plugins**. A federated plugin has a main package (e.g., `path_provider`) that defines the API used by plugin clients, a platform interface package (e.g., `path_provider_platform_interface`) that defines the interface that each platform implementation must implement, and one or more platform implementation packages (e.g., `path_provider_android`, `path_provider_ios`) that implement that platform interface. When working on a federated plugin, you may need to modify multiple packages.

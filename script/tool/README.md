@@ -6,15 +6,15 @@ local development.
 ## Getting Started
 
 There are two ways to use this tool. You can either run it locally from the
-`flutter/packages` repository, or you can install it globally using
+`dhc-tech/flutter-packages` repository, or you can install it globally using
 `dart pub global activate`.
 
-If you are developing in `flutter/packages`, you should **always** use the local
+If you are developing in `dhc-tech/flutter-packages`, you should **always** use the local
 method, as only the checked in version is expected to work correctly with the
 current state of the repository.
 
-If you are developing in `flutter/core-packages` or another repository using
-this tool, and don't have `flutter/packages` cloned locally (or don't keep it
+If you are developing in another repository using
+this tool, and don't have `dhc-tech/flutter-packages` cloned locally (or don't keep it
 up to date), you can use the global method.
 
 For simplicity, the setup instructions below assume you set up an `fpt` alias to
@@ -30,13 +30,13 @@ Flutter-bundled version of Dart to be the first `dart` in the path.
 Set up the local package to be runnable:
 
 ```sh
-dart pub get -C "/path/to/flutter/packages/"script/tool
+dart pub get -C "/path/to/dhc-tech/flutter-packages/"script/tool
 ```
 
 Add an alias (recommended):
 
 ```sh
-alias fpt='dart run "/path/to/flutter/packages/"script/tool/bin/flutter_plugin_tools.dart'
+alias fpt='dart run "/path/to/dhc-tech/flutter-packages/"script/tool/bin/flutter_plugin_tools.dart'
 ```
 
 ### Global Method
@@ -76,7 +76,7 @@ package; it can be used from anywhere within a package).
 fpt format --packages package_name
 ```
 
-The `flutter/packages` repository uses clang version `15.0.0` . Newer versions of clang may format code differently.
+The `dhc-tech/flutter-packages` repository uses clang version `15.0.0` . Newer versions of clang may format code differently.
 
 ### Run Static Analysis
 
@@ -204,7 +204,7 @@ generation (e.g., regenerating mocks when updating `mockito`).
 
 ### Publish a Release
 
-**Releases are automated for `flutter/packages`.**
+**Releases are automated for `dhc-tech/flutter-packages`.**
 
 The manual procedure described here is _deprecated_, and should only be used when
 the automated process fails. Please read
@@ -238,7 +238,7 @@ repositories.
 The following sections are supported:
 
 - `repo_name` (**required**): The name of the repository
-  (e.g., `flutter/packages`).
+  (e.g., `dhc-tech/flutter-packages`).
 - `min_flutter` or `min_dart`: The minimum SDK version
   that packages in the repository are allowed to support.
 - `allowed_dependencies`, containing one or both of:

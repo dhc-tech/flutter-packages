@@ -8,7 +8,8 @@ We actively support and provide security updates for the latest released version
 | ------- | ------------------ |
 | `white_label_kit` | `>= 0.0.6` |
 | `dig_cli` | `>= 1.8.0` |
-| `apple_sign_in_plugin` | `>= 0.0.1-dev.1` |
+| `apple_sign_in_plugin` | `>= 2.0.0-dev.0` |
+| `attachment_engine` | `>= 0.0.1-dev.0` |
 
 ## Reporting a Vulnerability
 
