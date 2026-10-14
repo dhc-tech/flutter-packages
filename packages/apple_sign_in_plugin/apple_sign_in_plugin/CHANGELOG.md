@@ -1,3 +1,9 @@
+## 2.0.0-dev.4
+
+* Adds official, Apple HIG-compliant `AppleSignInButton` widget and `AppleMarkPainter`.
+* Adds `AppleSignInButton.continueWith`, `AppleSignInButton.signUp`, and `AppleSignInButton.iconOnly` constructors.
+* Adds decoupled `material_ui` and `cupertino_ui` integration with Dart 3.13 dot shorthand.
+
 ## 2.0.0-dev.3
 
 * Updates SDK constraints to Dart `^3.13.5` and Flutter `>=3.47.7`.

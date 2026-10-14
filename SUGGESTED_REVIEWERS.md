@@ -12,3 +12,6 @@ reviewed by someone else.
 
 `white_label_kit`:
   - @dhc-tech, @digvijaysinh-cloudemy
+
+`attachment_engine`:
+  - @dhc-tech, @digvijaysinh-cloudemy

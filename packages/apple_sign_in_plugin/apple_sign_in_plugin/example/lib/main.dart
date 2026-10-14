@@ -132,19 +132,7 @@ class _SignInPageState extends State<SignInPage> {
           Text(_statusText!, style: const TextStyle(color: Colors.grey)),
         ],
         const SizedBox(height: 40),
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: ElevatedButton.icon(
-            onPressed: _signIn,
-            icon: const Icon(Icons.apple),
-            label: const Text('Sign in with Apple'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-            ),
-          ),
-        ),
+        AppleSignInButton(onPressed: _signIn),
       ],
     );
   }

@@ -23,6 +23,11 @@
     - any-glob-to-any-file:
       - packages/white_label_kit/**/*
 
+'p: attachment_engine':
+  - changed-files:
+    - any-glob-to-any-file:
+      - packages/attachment_engine/**/*
+
 'infra: workflows':
   - changed-files:
     - any-glob-to-any-file:

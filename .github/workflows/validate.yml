@@ -75,6 +75,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: dart ./script/tool/lib/src/main.dart publish-check --allow-pre-release
 
+      - name: Run static analysis
+        if: ${{ !cancelled() }}
+        run: dart ./script/tool/lib/src/main.dart analyze
+
       - name: Run tests
         if: ${{ !cancelled() }}
         run: dart ./script/tool/lib/src/main.dart dart-test

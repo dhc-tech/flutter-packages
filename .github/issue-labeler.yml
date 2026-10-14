@@ -13,6 +13,9 @@
 'p: white_label_kit':
   - '(?i)white[_ -]?label'
 
+'p: attachment_engine':
+  - '(?i)attachment[_ -]?engine'
+
 'type:bug':
   - '(?i)\b(bug|crash|error|exception|broken|doesn''t work|not working)\b'
 

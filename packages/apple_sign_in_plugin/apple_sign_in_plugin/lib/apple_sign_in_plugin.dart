@@ -13,6 +13,9 @@ import 'package:flutter/foundation.dart';
 
 export 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
 
+export 'src/widgets/apple_mark_painter.dart';
+export 'src/widgets/apple_sign_in_button.dart';
+
 /// Complete, production-grade Apple Authentication Lifecycle controller for Flutter.
 ///
 /// Provides a unified, cross-platform Dart API across iOS, macOS, Android,

@@ -1,6 +1,6 @@
 # Repo-specific configuration for the flutter_plugin_tools repository tooling.
 
-repo_name: flutter/packages
+repo_name: dhc-tech/flutter-packages
 
 # The minimum Flutter version that can be used as the minimum SDK constraint
 # by packages in this repository. For example, if this is set to 3.22.0, then a
@@ -9,7 +9,7 @@ repo_name: flutter/packages
 #
 # The major and minor version here should match the lowest version analyzed
 # in legacy version analysis (.ci.yaml analyze_legacy).
-min_flutter: '3.38.0'
+min_flutter: '3.47.7'
 
 # The list of external packages that are allowed as dependencies.
 # All entries here must have an explanation for why they are here. See
@@ -51,9 +51,12 @@ allowed_dependencies:
     - build_verify
     - google_maps
 
-    # Required by dig_cli.
+    # Required by monorepo packages.
     - ansicolor
     - archive
+    - cupertino_ui
+    - material_ui
+    - webview_flutter
 
     ## Allowed by default:
 
@@ -134,5 +137,7 @@ allowed_dependencies:
     - webkit_inspection_protocol
 
 package_labels:
-  google_maps_flutter: maps
-  webview_flutter: webview
+  apple_sign_in_plugin: apple_sign_in
+  attachment_engine: attachment_engine
+  dig_cli: dig_cli
+  white_label_kit: white_label_kit

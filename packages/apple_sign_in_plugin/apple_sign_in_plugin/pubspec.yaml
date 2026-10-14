@@ -2,7 +2,7 @@ name: apple_sign_in_plugin
 description: "Sign in with Apple for iOS, macOS, Android, Web, Windows, and Linux — native on Apple platforms, Apple's own web flow elsewhere. No third-party Apple Sign-In SDK."
 repository: https://github.com/dhc-tech/flutter-packages/tree/main/packages/apple_sign_in_plugin/apple_sign_in_plugin
 issue_tracker: https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+apple_sign_in_plugin%22
-version: 2.0.0-dev.3
+version: 2.0.0-dev.4
 
 environment:
   sdk: ^3.13.5
@@ -31,8 +31,10 @@ dependencies:
   apple_sign_in_plugin_platform_interface: ^0.0.1-dev.1
   apple_sign_in_plugin_web: ^0.0.1-dev.0
   apple_sign_in_plugin_windows: ^0.0.1-dev.0
+  cupertino_ui: ^1.1.2
   flutter:
     sdk: flutter
+  material_ui: ^1.6.0
 
 dev_dependencies:
   flutter_lints: '>=6.0.0 <8.0.0'
