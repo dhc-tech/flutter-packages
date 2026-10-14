@@ -67,15 +67,17 @@ changes. See [docs/release_architecture.md](docs/release_architecture.md).
 
 Labels are applied automatically from your PR title and changed files, so you
 normally do not set any. See [docs/labels.md](docs/labels.md) for what each label
-means and which ones maintainers add (`autosubmit`, `good first issue`,
+means and which ones maintainers add (`status: on hold`, `good first issue`,
 `help wanted`, ...).
 
 ## Merging
 
 A PR needs one approval and green `validate`, `dependency-review` and `pr-title`
-checks. A maintainer can add the `autosubmit` label to merge it automatically as
-soon as those pass. If a GitHub merge queue is enabled for `main`, `validate`
-already runs on `merge_group` events.
+checks. Its `status:` label shows the stage (`needs approval`, `waiting for
+green`, `ci failed`, `automerge`). Once it is approved and green GitHub squash-merges
+it automatically; a maintainer can add `status: on hold` to stop that. Pushing a
+new commit dismisses earlier approvals. If a GitHub merge queue is enabled for
+`main`, `validate` already runs on `merge_group` events.
 
 ## Review
 

@@ -1,0 +1,185 @@
+name: PR Status
+
+# Tracks every open pull request through one lifecycle and merges it when it is
+# ready, the same flow as dhc-tech/docker-images-flutter:
+#
+#   status: needs approval     not approved yet, changes requested, or draft
+#   status: waiting for green  approved, checks still running
+#   status: ci failed          approved, but a check failed (merge is blocked)
+#   status: automerge          approved and every check green: squash auto-merge
+#                              is enabled and GitHub merges it
+#   status: on hold            set by a maintainer to stop auto-merge
+#
+# A new push dismisses earlier approvals (as github-actions[bot]) so unreviewed
+# code can never auto-merge. Runs on PR, review and CI-finished events, plus every 15
+# minutes for PRs whose events cannot write (forks) and for checks that are not
+# GitHub Actions workflows (for example CodeRabbit).
+# See docs/labels.md.
+
+on:
+  # zizmor: ignore[dangerous-triggers] Safe: no checkout and no PR code is executed. The job only reads PR metadata, writes labels and enables GitHub auto-merge, which still waits for branch protection.
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, converted_to_draft, synchronize, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted, dismissed]
+  # Re-evaluate when CI finishes. This workflow is deliberately not in the list,
+  # so its own runs can never trigger it again.
+  workflow_run:
+    workflows: [Validate Repository, PR Title, Dependency Review]
+    types: [completed]
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: read-all
+
+concurrency:
+  group: pr-status-${{ github.event.pull_request.number || github.event.workflow_run.head_sha || 'sweep' }}
+  cancel-in-progress: false
+
+jobs:
+  status:
+    name: status
+    if: >-
+      github.repository == 'dhc-tech/flutter-packages' &&
+      (github.event_name != 'workflow_run' || github.event.workflow_run.event == 'pull_request')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      checks: read
+      statuses: read
+    steps:
+      - name: Update status labels and enable auto-merge
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const LABEL = {
+              needs: 'status: needs approval',
+              waiting: 'status: waiting for green',
+              failed: 'status: ci failed',
+              automerge: 'status: automerge',
+              hold: 'status: on hold',
+            };
+            const MANAGED = [LABEL.needs, LABEL.waiting, LABEL.failed, LABEL.automerge];
+            const OWN_JOB = 'status';
+            const PASSING = ['success', 'neutral', 'skipped'];
+
+            async function targets() {
+              const event = context.eventName;
+              if (event === 'pull_request_target' || event === 'pull_request_review') {
+                return [context.payload.pull_request.number];
+              }
+              if (event === 'workflow_run') {
+                const run = context.payload.workflow_run;
+                const direct = (run.pull_requests ?? []).map((p) => p.number);
+                if (direct.length > 0) return direct;
+                // Fork PRs are not listed on the run; look them up by commit.
+                const { data } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  owner, repo, commit_sha: run.head_sha,
+                });
+                return data.filter((p) => p.state === 'open').map((p) => p.number);
+              }
+              const open = await github.paginate(github.rest.pulls.list, {
+                owner, repo, state: 'open', per_page: 100,
+              });
+              return open.map((p) => p.number);
+            }
+
+            // Latest verdict per reviewer; dismissed reviews no longer count.
+            function verdict(reviews) {
+              const latest = new Map();
+              for (const r of reviews) {
+                if (!r.user || r.state === 'COMMENTED' || r.state === 'PENDING') continue;
+                latest.set(r.user.login, r.state);
+              }
+              const states = [...latest.values()];
+              return {
+                changesRequested: states.includes('CHANGES_REQUESTED'),
+                approved: states.includes('APPROVED'),
+              };
+            }
+
+            async function checkSummary(sha) {
+              const { data: runs } = await github.rest.checks.listForRef({
+                owner, repo, ref: sha, per_page: 100,
+              });
+              const { data: combined } = await github.rest.repos.getCombinedStatusForRef({
+                owner, repo, ref: sha,
+              });
+              const checks = runs.check_runs.filter((c) => c.name !== OWN_JOB);
+              const statuses = combined.statuses ?? [];
+              const pending =
+                checks.filter((c) => c.status !== 'completed').length +
+                statuses.filter((s) => s.state === 'pending').length;
+              const failing =
+                checks.filter((c) => c.status === 'completed' && !PASSING.includes(c.conclusion)).length +
+                statuses.filter((s) => s.state === 'failure' || s.state === 'error').length;
+              return { total: checks.length + statuses.length, pending, failing };
+            }
+
+            async function setAutoMerge(pr, enable) {
+              const query = enable
+                ? `mutation($id: ID!) { enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: SQUASH }) { clientMutationId } }`
+                : `mutation($id: ID!) { disablePullRequestAutoMerge(input: { pullRequestId: $id }) { clientMutationId } }`;
+              await github.graphql(query, { id: pr.node_id });
+            }
+
+            async function evaluate(number) {
+              const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
+              if (pr.state !== 'open') return;
+
+              let reviews = await github.paginate(github.rest.pulls.listReviews, {
+                owner, repo, pull_number: number, per_page: 100,
+              });
+
+              const pushed =
+                context.eventName === 'pull_request_target' && context.payload.action === 'synchronize';
+              if (pushed) {
+                for (const r of reviews.filter((x) => x.state === 'APPROVED')) {
+                  await github.rest.pulls.dismissReview({
+                    owner, repo, pull_number: number, review_id: r.id,
+                    message: 'New commit pushed; approval is required again.',
+                  });
+                }
+                reviews = reviews.map((r) => (r.state === 'APPROVED' ? { ...r, state: 'DISMISSED' } : r));
+              }
+
+              const current = pr.labels.map((l) => l.name);
+              let desired;
+              if (current.includes(LABEL.hold)) {
+                desired = null;
+                if (pr.auto_merge) await setAutoMerge(pr, false);
+              } else {
+                const { approved, changesRequested } = verdict(reviews);
+                const checks = await checkSummary(pr.head.sha);
+                if (pr.draft || changesRequested || !approved) desired = LABEL.needs;
+                else if (checks.failing > 0) desired = LABEL.failed;
+                else if (checks.total === 0 || checks.pending > 0) desired = LABEL.waiting;
+                else desired = LABEL.automerge;
+              }
+
+              for (const name of MANAGED) {
+                if (name !== desired && current.includes(name)) {
+                  await github.rest.issues.removeLabel({ owner, repo, issue_number: number, name });
+                }
+              }
+              if (desired && !current.includes(desired)) {
+                await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels: [desired] });
+              }
+              if (desired === LABEL.automerge && !pr.auto_merge) {
+                await setAutoMerge(pr, true);
+                core.info(`Auto-merge enabled for #${number}.`);
+              }
+              core.info(`#${number}: ${desired ?? 'on hold'}`);
+            }
+
+            for (const number of await targets()) {
+              try {
+                await evaluate(number);
+              } catch (err) {
+                core.warning(`#${number}: ${err.message}`);
+              }
+            }

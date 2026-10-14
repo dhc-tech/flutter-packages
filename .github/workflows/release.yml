@@ -3,7 +3,7 @@ name: release
 # Publishes every package whose current `version:` is not on pub.dev yet and
 # tags it <package>-v<version>. It runs on every push to `main`, hourly, and on
 # demand. The hourly run makes releases self-healing: merges made with the
-# default GITHUB_TOKEN (auto-merge via `autosubmit`) do not trigger `push`
+# default GITHUB_TOKEN (auto-merge via `status: automerge`) do not trigger `push`
 # workflows, and a failed run is simply completed by the next one.
 
 on:

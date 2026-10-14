@@ -135,11 +135,6 @@
     "description": "Breaking API or behavior change (automatic from title or footer)"
   },
   {
-    "name": "autosubmit",
-    "color": "2ea44f",
-    "description": "Maintainers: enable auto-merge (squash) once checks and review pass"
-  },
-  {
     "name": "needs: triage",
     "color": "fef2c0",
     "description": "New issue waiting for a maintainer to triage"
@@ -183,5 +178,30 @@
     "name": "stale",
     "color": "ededed",
     "description": "No activity for an extended period"
+  },
+  {
+    "name": "status: needs approval",
+    "color": "d93f0b",
+    "description": "Not approved yet, changes requested, or draft (automatic)"
+  },
+  {
+    "name": "status: waiting for green",
+    "color": "fbca04",
+    "description": "Approved; waiting for all checks to pass (automatic)"
+  },
+  {
+    "name": "status: ci failed",
+    "color": "b60205",
+    "description": "Approved, but a check failed; merge is blocked (automatic)"
+  },
+  {
+    "name": "status: automerge",
+    "color": "0e8a16",
+    "description": "Approved and green; squash auto-merge is enabled (automatic)"
+  },
+  {
+    "name": "status: on hold",
+    "color": "000000",
+    "description": "Maintainers: stop auto-merge until this is removed"
   }
 ]

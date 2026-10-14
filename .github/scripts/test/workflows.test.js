@@ -24,22 +24,34 @@ function scriptOf(file) {
   return body.join('\n');
 }
 
-function fakeGithub({ comments = [], permission = 'write' } = {}) {
-  const calls = { created: [], added: [], removed: [], graphql: [] };
-  const issues = {
-    listComments: 'listComments',
-    createComment: async (a) => { calls.created.push(a); },
-    addLabels: async (a) => { calls.added.push(a.labels); },
-    removeLabel: async (a) => { calls.removed.push(a.name); },
-  };
+function fakeGithub({ comments = [], reviews = [], prs = {}, runs = [], statuses = [], openPrs = [], associated = [] } = {}) {
+  const calls = { created: [], added: [], removed: [], graphql: [], dismissed: [] };
   return {
     calls,
     github: {
-      paginate: async () => comments,
+      paginate: async (fn) => ({ listComments: comments, listReviews: reviews, listOpen: openPrs })[fn] ?? [],
       graphql: async (query, vars) => { calls.graphql.push({ query, vars }); },
       rest: {
-        issues,
-        repos: { getCollaboratorPermissionLevel: async () => ({ data: { permission } }) },
+        issues: {
+          listComments: 'listComments',
+          createComment: async (a) => { calls.created.push(a); },
+          addLabels: async (a) => { calls.added.push(a.labels); },
+          removeLabel: async (a) => { calls.removed.push(a.name); },
+        },
+        pulls: {
+          list: 'listOpen',
+          listReviews: 'listReviews',
+          get: async ({ pull_number: n }) => {
+            if (!prs[n]) throw new Error(`no PR ${n}`);
+            return { data: prs[n] };
+          },
+          dismissReview: async (a) => { calls.dismissed.push(a.review_id); },
+        },
+        checks: { listForRef: async () => ({ data: { check_runs: runs } }) },
+        repos: {
+          getCombinedStatusForRef: async () => ({ data: { statuses } }),
+          listPullRequestsAssociatedWithCommit: async () => ({ data: associated }),
+        },
       },
     },
   };
@@ -72,7 +84,7 @@ test('bot: welcomes a new pull request with the checklist', async () => {
   await run('bot.yml', { github: f.github, context });
   assert.equal(f.calls.created.length, 1);
   assert.match(f.calls.created[0].body, /Conventional Commit/);
-  assert.match(f.calls.created[0].body, /autosubmit/);
+  assert.match(f.calls.created[0].body, /status: automerge/);
 });
 
 test('bot: asks for details when needs: info is added', async () => {
@@ -159,34 +171,179 @@ test('pr-labels: an unknown or missing prefix adds no type and clears a stale on
   }
 });
 
-function labelContext(action, actor = 'maintainer') {
-  return { repo, actor, payload: { action, label: label('autosubmit'), pull_request: { number: 7, node_id: 'PR_node' } } };
+const review = (login, state, id = 1) => ({ id, user: { login }, state });
+const green = (name = 'validate') => ({ name, status: 'completed', conclusion: 'success' });
+const running = (name = 'validate') => ({ name, status: 'in_progress', conclusion: null });
+const failed = (name = 'validate', conclusion = 'failure') => ({ name, status: 'completed', conclusion });
+const pr = (over = {}) => ({
+  number: 7, node_id: 'PR_7', state: 'open', draft: false, labels: [], auto_merge: null,
+  head: { sha: 'abc' }, ...over,
+});
+const prEvent = (action = 'opened', number = 7) => ({
+  repo, eventName: 'pull_request_target', payload: { action, pull_request: { number } },
+});
+async function status(opts, context = prEvent()) {
+  const f = fakeGithub({ prs: { 7: pr(opts.pr) }, ...opts });
+  await run('pr-status.yml', { github: f.github, context });
+  return f.calls;
 }
+const enabled = (calls) => calls.graphql.filter((g) => /enablePullRequestAutoMerge/.test(g.query));
+const disabled = (calls) => calls.graphql.filter((g) => /disablePullRequestAutoMerge/.test(g.query));
 
-test('autosubmit: a maintainer enables squash auto-merge', async () => {
-  for (const permission of ['admin', 'maintain', 'write']) {
-    const f = fakeGithub({ permission });
-    await run('autosubmit.yml', { github: f.github, context: labelContext('labeled') });
-    assert.equal(f.calls.graphql.length, 1, permission);
-    assert.match(f.calls.graphql[0].query, /enablePullRequestAutoMerge/);
-    assert.match(f.calls.graphql[0].query, /SQUASH/);
-    assert.equal(f.calls.graphql[0].vars.id, 'PR_node');
+test('pr-status: an unreviewed PR needs approval and never merges', async () => {
+  const c = await status({ reviews: [], runs: [green()] });
+  assert.deepEqual(c.added, [['status: needs approval']]);
+  assert.equal(enabled(c).length, 0);
+});
+
+test('pr-status: approved with checks running waits for green', async () => {
+  const c = await status({ reviews: [review('m', 'APPROVED')], runs: [green('pr-title'), running()] });
+  assert.deepEqual(c.added, [['status: waiting for green']]);
+  assert.equal(enabled(c).length, 0);
+});
+
+test('pr-status: approved with no checks yet also waits', async () => {
+  const c = await status({ reviews: [review('m', 'APPROVED')], runs: [] });
+  assert.deepEqual(c.added, [['status: waiting for green']]);
+});
+
+test('pr-status: approved with a failing check is ci failed and replaces the old status', async () => {
+  const c = await status({
+    pr: { labels: [{ name: 'status: waiting for green' }] },
+    reviews: [review('m', 'APPROVED')], runs: [green('pr-title'), failed()],
+  });
+  assert.deepEqual(c.added, [['status: ci failed']]);
+  assert.deepEqual(c.removed, ['status: waiting for green']);
+  assert.equal(enabled(c).length, 0);
+});
+
+test('pr-status: approved and all green enables squash auto-merge', async () => {
+  const c = await status({
+    pr: { labels: [{ name: 'status: waiting for green' }] },
+    reviews: [review('m', 'APPROVED')], runs: [green(), green('pr-title'), green('dependency-review')],
+  });
+  assert.deepEqual(c.added, [['status: automerge']]);
+  assert.deepEqual(c.removed, ['status: waiting for green']);
+  assert.equal(enabled(c).length, 1);
+  assert.match(enabled(c)[0].query, /SQUASH/);
+  assert.equal(enabled(c)[0].vars.id, 'PR_7');
+});
+
+test('pr-status: auto-merge is not enabled twice and labels are not re-added', async () => {
+  const c = await status({
+    pr: { labels: [{ name: 'status: automerge' }], auto_merge: { merge_method: 'squash' } },
+    reviews: [review('m', 'APPROVED')], runs: [green()],
+  });
+  assert.deepEqual(c.added, []);
+  assert.deepEqual(c.removed, []);
+  assert.equal(c.graphql.length, 0);
+});
+
+test('pr-status: skipped and neutral count as passing, cancelled and timed out as failing', async () => {
+  const ok = await status({
+    reviews: [review('m', 'APPROVED')],
+    runs: [green(), { name: 'a', status: 'completed', conclusion: 'skipped' }, { name: 'b', status: 'completed', conclusion: 'neutral' }],
+  });
+  assert.deepEqual(ok.added, [['status: automerge']]);
+  for (const conclusion of ['cancelled', 'timed_out', 'action_required']) {
+    const bad = await status({ reviews: [review('m', 'APPROVED')], runs: [green(), failed('x', conclusion)] });
+    assert.deepEqual(bad.added, [['status: ci failed']], conclusion);
   }
 });
 
-test('autosubmit: removing the label disables auto-merge', async () => {
-  const f = fakeGithub();
-  await run('autosubmit.yml', { github: f.github, context: labelContext('unlabeled') });
-  assert.match(f.calls.graphql[0].query, /disablePullRequestAutoMerge/);
+test('pr-status: this job is ignored and legacy commit statuses count', async () => {
+  const ignoring = await status({ reviews: [review('m', 'APPROVED')], runs: [green(), running('status')] });
+  assert.deepEqual(ignoring.added, [['status: automerge']]);
+  const pending = await status({ reviews: [review('m', 'APPROVED')], runs: [green()], statuses: [{ state: 'pending' }] });
+  assert.deepEqual(pending.added, [['status: waiting for green']]);
+  for (const state of ['failure', 'error']) {
+    const bad = await status({ reviews: [review('m', 'APPROVED')], runs: [green()], statuses: [{ state }] });
+    assert.deepEqual(bad.added, [['status: ci failed']], state);
+  }
 });
 
-test('autosubmit: users without write access cannot use it', async () => {
-  for (const permission of ['read', 'triage', 'none']) {
-    const f = fakeGithub({ permission });
-    await run('autosubmit.yml', { github: f.github, context: labelContext('labeled', 'stranger') });
-    assert.equal(f.calls.graphql.length, 0, permission);
-    assert.deepEqual(f.calls.removed, ['autosubmit'], permission);
-  }
+test('pr-status: requested changes and drafts need approval even when approved and green', async () => {
+  const changes = await status({ reviews: [review('a', 'APPROVED'), review('b', 'CHANGES_REQUESTED', 2)], runs: [green()] });
+  assert.deepEqual(changes.added, [['status: needs approval']]);
+  assert.equal(enabled(changes).length, 0);
+  const draft = await status({ pr: { draft: true }, reviews: [review('m', 'APPROVED')], runs: [green()] });
+  assert.deepEqual(draft.added, [['status: needs approval']]);
+  assert.equal(enabled(draft).length, 0);
+});
+
+test('pr-status: only a reviewer\'s latest verdict counts and comments are ignored', async () => {
+  const fixed = await status({
+    reviews: [review('b', 'CHANGES_REQUESTED', 1), review('b', 'APPROVED', 2), review('c', 'COMMENTED', 3)],
+    runs: [green()],
+  });
+  assert.deepEqual(fixed.added, [['status: automerge']]);
+  const onlyComments = await status({ reviews: [review('c', 'COMMENTED')], runs: [green()] });
+  assert.deepEqual(onlyComments.added, [['status: needs approval']]);
+});
+
+test('pr-status: on hold clears managed labels and turns auto-merge off', async () => {
+  const c = await status({
+    pr: { labels: [{ name: 'status: on hold' }, { name: 'status: automerge' }], auto_merge: { merge_method: 'squash' } },
+    reviews: [review('m', 'APPROVED')], runs: [green()],
+  });
+  assert.deepEqual(c.removed, ['status: automerge']);
+  assert.deepEqual(c.added, []);
+  assert.equal(enabled(c).length, 0);
+  assert.equal(disabled(c).length, 1);
+});
+
+test('pr-status: a new push dismisses approvals so it cannot auto-merge unreviewed', async () => {
+  const f = fakeGithub({
+    prs: { 7: pr({ labels: [{ name: 'status: automerge' }], auto_merge: { merge_method: 'squash' } }) },
+    reviews: [review('m', 'APPROVED', 41), review('n', 'APPROVED', 42)], runs: [green()],
+  });
+  await run('pr-status.yml', { github: f.github, context: prEvent('synchronize') });
+  assert.deepEqual(f.calls.dismissed, [41, 42]);
+  assert.deepEqual(f.calls.added, [['status: needs approval']]);
+  assert.deepEqual(f.calls.removed, ['status: automerge']);
+  assert.equal(enabled(f.calls).length, 0);
+});
+
+test('pr-status: approvals are only dismissed on synchronize', async () => {
+  const f = fakeGithub({ prs: { 7: pr() }, reviews: [review('m', 'APPROVED', 41)], runs: [green()] });
+  await run('pr-status.yml', { github: f.github, context: prEvent('labeled') });
+  assert.deepEqual(f.calls.dismissed, []);
+});
+
+test('pr-status: closed pull requests are ignored', async () => {
+  const c = await status({ pr: { state: 'closed' }, reviews: [review('m', 'APPROVED')], runs: [green()] });
+  assert.deepEqual(c.added, []);
+  assert.equal(c.graphql.length, 0);
+});
+
+test('pr-status: a finished CI run uses its PRs, else looks them up by commit', async () => {
+  const direct = fakeGithub({ prs: { 7: pr() }, reviews: [review('m', 'APPROVED')], runs: [green()] });
+  await run('pr-status.yml', {
+    github: direct.github,
+    context: { repo, eventName: 'workflow_run', payload: { workflow_run: { head_sha: 'abc', pull_requests: [{ number: 7 }] } } },
+  });
+  assert.deepEqual(direct.calls.added, [['status: automerge']]);
+
+  const fork = fakeGithub({
+    prs: { 7: pr() }, reviews: [review('m', 'APPROVED')], runs: [green()],
+    associated: [{ number: 7, state: 'open' }, { number: 8, state: 'closed' }],
+  });
+  await run('pr-status.yml', {
+    github: fork.github,
+    context: { repo, eventName: 'workflow_run', payload: { workflow_run: { head_sha: 'abc', pull_requests: [] } } },
+  });
+  assert.deepEqual(fork.calls.added, [['status: automerge']]);
+});
+
+test('pr-status: the schedule sweeps every open PR and one failure does not stop the rest', async () => {
+  const f = fakeGithub({
+    prs: { 7: pr(), 9: pr({ number: 9, node_id: 'PR_9' }) },
+    openPrs: [{ number: 5 }, { number: 7 }, { number: 9 }],
+    reviews: [review('m', 'APPROVED')], runs: [green()],
+  });
+  await run('pr-status.yml', { github: f.github, context: { repo, eventName: 'schedule', payload: {} } });
+  assert.deepEqual(f.calls.added, [['status: automerge'], ['status: automerge']]);
+  assert.equal(enabled(f.calls).length, 2);
 });
 
 function issueContext(title, body, labels = []) {

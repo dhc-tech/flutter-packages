@@ -16,7 +16,6 @@ updates:
     commit-message:
       prefix: "ci(deps)"
     labels:
-      - "autosubmit"
       - "infra: dependencies"
       - "infra: workflows"
     ignore:

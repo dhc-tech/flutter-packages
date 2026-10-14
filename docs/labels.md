@@ -15,20 +15,20 @@ Every label belongs to a group and is written `group: value`:
 | `p: <package>` | Which package family? | Automatic (changed files / issue text) |
 | `platform: <name>` | Which platform implementation? | Automatic (changed files / issue text) |
 | `type: <kind>` | What kind of change? | Automatic (PR title) or issue template |
-| `needs: <what>` | What is it waiting for? | Template, then maintainers |
+| `status: <state>` | Where is this PR in review and CI? | Automatic only (`status: on hold` by maintainers) |
+| `needs: <what>` | What is an issue waiting for? | Template, then maintainers |
 | `infra: <area>` | CI or dependency work | Automatic |
 
 A few standalone labels have a fixed meaning: `breaking-change`, `documentation`,
-`autosubmit`, `good first issue`, `help wanted`, `question`, `duplicate`,
+`good first issue`, `help wanted`, `question`, `duplicate`,
 `invalid`, `wontfix`, `stale`.
 
 ## Pull requests
 
 **You do not need to label a pull request.** Write the title as a
 [Conventional Commit](https://www.conventionalcommits.org/) (`fix(dig_cli): ...`)
-and the labels below are applied for you. Whether a PR is waiting for review,
-failing checks or ready to merge is shown by GitHub itself (checks, reviews and
-the merge box), so there are no size or status labels.
+and the labels below are applied for you. A `status:` label always shows where the
+PR is: you never set it, and it updates on every push, review and check result.
 
 | Label | When it appears | What to do |
 |---|---|---|
@@ -38,7 +38,29 @@ the merge box), so there are no size or status labels.
 | `breaking-change` | Title has `!` or the body has a `BREAKING CHANGE` footer | Describe the migration in the PR. |
 | `infra: workflows`, `documentation` | Your PR changes `.github/` or markdown | Nothing. |
 | `infra: dependencies` | Dependabot opened the PR | Nothing. |
-| `autosubmit` | **A maintainer adds it** | Turns on GitHub auto-merge (squash): the PR merges by itself once required checks pass and it is approved. Removing the label turns it off. Contributors cannot use it; the label is removed if they try. |
+
+### PR status lifecycle
+
+Every open PR carries exactly one status label, kept up to date by
+`.github/workflows/pr-status.yml`:
+
+| Label | Meaning | What to do |
+|---|---|---|
+| `status: needs approval` | Not approved yet, a reviewer asked for changes, or the PR is a draft | Request a review, address feedback, or mark the draft ready. |
+| `status: waiting for green` | Approved; checks are still running | Wait. |
+| `status: ci failed` | Approved, but a check failed; merge is blocked | Open the failing check and push a fix. |
+| `status: automerge` | Approved and every check green; squash auto-merge is enabled | Nothing: GitHub merges it. |
+| `status: on hold` | A maintainer stopped auto-merge | Wait for the maintainer to remove it. |
+
+```text
+opened / pushed ─► needs approval ─(approved)─► waiting for green ─(all green)─► automerge ─► merged
+                                                      │
+                                                      └─(check fails)─► ci failed ─(fixed)─► waiting for green
+```
+
+Pushing a new commit dismisses earlier approvals (shown as `github-actions[bot]`),
+so code nobody reviewed can never auto-merge. Only branch protection decides
+whether the merge is allowed; the workflow just turns on auto-merge.
 
 ## Issues
 
@@ -66,7 +88,7 @@ never repeat anything from the issue.
 | When | What the bot does |
 |---|---|
 | An issue is opened | Welcomes the reporter, explains the automatic labels and what details to include. |
-| A pull request is opened | Posts the checklist: Conventional Commit title, required checks, one approval, version bump and `autosubmit`. |
+| A pull request is opened | Posts the checklist: Conventional Commit title, required checks, one approval, version bump and the `status:` lifecycle. |
 | `needs: info` is added | Asks the reporter for version, `flutter doctor -v`, platform and a minimal reproduction. |
 | The reporter replies on a `needs: info` issue | Removes `needs: info` and adds `needs: triage` so a maintainer looks again. |
 | `good first issue` or `help wanted` is added | Invites contributors to comment and links the contributing guide. |
@@ -83,13 +105,14 @@ never repeat anything from the issue.
 
 ## Merging (maintainers)
 
-Add `autosubmit` to a PR you want merged as soon as it is approved and green;
-GitHub does the merge and nothing is bypassed. Do not add it to PRs that should
-wait for a version bump, a release window or another PR. Dependabot patch and
-minor PRs enable auto-merge on their own (`dependabot-auto-merge.yml`).
+Approve the PR. When all checks are green GitHub squash-merges it by itself
+(`status: automerge`). To stop that, add `status: on hold`; remove it to resume.
+Dependabot patch and minor PRs also enable auto-merge on their own
+(`dependabot-auto-merge.yml`) but still need an approval.
 
 ## Changing labels
 
 Edit `.github/labels.json` (the workflow syncs it on `main`). Path-based rules
 live in `.github/labeler.yml`, issue-text rules in `.github/workflows/issue-labeler.yml`,
-and the `type` / `breaking-change` logic in `.github/workflows/pr-labels.yml`.
+the `type` / `breaking-change` logic in `.github/workflows/pr-labels.yml`, and the
+status lifecycle in `.github/workflows/pr-status.yml`.
