@@ -35,10 +35,20 @@ class AttachmentThumbnail extends StatelessWidget {
         ),
       );
     }
+    // Sized from the layout rather than [size], which is double.infinity
+    // when a grid cell fills the space it is given.
     return SizedBox(
       width: size,
       height: size,
-      child: Icon(_iconFor(attachment.attachmentType), size: size * 0.6),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final side = constraints.biggest.shortestSide;
+          return Icon(
+            _iconFor(attachment.attachmentType),
+            size: (side.isFinite ? side : 40) * 0.6,
+          );
+        },
+      ),
     );
   }
 

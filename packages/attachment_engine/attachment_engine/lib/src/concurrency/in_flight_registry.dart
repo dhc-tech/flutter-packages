@@ -18,8 +18,12 @@ class InFlightRegistry<T> {
     final existing = _inFlight[key];
     if (existing != null) return existing;
 
-    final future = operation().whenComplete(() {
-      _inFlight.remove(key);
+    late final Future<T> future;
+    future = operation().whenComplete(() {
+      // After clear() a newer operation may own this key; leave it alone.
+      if (identical(_inFlight[key], future)) {
+        _inFlight.remove(key);
+      }
     });
     _inFlight[key] = future;
     return future;

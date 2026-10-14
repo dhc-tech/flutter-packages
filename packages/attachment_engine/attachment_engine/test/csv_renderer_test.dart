@@ -8,6 +8,8 @@ import 'package:attachment_engine/attachment_engine.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/widget_harness.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -83,19 +85,16 @@ void main() {
       file.writeAsStringSync('name,age\nAda,36\nAlan,41\n');
       const renderer = CsvAttachmentRenderer();
 
-      await tester.runAsync(() async {
-        await tester.pumpWidget(
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: Builder(
-              builder: (context) =>
-                  renderer.build(context, csvAttachment(file.path)),
-            ),
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Builder(
+            builder: (context) =>
+                renderer.build(context, csvAttachment(file.path)),
           ),
-        );
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        await tester.pump();
-      });
+        ),
+      );
+      await settleLoading(tester);
 
       expect(find.text('name'), findsOneWidget);
       expect(find.text('age'), findsOneWidget);
@@ -110,19 +109,16 @@ void main() {
       file.writeAsStringSync('');
       const renderer = CsvAttachmentRenderer();
 
-      await tester.runAsync(() async {
-        await tester.pumpWidget(
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: Builder(
-              builder: (context) =>
-                  renderer.build(context, csvAttachment(file.path)),
-            ),
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Builder(
+            builder: (context) =>
+                renderer.build(context, csvAttachment(file.path)),
           ),
-        );
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        await tester.pump();
-      });
+        ),
+      );
+      await settleLoading(tester);
 
       expect(find.text('CSV file is empty'), findsOneWidget);
     });
@@ -134,21 +130,18 @@ void main() {
       file.writeAsStringSync('name\tage\nAda\t36\n');
       const renderer = CsvAttachmentRenderer();
 
-      await tester.runAsync(() async {
-        await tester.pumpWidget(
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: Builder(
-              builder: (context) => renderer.build(
-                context,
-                csvAttachment(file.path, extension: 'tsv'),
-              ),
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Builder(
+            builder: (context) => renderer.build(
+              context,
+              csvAttachment(file.path, extension: 'tsv'),
             ),
           ),
-        );
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        await tester.pump();
-      });
+        ),
+      );
+      await settleLoading(tester);
 
       expect(find.text('name'), findsOneWidget);
       expect(find.text('Ada'), findsOneWidget);
@@ -162,19 +155,16 @@ void main() {
       final missingPath = '${tempDir.path}/does-not-exist.csv';
       const renderer = CsvAttachmentRenderer();
 
-      await tester.runAsync(() async {
-        await tester.pumpWidget(
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: Builder(
-              builder: (context) =>
-                  renderer.build(context, csvAttachment(missingPath)),
-            ),
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Builder(
+            builder: (context) =>
+                renderer.build(context, csvAttachment(missingPath)),
           ),
-        );
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        await tester.pump();
-      });
+        ),
+      );
+      await settleLoading(tester);
 
       expect(find.text('Unable to read this CSV file'), findsOneWidget);
       expect(find.text('CSV file is empty'), findsNothing);
@@ -191,34 +181,29 @@ void main() {
         fileB.writeAsStringSync('second,file\n');
         const renderer = CsvAttachmentRenderer();
 
-        await tester.runAsync(() async {
-          await tester.pumpWidget(
-            Directionality(
-              textDirection: TextDirection.ltr,
-              child: Builder(
-                builder: (context) =>
-                    renderer.build(context, csvAttachment(fileA.path)),
-              ),
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) =>
+                  renderer.build(context, csvAttachment(fileA.path)),
             ),
-          );
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-          await tester.pump();
-        });
+          ),
+        );
+        await settleLoading(tester);
         expect(find.text('first'), findsOneWidget);
 
-        await tester.runAsync(() async {
-          await tester.pumpWidget(
-            Directionality(
-              textDirection: TextDirection.ltr,
-              child: Builder(
-                builder: (context) =>
-                    renderer.build(context, csvAttachment(fileB.path)),
-              ),
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) =>
+                  renderer.build(context, csvAttachment(fileB.path)),
             ),
-          );
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-          await tester.pump();
-        });
+          ),
+        );
+        // The old rows stay on screen until the new file has been read.
+        await pumpUntilFound(tester, find.text('second'));
 
         expect(find.text('second'), findsOneWidget);
         expect(find.text('first'), findsNothing);
@@ -237,19 +222,16 @@ void main() {
         file.writeAsStringSync(buffer.toString());
         const renderer = CsvAttachmentRenderer();
 
-        await tester.runAsync(() async {
-          await tester.pumpWidget(
-            Directionality(
-              textDirection: TextDirection.ltr,
-              child: Builder(
-                builder: (context) =>
-                    renderer.build(context, csvAttachment(file.path)),
-              ),
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Builder(
+              builder: (context) =>
+                  renderer.build(context, csvAttachment(file.path)),
             ),
-          );
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-          await tester.pump();
-        });
+          ),
+        );
+        await settleLoading(tester);
 
         expect(find.text('row-0'), findsOneWidget);
         expect(find.text('row-199'), findsOneWidget);
@@ -269,19 +251,16 @@ void main() {
       file.writeAsStringSync(buffer.toString());
       const renderer = CsvAttachmentRenderer(maxRenderedRows: 50);
 
-      await tester.runAsync(() async {
-        await tester.pumpWidget(
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: Builder(
-              builder: (context) =>
-                  renderer.build(context, csvAttachment(file.path)),
-            ),
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: Builder(
+            builder: (context) =>
+                renderer.build(context, csvAttachment(file.path)),
           ),
-        );
-        await Future<void>.delayed(const Duration(milliseconds: 50));
-        await tester.pump();
-      });
+        ),
+      );
+      await settleLoading(tester);
 
       // 201 parsed rows total (header + 200 data rows); cap of 50 keeps
       // the header + row-0..row-48.

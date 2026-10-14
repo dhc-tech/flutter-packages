@@ -8,6 +8,8 @@ import 'package:attachment_engine/attachment_engine.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/widget_harness.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -39,20 +41,17 @@ void main() {
     final file = File('${tempDir.path}/sample.txt');
     file.writeAsStringSync(content);
 
-    await tester.runAsync(() async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) =>
-                  renderer.build(context, textAttachment(file.path)),
-            ),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) =>
+                renderer.build(context, textAttachment(file.path)),
           ),
         ),
-      );
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-      await tester.pump();
-    });
+      ),
+    );
+    await settleLoading(tester);
   }
 
   group('TextAttachmentRenderer full view', () {
@@ -203,20 +202,17 @@ void main() {
         final fileB = File('${tempDir.path}/b.txt');
         fileB.writeAsStringSync('completely different content\n');
 
-        await tester.runAsync(() async {
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: Builder(
-                  builder: (context) =>
-                      renderer.build(context, textAttachment(fileA.path)),
-                ),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) =>
+                    renderer.build(context, textAttachment(fileA.path)),
               ),
             ),
-          );
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-          await tester.pump();
-        });
+          ),
+        );
+        await settleLoading(tester);
         expect(find.text('apple pie'), findsOneWidget);
 
         // Search for "apple" while file A is showing, then swap to file B
@@ -226,21 +222,21 @@ void main() {
         await tester.pump(const Duration(milliseconds: 200)); // past debounce
         expect(find.text('1/1'), findsOneWidget);
 
-        await tester.runAsync(() async {
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: Builder(
-                  builder: (context) =>
-                      renderer.build(context, textAttachment(fileB.path)),
-                ),
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) =>
+                    renderer.build(context, textAttachment(fileB.path)),
               ),
             ),
-          );
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-          await tester.pump();
-          await tester.pump();
-        });
+          ),
+        );
+        // The old document stays on screen until the new file has been read.
+        await pumpUntilFound(
+          tester,
+          find.text('completely different content', findRichText: true),
+        );
 
         // findRichText: true — with the "apple" query still active from
         // before the swap, each line renders as Text.rich (for match

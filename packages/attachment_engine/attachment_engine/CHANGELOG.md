@@ -1,5 +1,9 @@
 ## 0.0.1-dev.6
 
+* Fixed `AttachmentGrid` throwing a layout error for non-image attachments (the thumbnail icon was sized from `double.infinity`).
+* Fixed the SCORM renderer never showing its unknown-file fallback for packages that cannot be launched (corrupt zip, no entry page, no local file).
+* Fixed `InFlightRegistry` dropping a newer in-flight operation when an older one finished after `clear()`.
+* Fixed `NativeAudioController.dispose()` throwing when called twice.
 * Migrated to Flutter 3.47.7 and decoupled design packages (`package:material_ui` and `package:cupertino_ui`).
 * Added unified `RendererErrorState` visual across renderers.
 * Updated enum and member syntax to use Dart dot shorthand.

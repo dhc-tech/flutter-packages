@@ -35,7 +35,9 @@ class ScormAttachmentRenderer extends AttachmentRenderer {
     return FutureBuilder<Attachment?>(
       future: _prepare(attachment),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox(width: 24, height: 24);
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const SizedBox(width: 24, height: 24);
+        }
         final launchable = snapshot.data;
         if (launchable == null) {
           return const UnknownAttachmentRenderer().build(context, attachment);

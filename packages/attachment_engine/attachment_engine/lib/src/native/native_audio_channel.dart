@@ -159,6 +159,7 @@ class NativeAudioController {
   }
 
   Future<void> dispose() async {
+    if (_isDisposed) return;
     _isDisposed = true;
     await _eventSub?.cancel();
     await _statusController.close();
