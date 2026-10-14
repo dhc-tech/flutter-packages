@@ -103,15 +103,15 @@ void main() {
     final Uri? lib = await Isolate.resolvePackageUri(
       Uri.parse('package:dig_cli/src/version_helper.dart'),
     );
-    final String entry = p.join(
-      p.dirname(p.dirname(p.dirname(lib!.toFilePath()))),
-      'bin',
-      'dig_cli.dart',
+    final String packageRoot = p.dirname(
+      p.dirname(p.dirname(lib!.toFilePath())),
     );
+    final String entry = p.join(packageRoot, 'bin', 'dig_cli.dart');
     kernel = p.join(kernelDir.path, 'dg.dill');
     final ProcessResult compiled = await Process.run(
       Platform.resolvedExecutable,
       ['compile', 'kernel', entry, '-o', kernel],
+      workingDirectory: packageRoot,
     );
     expect(compiled.exitCode, 0, reason: '${compiled.stderr}');
   });

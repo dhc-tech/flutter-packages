@@ -6,6 +6,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:dig_cli/src/utils/version_utils.dart';
 import 'package:dig_cli/src/version_helper.dart';
@@ -245,8 +246,14 @@ void main() {
 }
 
 void kDigCliVersionTests() {
-  test('kDigCliVersion matches the version in pubspec.yaml', () {
-    final String pubspec = File('pubspec.yaml').readAsStringSync();
+  test('kDigCliVersion matches the version in pubspec.yaml', () async {
+    // Resolved from the package, not the working directory, which other test
+    // files may have changed.
+    final Uri? helper = await Isolate.resolvePackageUri(
+      Uri.parse('package:dig_cli/src/version_helper.dart'),
+    );
+    final String pubspec = File.fromUri(helper!.resolve('../../pubspec.yaml'))
+        .readAsStringSync();
     final String version = RegExp(
       r'^version:\s*(\S+)',
       multiLine: true,

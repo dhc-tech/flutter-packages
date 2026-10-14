@@ -1,0 +1,4 @@
+# Tests in project_workflow_test.dart change the process working directory
+# (Directory.current), which every test file's isolate shares, so test files
+# must not run at the same time.
+concurrency: 1
