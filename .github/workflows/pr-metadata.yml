@@ -11,8 +11,7 @@
 #                                already validates as Conventional Commits)
 #   - breaking-change          (from `!` in the title or a BREAKING CHANGE
 #                                footer in the body)
-#   - dependencies             (changed dependency manifests, or authored
-#                                by dependabot[bot])
+#   - dependencies             (authored by dependabot[bot])
 #   - status:blocked / status:changes-requested / status:ci-failed /
 #     status:needs-review / status:ready (mutually exclusive; recomputed
 #     from scratch on every run, in that priority order)
@@ -69,9 +68,6 @@ jobs:
             const CONVENTIONAL_TYPES = [
               'feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert',
             ];
-            const DEPENDENCY_PATHS = [
-              'pubspec.yaml', 'pubspec.lock', 'build.gradle', 'build.gradle.kts', 'Podfile', 'Podfile.lock',
-            ];
 
             const prNumber =
               context.payload.pull_request?.number ??
@@ -121,9 +117,10 @@ jobs:
               repo: context.repo.repo,
               pull_number: prNumber,
             });
-            const isDependencyPr =
-              pr.user?.login === 'dependabot[bot]' ||
-              files.some((f) => DEPENDENCY_PATHS.some((p) => f.filename.endsWith(p)));
+            // Only Dependabot PRs are dependency PRs. Matching on changed
+            // pubspec.yaml files would treat every package change as one and
+            // exclude it from auto-merge.
+            const isDependencyPr = pr.user?.login === 'dependabot[bot]';
             if (isDependencyPr) setLabel('infra: dependencies');
             else removeLabel('infra: dependencies');
 

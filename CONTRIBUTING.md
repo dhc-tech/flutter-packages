@@ -76,6 +76,14 @@ and is formatted with `dart format` (page width 100, configured in the root
 Comments explain *why*, not what. Never commit credentials, API keys or
 proprietary names; use neutral identifiers such as `com.example.acme`.
 
+## Merging
+
+Once a PR is approved and every check is green it gets the `status:ready` label.
+A maintainer adds the `autosubmit` label to squash-merge it automatically; the
+label is removed if checks fail or changes are requested. Dependabot PRs are
+handled separately by `dependabot-auto-merge.yml`. If a GitHub merge queue is
+enabled for `main`, `validate` already runs on `merge_group` events.
+
 ## Review
 
 PRs are assigned to [code owners](.github/CODEOWNERS) automatically. Code owners
