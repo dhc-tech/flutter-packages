@@ -78,18 +78,10 @@ proprietary names; use neutral identifiers such as `com.example.acme`.
 
 ## Labels
 
-Labels are applied automatically; you do not need to set them.
-
-| Label | Source | Meaning |
-|---|---|---|
-| `p: <package>` | changed paths | Package family touched (`apple_sign_in_plugin`, `attachment_engine`, `dig_cli`, `white_label_kit`). |
-| `platform: <name>` | changed paths | Platform implementation touched (`android`, `ios`, `macos`, `darwin`, `linux`, `windows`, `web`, `interface`). |
-| `type:<type>`, `breaking-change` | PR title | Conventional Commit type and `!`/`BREAKING CHANGE`. |
-| `size:XS`–`size:XL` | diff size | Size of the change. |
-| `status:*` | reviews and checks | `blocked`, `changes-requested`, `ci-failed`, `needs-review`, `ready`. |
-| `autosubmit` | maintainer | Squash-merges the PR automatically once it is `status:ready`. |
-| `infra: workflows`, `documentation` | changed paths | CI or docs changes. |
-| `infra: dependencies` | Dependabot | Dependency update PR. |
+Labels are applied automatically from your PR title and changed files, so you
+normally do not set any. See [docs/labels.md](docs/labels.md) for what each label
+means, which ones maintainers add (`autosubmit`, `good first issue`,
+`help wanted`, ...) and how to read the `status:*` labels.
 
 ## Merging
 

@@ -2,6 +2,8 @@
 
 *List which issues are fixed by this PR. You must list at least one issue (e.g. `Fixes #123` or `Closes #123`).*
 
+Labels (package, platform, type, size, status) are applied automatically; see [docs/labels.md](https://github.com/dhc-tech/flutter-packages/blob/main/docs/labels.md).
+
 ## Pre-Review Checklist
 
 - [ ] I read the [Contributor Guide] and followed the process outlined there for submitting PRs.

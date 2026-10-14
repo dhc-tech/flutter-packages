@@ -1,0 +1,237 @@
+[
+  {
+    "name": "p: apple_sign_in_plugin",
+    "color": "111111",
+    "description": "Sign in with Apple plugin and its platform packages"
+  },
+  {
+    "name": "p: attachment_engine",
+    "color": "0366d6",
+    "description": "Attachment engine plugin and its platform packages"
+  },
+  {
+    "name": "p: dig_cli",
+    "color": "00A98F",
+    "description": "dig_cli command-line tool"
+  },
+  {
+    "name": "p: white_label_kit",
+    "color": "02569B",
+    "description": "white_label_kit CLI and runtime engine"
+  },
+  {
+    "name": "platform: android",
+    "color": "c5def5",
+    "description": "Android implementation package"
+  },
+  {
+    "name": "platform: ios",
+    "color": "c5def5",
+    "description": "iOS implementation package"
+  },
+  {
+    "name": "platform: macos",
+    "color": "c5def5",
+    "description": "macOS implementation package"
+  },
+  {
+    "name": "platform: darwin",
+    "color": "c5def5",
+    "description": "Shared iOS/macOS implementation package"
+  },
+  {
+    "name": "platform: linux",
+    "color": "c5def5",
+    "description": "Linux implementation package"
+  },
+  {
+    "name": "platform: windows",
+    "color": "c5def5",
+    "description": "Windows implementation package"
+  },
+  {
+    "name": "platform: web",
+    "color": "c5def5",
+    "description": "Web implementation package"
+  },
+  {
+    "name": "platform: interface",
+    "color": "c5def5",
+    "description": "Platform interface package"
+  },
+  {
+    "name": "infra: workflows",
+    "color": "ededed",
+    "description": "CI, workflows and repository automation"
+  },
+  {
+    "name": "infra: dependencies",
+    "color": "0366d6",
+    "description": "Dependency updates (set automatically for Dependabot)"
+  },
+  {
+    "name": "documentation",
+    "color": "0075ca",
+    "description": "Docs, README or changelog changes"
+  },
+  {
+    "name": "type:feat",
+    "color": "0e8a16",
+    "description": "New feature (from PR title, automatic)"
+  },
+  {
+    "name": "type:fix",
+    "color": "d73a4a",
+    "description": "Bug fix (from PR title, automatic)"
+  },
+  {
+    "name": "type:docs",
+    "color": "0075ca",
+    "description": "Documentation only (from PR title, automatic)"
+  },
+  {
+    "name": "type:style",
+    "color": "d4c5f9",
+    "description": "Formatting only, no logic change (from PR title, automatic)"
+  },
+  {
+    "name": "type:refactor",
+    "color": "c5def5",
+    "description": "Neither a fix nor a feature (from PR title, automatic)"
+  },
+  {
+    "name": "type:perf",
+    "color": "fbca04",
+    "description": "Performance improvement (from PR title, automatic)"
+  },
+  {
+    "name": "type:test",
+    "color": "bfd4f2",
+    "description": "Adds or fixes tests (from PR title, automatic)"
+  },
+  {
+    "name": "type:build",
+    "color": "5319e7",
+    "description": "Build system or dependencies (from PR title, automatic)"
+  },
+  {
+    "name": "type:ci",
+    "color": "1d76db",
+    "description": "CI configuration (from PR title, automatic)"
+  },
+  {
+    "name": "type:chore",
+    "color": "cfd3d7",
+    "description": "Maintenance, no production code change (from PR title, automatic)"
+  },
+  {
+    "name": "type:revert",
+    "color": "b60205",
+    "description": "Reverts a previous change (from PR title, automatic)"
+  },
+  {
+    "name": "breaking-change",
+    "color": "b60205",
+    "description": "Breaking API or behavior change (automatic from title or footer)"
+  },
+  {
+    "name": "size:XS",
+    "color": "c2e0c6",
+    "description": "Diff size <=10 lines (automatic)"
+  },
+  {
+    "name": "size:S",
+    "color": "7bcc70",
+    "description": "Diff size <=100 lines (automatic)"
+  },
+  {
+    "name": "size:M",
+    "color": "f9d71c",
+    "description": "Diff size <=500 lines (automatic)"
+  },
+  {
+    "name": "size:L",
+    "color": "f0883e",
+    "description": "Diff size <=1000 lines (automatic)"
+  },
+  {
+    "name": "size:XL",
+    "color": "d73a4a",
+    "description": "Diff size >1000 lines (automatic)"
+  },
+  {
+    "name": "status:blocked",
+    "color": "000000",
+    "description": "Draft, has conflicts or otherwise not mergeable (automatic)"
+  },
+  {
+    "name": "status:changes-requested",
+    "color": "e11d21",
+    "description": "A reviewer requested changes (automatic)"
+  },
+  {
+    "name": "status:ci-failed",
+    "color": "e11d21",
+    "description": "A required check is failing (automatic)"
+  },
+  {
+    "name": "status:needs-review",
+    "color": "fbca04",
+    "description": "Waiting for review or checks (automatic)"
+  },
+  {
+    "name": "status:ready",
+    "color": "0e8a16",
+    "description": "Approved and checks green; merges automatically (automatic)"
+  },
+  {
+    "name": "autosubmit",
+    "color": "2ea44f",
+    "description": "Maintainers: squash-merge automatically once status:ready"
+  },
+  {
+    "name": "needs: triage",
+    "color": "fef2c0",
+    "description": "New issue waiting for a maintainer to triage"
+  },
+  {
+    "name": "needs: info",
+    "color": "fbca04",
+    "description": "More information from the reporter is needed"
+  },
+  {
+    "name": "good first issue",
+    "color": "7057ff",
+    "description": "Good for newcomers"
+  },
+  {
+    "name": "help wanted",
+    "color": "008672",
+    "description": "Maintainers welcome a contribution"
+  },
+  {
+    "name": "question",
+    "color": "d876e3",
+    "description": "Usage question, not a bug"
+  },
+  {
+    "name": "duplicate",
+    "color": "cfd3d7",
+    "description": "This already exists"
+  },
+  {
+    "name": "invalid",
+    "color": "e4e669",
+    "description": "Not a valid issue or not reproducible"
+  },
+  {
+    "name": "wontfix",
+    "color": "ffffff",
+    "description": "Will not be worked on"
+  },
+  {
+    "name": "stale",
+    "color": "ededed",
+    "description": "No activity for an extended period"
+  }
+]
