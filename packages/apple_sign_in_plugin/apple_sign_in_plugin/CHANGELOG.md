@@ -1,3 +1,7 @@
+## 2.0.0-dev.3
+
+* Updates SDK constraints to Dart `^3.13.5` and Flutter `>=3.47.7`.
+
 ## 2.0.0-dev.2
 
 * Fixed dependency constraints on all platform packages and

@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   // Real platform packages (apple_sign_in_plugin_darwin,
@@ -75,11 +75,12 @@ class _SignInPageState extends State<SignInPage> {
   Future<void> _signIn() async {
     setState(() => _isLoading = true);
     try {
-      final AppleCredential credential =
-          await AppleSignInPlatform.instance.signIn(scopes: <AppleAuthorizationScope>{
-        AppleAuthorizationScope.email,
-        AppleAuthorizationScope.fullName,
-      });
+      final AppleCredential credential = await AppleSignInPlatform.instance.signIn(
+        scopes: <AppleAuthorizationScope>{
+          AppleAuthorizationScope.email,
+          AppleAuthorizationScope.fullName,
+        },
+      );
       setState(() => _credential = credential);
     } finally {
       setState(() => _isLoading = false);

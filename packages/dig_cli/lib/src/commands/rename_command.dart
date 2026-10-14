@@ -37,7 +37,7 @@ class RenameCommand extends Command<void> {
     if (!await isFlutterProject()) {
       kLog(
         '❗ This command must be run inside a Flutter project.',
-        type: LogType.error,
+        type: .error,
       );
       return;
     }
@@ -62,7 +62,7 @@ class RenameCommand extends Command<void> {
       }
 
       if (newName == null && newBundleId == null) {
-        kLog('❗ No changes provided.', type: LogType.warning);
+        kLog('❗ No changes provided.', type: .warning);
         return;
       }
     }
@@ -74,7 +74,7 @@ class RenameCommand extends Command<void> {
     if (newBundleId != null && !_isValidBundleId(newBundleId)) {
       kLog(
         '❗ Invalid bundle ID format. Expected something like "com.example.app".',
-        type: LogType.error,
+        type: .error,
       );
       return;
     }
@@ -92,7 +92,7 @@ class RenameCommand extends Command<void> {
       await rebrander.rebrand();
     });
 
-    kLog('✅ App successfully renamed!', type: LogType.success);
+    kLog('✅ App successfully renamed!', type: .success);
     kLog(
       '💡 Run "flutter clean" and "flutter pub get" to refresh all artifacts.',
     );

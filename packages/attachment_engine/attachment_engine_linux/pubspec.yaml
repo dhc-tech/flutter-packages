@@ -5,7 +5,7 @@ repository: "https://github.com/dhc-tech/flutter-packages/tree/main/packages/att
 issue_tracker: "https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+is%3Aopen+label%3A%22p%3A+attachment_engine_linux%22"
 
 environment:
-  sdk: ^3.13.0
+  sdk: ^3.13.5
   flutter: '>=3.47.7'
 
 dependencies:

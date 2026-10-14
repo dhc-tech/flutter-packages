@@ -4,7 +4,7 @@
 
 import 'package:apple_sign_in_plugin/apple_sign_in_plugin.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   runApp(const MyApp());
@@ -59,14 +59,11 @@ class _SignInPageState extends State<SignInPage> {
     });
     try {
       final AppleAuthSession session = await AppleSignIn.instance.signIn(
-        scopes: {
-          AppleAuthorizationScope.email,
-          AppleAuthorizationScope.fullName,
-        },
+        scopes: {.email, .fullName},
       );
       setState(() => _session = session);
     } on AppleSignInException catch (e) {
-      if (e.code == AppleSignInErrorCode.canceled) {
+      if (e.code == .canceled) {
         // The user dismissed the sheet; nothing to report.
         return;
       }
@@ -87,8 +84,9 @@ class _SignInPageState extends State<SignInPage> {
     final String? userIdentifier = _session?.identity.userIdentifier;
     setState(() => _isLoading = true);
     try {
-      final AppleDisconnectResult result =
-          await AppleSignIn.instance.disconnect(userIdentifier: userIdentifier);
+      final AppleDisconnectResult result = await AppleSignIn.instance.disconnect(
+        userIdentifier: userIdentifier,
+      );
       setState(() {
         _session = null;
         _statusText = '${result.status.name}: ${result.message ?? ''}';
@@ -112,9 +110,7 @@ class _SignInPageState extends State<SignInPage> {
             ? const CircularProgressIndicator()
             : Padding(
                 padding: const EdgeInsets.all(24.0),
-                child: _session != null
-                    ? _buildSessionView(_session!)
-                    : _buildLoginButton(),
+                child: _session != null ? _buildSessionView(_session!) : _buildLoginButton(),
               ),
       ),
     );
@@ -122,14 +118,11 @@ class _SignInPageState extends State<SignInPage> {
 
   Widget _buildLoginButton() {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: .center,
       children: [
         const Icon(Icons.apple, size: 80),
         const SizedBox(height: 20),
-        const Text(
-          'Sign in to access your account',
-          style: TextStyle(fontSize: 18),
-        ),
+        const Text('Sign in to access your account', style: TextStyle(fontSize: 18)),
         if (_errorText != null) ...[
           const SizedBox(height: 16),
           Text(_errorText!, style: const TextStyle(color: Colors.red)),
@@ -159,45 +152,24 @@ class _SignInPageState extends State<SignInPage> {
   Widget _buildSessionView(AppleAuthSession session) {
     return SingleChildScrollView(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: .center,
+        crossAxisAlignment: .start,
         children: [
           const Center(child: Icon(Icons.account_circle, size: 80)),
           const SizedBox(height: 30),
-          const Text(
-            'Apple Auth Session:',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+          const Text('Apple Auth Session:', style: TextStyle(fontSize: 20, fontWeight: .bold)),
           const Divider(),
           _infoRow('User ID', _truncated(session.identity.userIdentifier)),
           _infoRow('Email', session.identity.email ?? 'Not shared this time'),
-          _infoRow(
-            'Name',
-            session.identity.formattedName ?? 'Not shared this time',
-          ),
-          _infoRow(
-            'Authorized scopes',
-            session.authorization.scopes.map((s) => s.name).join(', '),
-          ),
-          _infoRow(
-            'Real user status',
-            session.authorization.realUserStatus.name,
-          ),
-          _infoRow(
-            'First authorization',
-            session.lifecycle.isFirstAuthorization.toString(),
-          ),
+          _infoRow('Name', session.identity.formattedName ?? 'Not shared this time'),
+          _infoRow('Authorized scopes', session.authorization.scopes.map((s) => s.name).join(', ')),
+          _infoRow('Real user status', session.authorization.realUserStatus.name),
+          _infoRow('First authorization', session.lifecycle.isFirstAuthorization.toString()),
           const Divider(),
-          const Text(
-            'Send to your backend:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
+          const Text('Send to your backend:', style: TextStyle(fontSize: 16, fontWeight: .bold)),
           const SizedBox(height: 10),
           _secretRow('Identity token', session.authentication.identityToken),
-          _secretRow(
-            'Authorization code',
-            session.authentication.authorizationCode,
-          ),
+          _secretRow('Authorization code', session.authentication.authorizationCode),
           const SizedBox(height: 40),
           SizedBox(
             width: double.infinity,
@@ -213,21 +185,17 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 
-  String _truncated(String value) =>
-      value.length > 12 ? '${value.substring(0, 12)}…' : value;
+  String _truncated(String value) => value.length > 12 ? '${value.substring(0, 12)}…' : value;
 
   Widget _infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: .start,
         children: [
           SizedBox(
             width: 130,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+            child: Text('$label:', style: const TextStyle(fontWeight: .bold)),
           ),
           Expanded(child: Text(value)),
         ],
@@ -239,9 +207,9 @@ class _SignInPageState extends State<SignInPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: .start,
         children: [
-          Text('$label:', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text('$label:', style: const TextStyle(fontWeight: .bold)),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(8),
@@ -271,14 +239,14 @@ String _maskedPreview(String secret) {
   if (secret.isEmpty) {
     return '';
   }
-  const int previewLength = 8;
+  const previewLength = 8;
   // Secrets short enough that showing any of their characters (plus an
   // ellipsis) could reveal, or nearly reveal, the whole value are fully
   // masked instead.
   if (secret.length <= 8) {
     return '•' * previewLength;
   }
-  final start = secret.substring(0, 2);
-  final end = secret.substring(secret.length - 2);
+  final String start = secret.substring(0, 2);
+  final String end = secret.substring(secret.length - 2);
   return '$start…$end';
 }

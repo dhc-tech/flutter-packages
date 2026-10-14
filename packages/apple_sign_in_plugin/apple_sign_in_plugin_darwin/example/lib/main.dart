@@ -4,7 +4,7 @@
 
 import 'package:apple_sign_in_plugin_platform_interface/apple_sign_in_plugin_platform_interface.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   // Unlike apple_sign_in_plugin_android/linux/web/windows (none of which
@@ -61,16 +61,12 @@ class _SignInPageState extends State<SignInPage> {
       _errorText = null;
     });
     try {
-      final AppleCredential credential =
-          await AppleSignInPlatform.instance.signIn(
-        scopes: {
-          AppleAuthorizationScope.email,
-          AppleAuthorizationScope.fullName,
-        },
+      final AppleCredential credential = await AppleSignInPlatform.instance.signIn(
+        scopes: {.email, .fullName},
       );
       setState(() => _credential = credential);
     } on AppleSignInException catch (e) {
-      if (e.code == AppleSignInErrorCode.canceled) {
+      if (e.code == .canceled) {
         // The user dismissed the sheet; nothing to report.
         return;
       }
@@ -116,14 +112,11 @@ class _SignInPageState extends State<SignInPage> {
 
   Widget _buildLoginButton() {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: .center,
       children: [
         const Icon(Icons.apple, size: 80),
         const SizedBox(height: 20),
-        const Text(
-          'Sign in to access your account',
-          style: TextStyle(fontSize: 18),
-        ),
+        const Text('Sign in to access your account', style: TextStyle(fontSize: 18)),
         if (_errorText != null) ...[
           const SizedBox(height: 16),
           Text(_errorText!, style: const TextStyle(color: Colors.red)),
@@ -149,15 +142,12 @@ class _SignInPageState extends State<SignInPage> {
   Widget _buildCredentialView(AppleCredential credential) {
     return SingleChildScrollView(
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: .center,
+        crossAxisAlignment: .start,
         children: [
           const Center(child: Icon(Icons.account_circle, size: 80)),
           const SizedBox(height: 30),
-          const Text(
-            'Apple Credential:',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+          const Text('Apple Credential:', style: TextStyle(fontSize: 20, fontWeight: .bold)),
           const Divider(),
           _infoRow('User ID', _truncated(credential.userIdentifier)),
           _infoRow('Email', credential.email ?? 'Not shared this time'),
@@ -166,19 +156,13 @@ class _SignInPageState extends State<SignInPage> {
             credential.name == null
                 ? 'Not shared this time'
                 : '${credential.name!.givenName ?? ''} '
-                        '${credential.name!.familyName ?? ''}'
-                    .trim(),
+                          '${credential.name!.familyName ?? ''}'
+                      .trim(),
           ),
-          _infoRow(
-            'Authorized scopes',
-            credential.authorizedScopes.map((s) => s.name).join(', '),
-          ),
+          _infoRow('Authorized scopes', credential.authorizedScopes.map((s) => s.name).join(', ')),
           _infoRow('Real user status', credential.realUserStatus.name),
           const Divider(),
-          const Text(
-            'Send to your backend:',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
+          const Text('Send to your backend:', style: TextStyle(fontSize: 16, fontWeight: .bold)),
           const SizedBox(height: 10),
           _secretRow('Identity token', credential.identityToken),
           _secretRow('Authorization code', credential.authorizationCode),
@@ -197,21 +181,17 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 
-  String _truncated(String value) =>
-      value.length > 12 ? '${value.substring(0, 12)}…' : value;
+  String _truncated(String value) => value.length > 12 ? '${value.substring(0, 12)}…' : value;
 
   Widget _infoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: .start,
         children: [
           SizedBox(
             width: 130,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+            child: Text('$label:', style: const TextStyle(fontWeight: .bold)),
           ),
           Expanded(child: Text(value)),
         ],
@@ -223,9 +203,9 @@ class _SignInPageState extends State<SignInPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: .start,
         children: [
-          Text('$label:', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text('$label:', style: const TextStyle(fontWeight: .bold)),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(8),
@@ -260,14 +240,14 @@ String _maskedPreview(String secret) {
   if (secret.isEmpty) {
     return '';
   }
-  const int previewLength = 8;
+  const previewLength = 8;
   // Secrets short enough that showing any of their characters (plus an
   // ellipsis) could reveal, or nearly reveal, the whole value are fully
   // masked instead.
   if (secret.length <= 8) {
     return '•' * previewLength;
   }
-  final start = secret.substring(0, 2);
-  final end = secret.substring(secret.length - 2);
+  final String start = secret.substring(0, 2);
+  final String end = secret.substring(secret.length - 2);
   return '$start…$end';
 }

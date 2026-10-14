@@ -48,7 +48,7 @@ jobs:
         # constraint.
         shell: bash
         run: |
-          git clone https://github.com/flutter/flutter.git --depth 1 -b 3.47.0 "$HOME/_flutter"
+          git clone https://github.com/flutter/flutter.git --depth 1 -b 3.47.7 "$HOME/_flutter"
           echo "$HOME/_flutter/bin" >> "$GITHUB_PATH"
 
       - name: Set up main branch

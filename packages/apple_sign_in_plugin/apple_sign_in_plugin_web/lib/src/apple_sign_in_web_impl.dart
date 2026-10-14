@@ -205,9 +205,7 @@ class AppleSignInWebImpl extends AppleSignInPlatform {
   }
 
   @override
-  Future<AppleCredentialState> getCredentialState(
-    String userIdentifier,
-  ) async {
+  Future<AppleCredentialState> getCredentialState(String userIdentifier) async {
     throw const AppleSignInException(
       AppleSignInErrorCode.platformNotSupported,
       'getCredentialState() is not available on Web. Apple does not expose '

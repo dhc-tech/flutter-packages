@@ -25,7 +25,7 @@ class SetupAliasesCommand extends Command<void> {
     if (home == null) {
       kLog(
         '❗ Could not determine home directory to set up aliases.',
-        type: LogType.error,
+        type: .error,
       );
       return;
     }
@@ -61,9 +61,7 @@ class SetupAliasesCommand extends Command<void> {
       } else {
         // Fallback to .zshrc on Mac or .bashrc on Linux
         targetProfile = Platform.isMacOS ? zshrc : bashrc;
-        kLog(
-          '  Creating new profile file: ${p.basename(targetProfile.path)}',
-        );
+        kLog('  Creating new profile file: ${p.basename(targetProfile.path)}');
       }
       profileName = p.basename(targetProfile.path);
     }
@@ -76,7 +74,8 @@ class SetupAliasesCommand extends Command<void> {
     var aliasesBlock = '';
 
     if (Platform.isWindows) {
-      aliasesBlock = '''
+      aliasesBlock =
+          '''
 
 # --- DIG CLI Custom Aliases ---
 function ${prefix}p { dg create-project \$args }
@@ -89,7 +88,8 @@ function ${prefix}apk { dg create apk \$args }
 # ------------------------------
 ''';
     } else {
-      aliasesBlock = '''
+      aliasesBlock =
+          '''
 
 # --- DIG CLI Custom Aliases ---
 alias ${prefix}p="dg create-project"
@@ -111,7 +111,7 @@ alias ${prefix}apk="dg create apk"
     if (content.contains('# --- DIG CLI Custom Aliases ---')) {
       kLog(
         '✅ DIG CLI aliases are already installed in $profileName',
-        type: LogType.success,
+        type: .success,
       );
       return;
     }
@@ -128,13 +128,9 @@ alias ${prefix}apk="dg create apk"
     painter.drawFooter();
 
     if (Platform.isWindows) {
-      kLog(
-        '\n🚀 Restart PowerShell or run ". \$PROFILE" to activate them.',
-      );
+      kLog('\n🚀 Restart PowerShell or run ". \$PROFILE" to activate them.');
     } else {
-      kLog(
-        '\n🚀 Run "source ~/$profileName" to activate them immediately.',
-      );
+      kLog('\n🚀 Run "source ~/$profileName" to activate them immediately.');
     }
   }
 }

@@ -3,7 +3,7 @@ description: "Example app exercising the apple_sign_in_plugin_darwin platform im
 publish_to: 'none' # This package is not intended for publishing.
 
 environment:
-  sdk: '>=3.4.4 <4.0.0'
+  sdk: ^3.13.5
 
 dependencies:
   apple_sign_in_plugin_darwin:
@@ -13,6 +13,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter:
     sdk: flutter
+  material_ui: ^1.6.0
 
 dev_dependencies:
   flutter_lints: ^6.0.0

@@ -34,7 +34,7 @@ class IgnoreRules {
     if (!file.existsSync()) {
       kLog(
         '⚠️ .gitignore not found. ZIP may include unnecessary files.',
-        type: LogType.warning,
+        type: .warning,
       );
       return IgnoreRules({}, {}, {});
     }
@@ -109,7 +109,7 @@ class ZipCommand extends Command<void> {
     if (root == null) {
       kLog(
         '❗ This command must be run inside a Flutter project.',
-        type: LogType.error,
+        type: .error,
       );
       exit(1);
     }
@@ -120,8 +120,9 @@ class ZipCommand extends Command<void> {
       await runWithSpinner(
         '🧹 Running flutter clean before zipping...',
         () async {
-          final ProcessResult cleanResult =
-              await Process.run('flutter', ['clean']);
+          final ProcessResult cleanResult = await Process.run('flutter', [
+            'clean',
+          ]);
           if (cleanResult.exitCode != 0) {
             throw Exception('flutter clean failed: ${cleanResult.stderr}');
           }
@@ -161,8 +162,10 @@ class ZipCommand extends Command<void> {
         );
 
         for (final entity in entities) {
-          final String relativePath =
-              p.relative(entity.path, from: projectDir.path);
+          final String relativePath = p.relative(
+            entity.path,
+            from: projectDir.path,
+          );
 
           if (!rules.shouldIgnore(relativePath, entity) && entity is File) {
             encoder.addFileSync(entity, p.join(projectName, relativePath));
@@ -171,10 +174,10 @@ class ZipCommand extends Command<void> {
         await encoder.close();
       });
 
-      kLog('✅ ZIP file created successfully!', type: LogType.success);
+      kLog('✅ ZIP file created successfully!', type: .success);
       kLog('📁 Location: $outputPath');
     } catch (e) {
-      kLog('❌ An error occurred while creating ZIP: $e', type: LogType.error);
+      kLog('❌ An error occurred while creating ZIP: $e', type: .error);
       exit(1);
     }
   }

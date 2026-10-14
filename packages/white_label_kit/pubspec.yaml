@@ -7,7 +7,7 @@ issue_tracker: https://github.com/dhc-tech/flutter-packages/issues?q=is%3Aissue+
 version: 0.0.7
 
 environment:
-  sdk: ^3.13.0
+  sdk: ^3.13.5
 
 executables:
   white_label: white_label

@@ -81,15 +81,15 @@ class AppleCredential {
 
   @override
   int get hashCode => Object.hash(
-        userIdentifier,
-        email,
-        name,
-        identityToken,
-        authorizationCode,
-        state,
-        Object.hashAll(authorizedScopes),
-        realUserStatus,
-      );
+    userIdentifier,
+    email,
+    name,
+    identityToken,
+    authorizationCode,
+    state,
+    Object.hashAll(authorizedScopes),
+    realUserStatus,
+  );
 
   @override
   String toString() =>

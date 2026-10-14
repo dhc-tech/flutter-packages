@@ -36,10 +36,7 @@ enum AppleDisconnectStatus {
 @immutable
 class AppleDisconnectResult {
   /// Creates an [AppleDisconnectResult].
-  const AppleDisconnectResult({
-    required this.status,
-    this.message,
-  });
+  const AppleDisconnectResult({required this.status, this.message});
 
   /// The disconnect status.
   final AppleDisconnectStatus status;

@@ -69,43 +69,19 @@ void main() {
 
   group('AppleCredentialState.fromWireValue', () {
     test('maps native ASAuthorizationAppleIDProvider.CredentialState values', () {
-      expect(
-        AppleCredentialState.fromWireValue(0),
-        AppleCredentialState.authorized,
-      );
-      expect(
-        AppleCredentialState.fromWireValue(1),
-        AppleCredentialState.revoked,
-      );
-      expect(
-        AppleCredentialState.fromWireValue(2),
-        AppleCredentialState.notFound,
-      );
-      expect(
-        AppleCredentialState.fromWireValue(3),
-        AppleCredentialState.transferred,
-      );
+      expect(AppleCredentialState.fromWireValue(0), AppleCredentialState.authorized);
+      expect(AppleCredentialState.fromWireValue(1), AppleCredentialState.revoked);
+      expect(AppleCredentialState.fromWireValue(2), AppleCredentialState.notFound);
+      expect(AppleCredentialState.fromWireValue(3), AppleCredentialState.transferred);
     });
   });
 
   group('AppleRealUserStatus.fromWireValue', () {
     test('maps native ASUserDetectionStatus values', () {
-      expect(
-        AppleRealUserStatus.fromWireValue(null),
-        AppleRealUserStatus.unsupported,
-      );
-      expect(
-        AppleRealUserStatus.fromWireValue(0),
-        AppleRealUserStatus.unsupported,
-      );
-      expect(
-        AppleRealUserStatus.fromWireValue(1),
-        AppleRealUserStatus.unknown,
-      );
-      expect(
-        AppleRealUserStatus.fromWireValue(2),
-        AppleRealUserStatus.likelyReal,
-      );
+      expect(AppleRealUserStatus.fromWireValue(null), AppleRealUserStatus.unsupported);
+      expect(AppleRealUserStatus.fromWireValue(0), AppleRealUserStatus.unsupported);
+      expect(AppleRealUserStatus.fromWireValue(1), AppleRealUserStatus.unknown);
+      expect(AppleRealUserStatus.fromWireValue(2), AppleRealUserStatus.likelyReal);
     });
   });
 
@@ -116,10 +92,7 @@ void main() {
         'The user canceled the authorization sheet.',
       );
       expect(exception.toString(), contains('canceled'));
-      expect(
-        exception.toString(),
-        contains('The user canceled the authorization sheet.'),
-      );
+      expect(exception.toString(), contains('The user canceled the authorization sheet.'));
     });
   });
 
@@ -131,56 +104,55 @@ void main() {
       debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
       platform = MethodChannelAppleSignIn();
       log.clear();
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(platform.channel, (
-        MethodCall call,
-      ) async {
-        log.add(call);
-        switch (call.method) {
-          case 'isAvailable':
-            return true;
-          case 'signIn':
-            return <String, Object?>{
-              'userIdentifier': '001234.abcdef.5678',
-              'email': 'john.doe@example.com',
-              'givenName': 'John',
-              'familyName': 'Doe',
-              'identityToken': 'mock_identity_token',
-              'authorizationCode': 'mock_auth_code',
-              'state': 'my-state',
-              'authorizedScopes': <String>['email', 'fullName'],
-              'realUserStatus': 2,
-            };
-          case 'getCredentialState':
-            return 0;
-          default:
-            throw MissingPluginException();
-        }
-      });
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        platform.channel,
+        (MethodCall call) async {
+          log.add(call);
+          switch (call.method) {
+            case 'isAvailable':
+              return true;
+            case 'signIn':
+              return <String, Object?>{
+                'userIdentifier': '001234.abcdef.5678',
+                'email': 'john.doe@example.com',
+                'givenName': 'John',
+                'familyName': 'Doe',
+                'identityToken': 'mock_identity_token',
+                'authorizationCode': 'mock_auth_code',
+                'state': 'my-state',
+                'authorizedScopes': <String>['email', 'fullName'],
+                'realUserStatus': 2,
+              };
+            case 'getCredentialState':
+              return 0;
+            default:
+              throw MissingPluginException();
+          }
+        },
+      );
     });
 
     tearDown(() {
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(platform.channel, null);
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
+        platform.channel,
+        null,
+      );
       debugDefaultTargetPlatformOverride = null;
     });
 
     test('signIn parses the native response into an AppleCredential', () async {
       final AppleCredential credential = await platform.signIn(
-        scopes: {
-          AppleAuthorizationScope.email,
-          AppleAuthorizationScope.fullName,
-        },
+        scopes: {AppleAuthorizationScope.email, AppleAuthorizationScope.fullName},
       );
 
       expect(credential.userIdentifier, '001234.abcdef.5678');
       expect(credential.email, 'john.doe@example.com');
       expect(credential.name?.givenName, 'John');
       expect(credential.name?.familyName, 'Doe');
-      expect(
-        credential.authorizedScopes,
-        {AppleAuthorizationScope.email, AppleAuthorizationScope.fullName},
-      );
+      expect(credential.authorizedScopes, {
+        AppleAuthorizationScope.email,
+        AppleAuthorizationScope.fullName,
+      });
       expect(credential.realUserStatus, AppleRealUserStatus.likelyReal);
       expect(log.single.method, 'signIn');
     });
@@ -200,9 +172,7 @@ void main() {
     });
 
     test('getCredentialState maps the native integer', () async {
-      final AppleCredentialState state = await platform.getCredentialState(
-        '001234.abcdef.5678',
-      );
+      final AppleCredentialState state = await platform.getCredentialState('001234.abcdef.5678');
       expect(state, AppleCredentialState.authorized);
       expect(log.single.method, 'getCredentialState');
     });

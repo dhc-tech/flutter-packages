@@ -76,15 +76,12 @@ abstract class AppleSignInDesktopImpl extends AppleSignInPlatform {
 
     try {
       // Delegate complete authorization request & lifecycle to native C++ channel.
-      final dynamic rawResult = await channel.invokeMethod<dynamic>(
-        'signIn',
-        <String, Object?>{
-          'url': uri.toString(),
-          'state': effectiveState,
-          'callbackScheme': currentConfig.callbackScheme,
-          'callbackHost': currentConfig.callbackHost,
-        },
-      );
+      final dynamic rawResult = await channel.invokeMethod<dynamic>('signIn', <String, Object?>{
+        'url': uri.toString(),
+        'state': effectiveState,
+        'callbackScheme': currentConfig.callbackScheme,
+        'callbackHost': currentConfig.callbackHost,
+      });
 
       if (rawResult is! Map<dynamic, dynamic>) {
         throw const AppleSignInException(
@@ -114,10 +111,9 @@ abstract class AppleSignInDesktopImpl extends AppleSignInPlatform {
   /// Windows or Linux OS application protocol handlers.
   Future<bool> handleCallback(Uri callbackUri) async {
     try {
-      final bool? accepted = await channel.invokeMethod<bool>(
-        'onNativeCallback',
-        <String, Object?>{'callbackUrl': callbackUri.toString()},
-      );
+      final bool? accepted = await channel.invokeMethod<bool>('onNativeCallback', <String, Object?>{
+        'callbackUrl': callbackUri.toString(),
+      });
       return accepted ?? false;
     } on PlatformException {
       return false;
@@ -134,9 +130,7 @@ abstract class AppleSignInDesktopImpl extends AppleSignInPlatform {
   }
 
   @override
-  Future<AppleCredentialState> getCredentialState(
-    String userIdentifier,
-  ) async {
+  Future<AppleCredentialState> getCredentialState(String userIdentifier) async {
     throw const AppleSignInException(
       AppleSignInErrorCode.platformNotSupported,
       'getCredentialState() is not available on desktop platforms. Apple '
@@ -186,10 +180,7 @@ abstract class AppleSignInDesktopImpl extends AppleSignInPlatform {
       final AppleSignInErrorCode code = errorParam == 'user_cancelled_authorize'
           ? AppleSignInErrorCode.canceled
           : AppleSignInErrorCode.authorizationFailed;
-      throw AppleSignInException(
-        code,
-        'Apple Sign-In returned an error: $errorParam',
-      );
+      throw AppleSignInException(code, 'Apple Sign-In returned an error: $errorParam');
     }
 
     final String? code = params['code'] ?? params['auth_code'] ?? params['authorization_code'];

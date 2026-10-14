@@ -38,7 +38,7 @@ class HashKeyCommand extends Command<void> {
     } else if (isRelease) {
       await _generateReleaseHash();
     } else {
-      kLog('❗ Please specify --debug or --release', type: LogType.error);
+      kLog('❗ Please specify --debug or --release', type: .error);
       kLog(usage);
     }
   }
@@ -48,10 +48,7 @@ class HashKeyCommand extends Command<void> {
     final String debugKeystorePath = p.join(home, '.android', 'debug.keystore');
 
     if (!File(debugKeystorePath).existsSync()) {
-      kLog(
-        '❗ Debug keystore not found at $debugKeystorePath',
-        type: LogType.error,
-      );
+      kLog('❗ Debug keystore not found at $debugKeystorePath', type: .error);
       return;
     }
 
@@ -79,10 +76,7 @@ class HashKeyCommand extends Command<void> {
           await _tryReadProjectKeyProperties();
       if (projectConfig != null && projectConfig.containsKey('storeFile')) {
         final String? stFile = projectConfig['storeFile'];
-        kLog(
-          '\n✨ Found key.properties in current project.',
-          type: LogType.success,
-        );
+        kLog('\n✨ Found key.properties in current project.', type: .success);
         kLog('   Keystore: $stFile');
         kLog('   Alias: ${projectConfig['keyAlias']}');
 
@@ -101,7 +95,7 @@ class HashKeyCommand extends Command<void> {
           alias == null ||
           storepass == null ||
           keypass == null) {
-        kLog('\n🔑 Release Key Details Required', type: LogType.warning);
+        kLog('\n🔑 Release Key Details Required', type: .warning);
 
         if (keystore == null) {
           stdout.write('Enter keystore path (e.g., /path/to/my.jks): ');
@@ -130,15 +124,12 @@ class HashKeyCommand extends Command<void> {
         storepass.isEmpty ||
         keypass == null ||
         keypass.isEmpty) {
-      kLog(
-        '❗ All fields are required for release hash key.',
-        type: LogType.error,
-      );
+      kLog('❗ All fields are required for release hash key.', type: .error);
       return;
     }
 
     if (!File(keystore).existsSync()) {
-      kLog('❗ Keystore file not found at $keystore', type: LogType.error);
+      kLog('❗ Keystore file not found at $keystore', type: .error);
       return;
     }
 
@@ -162,85 +153,91 @@ class HashKeyCommand extends Command<void> {
 
     try {
       // 1. Check for required tools
-      final ProcessResult keytoolCheck =
-          await Process.run('which', ['keytool']);
-      final ProcessResult opensslCheck =
-          await Process.run('which', ['openssl']);
+      final ProcessResult keytoolCheck = await Process.run('which', [
+        'keytool',
+      ]);
+      final ProcessResult opensslCheck = await Process.run('which', [
+        'openssl',
+      ]);
 
       if (keytoolCheck.exitCode != 0) {
         kLog(
           '❗ "keytool" command not found. Please ensure JDK is installed and in your PATH.',
-          type: LogType.error,
+          type: .error,
         );
         return;
       }
       if (opensslCheck.exitCode != 0) {
         kLog(
           '❗ "openssl" command not found. Please install openssl.',
-          type: LogType.error,
+          type: .error,
         );
         return;
       }
 
-      final ProcessResult result =
-          await runWithSpinner('🔍 Processing...', () async {
-        // We use piping manually in Dart for better security (avoids sh -c issues)
-        final Process keytoolProc = await Process.start('keytool', [
-          '-exportcert',
-          '-alias',
-          alias,
-          '-keystore',
-          keystore,
-          '-storepass',
-          storepass,
-          '-keypass',
-          keypass,
-        ]);
+      final ProcessResult result = await runWithSpinner(
+        '🔍 Processing...',
+        () async {
+          // We use piping manually in Dart for better security (avoids sh -c issues)
+          final Process keytoolProc = await Process.start('keytool', [
+            '-exportcert',
+            '-alias',
+            alias,
+            '-keystore',
+            keystore,
+            '-storepass',
+            storepass,
+            '-keypass',
+            keypass,
+          ]);
 
-        final Process sha1Proc =
-            await Process.start('openssl', ['sha1', '-binary']);
-        final Process base64Proc = await Process.start('openssl', ['base64']);
+          final Process sha1Proc = await Process.start('openssl', [
+            'sha1',
+            '-binary',
+          ]);
+          final Process base64Proc = await Process.start('openssl', ['base64']);
 
-        // Pipe: keytool -> sha1 -> base64
-        await keytoolProc.stdout.pipe(sha1Proc.stdin);
-        await sha1Proc.stdout.pipe(base64Proc.stdin);
+          // Pipe: keytool -> sha1 -> base64
+          await keytoolProc.stdout.pipe(sha1Proc.stdin);
+          await sha1Proc.stdout.pipe(base64Proc.stdin);
 
-        final String hashResult =
-            await base64Proc.stdout.transform(const Utf8Decoder()).join();
-        final int keytoolExit = await keytoolProc.exitCode;
-        final int sha1Exit = await sha1Proc.exitCode;
-        final int base64Exit = await base64Proc.exitCode;
+          final String hashResult = await base64Proc.stdout
+              .transform(const Utf8Decoder())
+              .join();
+          final int keytoolExit = await keytoolProc.exitCode;
+          final int sha1Exit = await sha1Proc.exitCode;
+          final int base64Exit = await base64Proc.exitCode;
 
-        final String stderrOutput =
-            await keytoolProc.stderr.transform(const Utf8Decoder()).join();
+          final String stderrOutput = await keytoolProc.stderr
+              .transform(const Utf8Decoder())
+              .join();
 
-        final finalExitCode = (keytoolExit != 0)
-            ? keytoolExit
-            : (sha1Exit != 0 ? sha1Exit : base64Exit);
+          final finalExitCode = (keytoolExit != 0)
+              ? keytoolExit
+              : (sha1Exit != 0 ? sha1Exit : base64Exit);
 
-        return ProcessResult(0, finalExitCode, hashResult, stderrOutput);
-      });
+          return ProcessResult(0, finalExitCode, hashResult, stderrOutput);
+        },
+      );
 
       if (result.exitCode == 0) {
         final String hash = result.stdout.toString().trim();
         if (hash.isEmpty) {
           kLog(
             '❗ Generated hash key is empty. Check if the alias and passwords are correct.',
-            type: LogType.error,
+            type: .error,
           );
           return;
         }
-        kLog('\n✅ $label Hash Key (Base64):', type: LogType.success);
-        kLog('   $hash', type: LogType.success);
-        kLog(
-          '\n💡 This is used for Google Sign-In and Facebook Login.',
-        );
+        kLog('\n✅ $label Hash Key (Base64):', type: .success);
+        kLog('   $hash', type: .success);
+        kLog('\n💡 This is used for Google Sign-In and Facebook Login.');
       } else {
-        kLog('❗ Failed to generate hash key.', type: LogType.error);
-        kLog('Error: ${result.stderr}', type: LogType.error);
+        kLog('❗ Failed to generate hash key.', type: .error);
+        kLog('Error: ${result.stderr}', type: .error);
       }
     } catch (e) {
-      kLog('❌ An error occurred: $e', type: LogType.error);
+      kLog('❌ An error occurred: $e', type: .error);
     }
   }
 

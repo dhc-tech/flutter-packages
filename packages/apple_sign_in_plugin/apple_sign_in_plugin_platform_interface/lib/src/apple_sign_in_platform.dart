@@ -62,9 +62,7 @@ abstract class AppleSignInPlatform extends PlatformInterface {
   /// Queries Apple for the current state of a previously-issued
   /// credential.
   Future<AppleCredentialState> getCredentialState(String userIdentifier) {
-    throw UnimplementedError(
-      'getCredentialState() has not been implemented.',
-    );
+    throw UnimplementedError('getCredentialState() has not been implemented.');
   }
 
   /// A broadcast stream that emits an event whenever Apple reports that
@@ -80,8 +78,6 @@ abstract class AppleSignInPlatform extends PlatformInterface {
   /// mechanism (see the README's "Revocation" section) — poll
   /// [getCredentialState] instead on those platforms.
   Stream<void> get onCredentialRevoked {
-    throw UnimplementedError(
-      'onCredentialRevoked has not been implemented.',
-    );
+    throw UnimplementedError('onCredentialRevoked has not been implemented.');
   }
 }

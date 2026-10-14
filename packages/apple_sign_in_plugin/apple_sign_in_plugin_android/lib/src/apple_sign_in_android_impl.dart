@@ -107,10 +107,9 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
     );
 
     try {
-      final bool? launched = await channel.invokeMethod<bool>(
-        'launchAuthUrl',
-        <String, Object?>{'url': uri.toString()},
-      );
+      final bool? launched = await channel.invokeMethod<bool>('launchAuthUrl', <String, Object?>{
+        'url': uri.toString(),
+      });
       if (launched != true) {
         _cleanUp();
         throw const AppleSignInException(
@@ -202,10 +201,7 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
           ? AppleSignInErrorCode.canceled
           : AppleSignInErrorCode.authorizationFailed;
       completer.completeError(
-        AppleSignInException(
-          code,
-          'Apple Sign-In returned an error: $errorParam',
-        ),
+        AppleSignInException(code, 'Apple Sign-In returned an error: $errorParam'),
       );
       return;
     }
@@ -281,9 +277,7 @@ class AppleSignInAndroidImpl extends AppleSignInPlatform {
   }
 
   @override
-  Future<AppleCredentialState> getCredentialState(
-    String userIdentifier,
-  ) async {
+  Future<AppleCredentialState> getCredentialState(String userIdentifier) async {
     throw const AppleSignInException(
       AppleSignInErrorCode.platformNotSupported,
       'getCredentialState() is not available on Android. Apple does not '

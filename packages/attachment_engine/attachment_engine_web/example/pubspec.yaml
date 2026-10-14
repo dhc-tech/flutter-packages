@@ -3,7 +3,7 @@ description: "Example app for attachment_engine_web."
 publish_to: 'none'
 
 environment:
-  sdk: '>=3.5.0 <4.0.0'
+  sdk: ^3.13.5
 
 dependencies:
   attachment_engine_web:

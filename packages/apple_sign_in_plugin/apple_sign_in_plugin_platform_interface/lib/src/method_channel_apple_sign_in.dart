@@ -36,10 +36,7 @@ class MethodChannelAppleSignIn extends AppleSignInPlatform {
 
   Stream<void>? _onCredentialRevoked;
 
-  static const Set<TargetPlatform> _supportedPlatforms = {
-    TargetPlatform.iOS,
-    TargetPlatform.macOS,
-  };
+  static const Set<TargetPlatform> _supportedPlatforms = {TargetPlatform.iOS, TargetPlatform.macOS};
 
   bool get _isSupportedPlatform => _supportedPlatforms.contains(defaultTargetPlatform);
 
@@ -78,12 +75,14 @@ class MethodChannelAppleSignIn extends AppleSignInPlatform {
     }
 
     try {
-      final Map<Object?, Object?>? raw =
-          await channel.invokeMapMethod<Object?, Object?>('signIn', <String, Object?>{
-        'scopes': scopes.map((AppleAuthorizationScope s) => s.name).toList(),
-        'nonce': nonce,
-        'state': state,
-      });
+      final Map<Object?, Object?>? raw = await channel.invokeMapMethod<Object?, Object?>(
+        'signIn',
+        <String, Object?>{
+          'scopes': scopes.map((AppleAuthorizationScope s) => s.name).toList(),
+          'nonce': nonce,
+          'state': state,
+        },
+      );
       if (raw == null) {
         throw const AppleSignInException(
           AppleSignInErrorCode.invalidResponse,
@@ -97,17 +96,14 @@ class MethodChannelAppleSignIn extends AppleSignInPlatform {
   }
 
   @override
-  Future<AppleCredentialState> getCredentialState(
-    String userIdentifier,
-  ) async {
+  Future<AppleCredentialState> getCredentialState(String userIdentifier) async {
     if (!_isSupportedPlatform) {
       _throwUnsupported();
     }
     try {
-      final int? raw = await channel.invokeMethod<int>(
-        'getCredentialState',
-        <String, Object?>{'userIdentifier': userIdentifier},
-      );
+      final int? raw = await channel.invokeMethod<int>('getCredentialState', <String, Object?>{
+        'userIdentifier': userIdentifier,
+      });
       if (raw == null) {
         throw const AppleSignInException(
           AppleSignInErrorCode.credentialStateFailed,
@@ -129,8 +125,9 @@ class MethodChannelAppleSignIn extends AppleSignInPlatform {
     if (!_isSupportedPlatform) {
       return const Stream<void>.empty();
     }
-    return _onCredentialRevoked ??=
-        revocationChannel.receiveBroadcastStream().map((Object? event) {});
+    return _onCredentialRevoked ??= revocationChannel.receiveBroadcastStream().map(
+      (Object? event) {},
+    );
   }
 
   AppleCredential _credentialFromWire(Map<Object?, Object?> raw) {
@@ -170,9 +167,7 @@ class MethodChannelAppleSignIn extends AppleSignInPlatform {
       authorizationCode: raw['authorizationCode'] as String?,
       state: raw['state'] as String? ?? '',
       authorizedScopes: authorizedScopes,
-      realUserStatus: AppleRealUserStatus.fromWireValue(
-        raw['realUserStatus'] as int?,
-      ),
+      realUserStatus: AppleRealUserStatus.fromWireValue(raw['realUserStatus'] as int?),
     );
   }
 
@@ -187,10 +182,6 @@ class MethodChannelAppleSignIn extends AppleSignInPlatform {
       'network_failed' => AppleSignInErrorCode.networkFailed,
       _ => AppleSignInErrorCode.unknown,
     };
-    return AppleSignInException(
-      code,
-      e.message ?? 'Apple Sign-In failed (${e.code}).',
-      e.details,
-    );
+    return AppleSignInException(code, e.message ?? 'Apple Sign-In failed (${e.code}).', e.details);
   }
 }

@@ -52,8 +52,10 @@ class BoxPainter {
     String content;
     if (vLen > contentWidth) {
       // Stripping ANSI if forced to truncate to avoid broken terminals
-      final String stripped =
-          value.replaceAll(RegExp(r'\x1B\[[0-?]*[ -/]*[@-~]'), '');
+      final String stripped = value.replaceAll(
+        RegExp(r'\x1B\[[0-?]*[ -/]*[@-~]'),
+        '',
+      );
       content = '${stripped.substring(0, contentWidth - 3)}...';
     } else {
       final int padCount = contentWidth - vLen;
