@@ -34,9 +34,7 @@ class ExampleHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Attachment Engine Platform Interface'),
-      ),
+      appBar: AppBar(title: const Text('Attachment Engine Platform Interface')),
       body: const Center(
         child: Padding(
           padding: EdgeInsets.all(16),

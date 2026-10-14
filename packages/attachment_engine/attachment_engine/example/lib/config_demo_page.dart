@@ -47,8 +47,7 @@ class _ConfigDemoPageState extends State<ConfigDemoPage> {
     name: 'Sample MP4 (network)',
     extension: 'mp4',
     mimeType: 'video/mp4',
-    remoteUrl:
-        'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+    remoteUrl: 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
     source: const AttachmentSource.url(
       'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
     ),
