@@ -148,6 +148,23 @@ jobs:
               await github.graphql(query, { id: pr.node_id });
             }
 
+            // GitHub only allows auto-merge while something is still pending. A PR
+            // that can already be merged ("clean" or "unstable" status) is merged
+            // directly; branch protection applies to both paths.
+            async function mergeWhenReady(pr) {
+              try {
+                await setAutoMerge(pr, true);
+                core.info(`Auto-merge enabled for #${pr.number}.`);
+                return;
+              } catch (err) {
+                if (!/clean status|unstable status/i.test(err.message)) throw err;
+              }
+              await github.rest.pulls.merge({
+                owner, repo, pull_number: pr.number, merge_method: 'squash',
+              });
+              core.info(`Merged #${pr.number}.`);
+            }
+
             async function evaluate(number) {
               const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: number });
               if (pr.state !== 'open') return;
@@ -201,8 +218,7 @@ jobs:
                 await github.rest.issues.addLabels({ owner, repo, issue_number: number, labels: [desired] });
               }
               if (desired === LABEL.automerge && !pr.auto_merge) {
-                await setAutoMerge(pr, true);
-                core.info(`Auto-merge enabled for #${number}.`);
+                await mergeWhenReady(pr);
               }
               core.info(`#${number}: ${desired ?? 'on hold'}`);
             }

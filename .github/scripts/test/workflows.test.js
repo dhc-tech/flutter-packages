@@ -24,13 +24,16 @@ function scriptOf(file) {
   return body.join('\n');
 }
 
-function fakeGithub({ comments = [], reviews = [], prs = {}, runs = [], statuses = [], openPrs = [], associated = [], access = {} } = {}) {
-  const calls = { created: [], added: [], removed: [], graphql: [], dismissed: [] };
+function fakeGithub({ comments = [], reviews = [], prs = {}, runs = [], statuses = [], openPrs = [], associated = [], access = {}, enableError = null } = {}) {
+  const calls = { created: [], added: [], removed: [], graphql: [], dismissed: [], merged: [] };
   return {
     calls,
     github: {
       paginate: async (fn) => ({ listComments: comments, listReviews: reviews, listOpen: openPrs })[fn] ?? [],
-      graphql: async (query, vars) => { calls.graphql.push({ query, vars }); },
+      graphql: async (query, vars) => {
+        calls.graphql.push({ query, vars });
+        if (enableError && /enablePullRequestAutoMerge/.test(query)) throw new Error(enableError);
+      },
       rest: {
         issues: {
           listComments: 'listComments',
@@ -46,6 +49,7 @@ function fakeGithub({ comments = [], reviews = [], prs = {}, runs = [], statuses
             return { data: prs[n] };
           },
           dismissReview: async (a) => { calls.dismissed.push(a.review_id); },
+          merge: async (a) => { calls.merged.push(a); return { data: { merged: true } }; },
         },
         checks: { listForRef: async () => ({ data: { check_runs: runs } }) },
         repos: {
@@ -230,6 +234,34 @@ test('pr-status: approved and all green enables squash auto-merge', async () => 
   assert.equal(enabled(c).length, 1);
   assert.match(enabled(c)[0].query, /SQUASH/);
   assert.equal(enabled(c)[0].vars.id, 'PR_7');
+});
+
+test('pr-status: a PR GitHub already considers mergeable is squash-merged directly', async () => {
+  for (const message of ['Pull request is in clean status', 'Pull request is in unstable status']) {
+    const f = fakeGithub({
+      prs: { 7: pr() }, reviews: [review('m', 'APPROVED')], runs: [green()], enableError: message,
+    });
+    await run('pr-status.yml', { github: f.github, context: prEvent() });
+    assert.equal(f.calls.merged.length, 1, message);
+    assert.equal(f.calls.merged[0].pull_number, 7);
+    assert.equal(f.calls.merged[0].merge_method, 'squash');
+    assert.deepEqual(f.calls.added, [['status: automerge']]);
+  }
+});
+
+test('pr-status: other auto-merge errors are not turned into a direct merge', async () => {
+  const f = fakeGithub({
+    prs: { 7: pr() }, reviews: [review('m', 'APPROVED')], runs: [green()], enableError: 'Resource not accessible',
+  });
+  await run('pr-status.yml', { github: f.github, context: prEvent() });
+  assert.deepEqual(f.calls.merged, []);
+});
+
+test('pr-status: nothing is merged directly when auto-merge was enabled', async () => {
+  const f = fakeGithub({ prs: { 7: pr() }, reviews: [review('m', 'APPROVED')], runs: [green()] });
+  await run('pr-status.yml', { github: f.github, context: prEvent() });
+  assert.deepEqual(f.calls.merged, []);
+  assert.equal(enabled(f.calls).length, 1);
 });
 
 test('pr-status: auto-merge is not enabled twice and labels are not re-added', async () => {
