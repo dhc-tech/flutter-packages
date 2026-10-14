@@ -72,5 +72,6 @@ is skipped, so re-running the workflow never duplicates or overwrites one.
 1. Create it under `packages/` (federated plugins: `packages/<name>/<name>_<platform>`).
 2. Add `resolution: workspace` to its `pubspec.yaml` and list its directory under
    `workspace:` in the root `pubspec.yaml`.
-3. Add a `p: <package>` label entry to `.github/labeler.yml` and a row to the
-   package table in `README.md`.
+3. Add a row to the package table in `README.md`. A new package family also needs
+   a `p: <family>` entry in `.github/labeler.yml`; platform packages are labeled
+   automatically by their `_<platform>` suffix.

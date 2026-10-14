@@ -16,6 +16,24 @@
 'p: attachment_engine':
   - '(?i)attachment[_ -]?engine'
 
+'platform: android':
+  - '(?i)\bandroid\b'
+
+'platform: ios':
+  - '(?i)\bios\b'
+
+'platform: macos':
+  - '(?i)\bmac ?os\b'
+
+'platform: web':
+  - '(?i)\b(web|browser|chrome|safari)\b'
+
+'platform: windows':
+  - '(?i)\bwindows\b'
+
+'platform: linux':
+  - '(?i)\blinux\b'
+
 'type:bug':
   - '(?i)\b(bug|crash|error|exception|broken|doesn''t work|not working)\b'
 

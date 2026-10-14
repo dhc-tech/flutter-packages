@@ -76,6 +76,21 @@ and is formatted with `dart format` (page width 100, configured in the root
 Comments explain *why*, not what. Never commit credentials, API keys or
 proprietary names; use neutral identifiers such as `com.example.acme`.
 
+## Labels
+
+Labels are applied automatically; you do not need to set them.
+
+| Label | Source | Meaning |
+|---|---|---|
+| `p: <package>` | changed paths | Package family touched (`apple_sign_in_plugin`, `attachment_engine`, `dig_cli`, `white_label_kit`). |
+| `platform: <name>` | changed paths | Platform implementation touched (`android`, `ios`, `macos`, `darwin`, `linux`, `windows`, `web`, `interface`). |
+| `type:<type>`, `breaking-change` | PR title | Conventional Commit type and `!`/`BREAKING CHANGE`. |
+| `size:XS`–`size:XL` | diff size | Size of the change. |
+| `status:*` | reviews and checks | `blocked`, `changes-requested`, `ci-failed`, `needs-review`, `ready`. |
+| `autosubmit` | maintainer | Squash-merges the PR automatically once it is `status:ready`. |
+| `infra: workflows`, `documentation` | changed paths | CI or docs changes. |
+| `infra: dependencies` | Dependabot | Dependency update PR. |
+
 ## Merging
 
 Once a PR is approved and every check is green it gets the `status:ready` label.

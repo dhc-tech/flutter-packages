@@ -1,8 +1,7 @@
 # This workflow applies labels to pull requests based on the
 # paths that are modified in the pull request.
 #
-# Edit `.github/labeler.yml` and `.github/post_merge_labeler.yml`
-# to configure labels.
+# Edit `.github/labeler.yml` to configure labels.
 #
 # For more information, see: https://github.com/actions/labeler
 
@@ -10,7 +9,7 @@ name: Pull Request Labeler
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
 
 # Declare default permissions as read only.
 permissions: read-all
