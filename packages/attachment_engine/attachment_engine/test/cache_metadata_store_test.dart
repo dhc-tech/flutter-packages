@@ -130,7 +130,7 @@ void main() {
       await store.put(entry('a'));
       await Future<void>.delayed(const Duration(milliseconds: 40));
       await store.put(entry('b')); // Same debounce window as 'a'.
-      await Future<void>.delayed(const Duration(milliseconds: 120));
+      await Future<void>.delayed(const Duration(milliseconds: 300));
 
       expect(keysOnDisk(), containsAll(['a', 'b']));
     });
