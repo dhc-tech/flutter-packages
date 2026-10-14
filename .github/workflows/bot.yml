@@ -1,0 +1,108 @@
+name: Repo Bot
+
+# Posts short, static guidance on issues and pull requests and keeps the
+# `needs:` labels in sync with the conversation. See docs/labels.md.
+#
+#   issue opened            -> welcome comment explaining the labels and next steps
+#   PR opened               -> welcome comment with the checklist and merge flow
+#   `needs: info` added     -> asks the reporter for the missing details
+#   reporter replies        -> `needs: info` is swapped back to `needs: triage`
+#   `good first issue` /
+#   `help wanted` added     -> invites contributors and links the guide
+#
+# Comments are plain text written here; nothing from an issue or PR is
+# executed or echoed back, and each comment is posted once (hidden marker).
+
+on:
+  issues:
+    types: [opened, labeled]
+  issue_comment:
+    types: [created]
+  # zizmor: ignore[dangerous-triggers] Safe: no checkout and no PR code is executed. The job only posts a static comment, and pull_request_target is what gives fork PRs a token that can comment.
+  pull_request_target:
+    types: [opened]
+
+permissions: read-all
+
+jobs:
+  bot:
+    name: bot
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Respond
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const GUIDE = `https://github.com/${owner}/${repo}/blob/main/docs/labels.md`;
+            const CONTRIBUTING = `https://github.com/${owner}/${repo}/blob/main/CONTRIBUTING.md`;
+
+            const MESSAGES = {
+              'welcome-issue': [
+                'Thanks for opening this issue! 👋',
+                '',
+                'Labels for the package, platform and type are added automatically and a maintainer will triage it soon (`needs: triage`). Please make sure it includes the package version, `flutter doctor -v` output and a minimal reproduction if it is a bug.',
+                '',
+                `Want to fix it yourself? Pull requests are welcome, see [CONTRIBUTING](${CONTRIBUTING}). What each label means: [label guide](${GUIDE}).`,
+              ],
+              'welcome-pr': [
+                'Thanks for the pull request! 🎉',
+                '',
+                '- Labels (package, platform, type) are added automatically from your changed files and the PR title, so there is nothing to set.',
+                '- The title must be a [Conventional Commit](https://www.conventionalcommits.org/), for example `fix(dig_cli): handle missing pubspec`.',
+                '- `validate`, `dependency-review` and `pr-title` must pass and one maintainer must approve.',
+                '- If this change should release a package, bump its `version:` in `pubspec.yaml` and add a `CHANGELOG.md` entry.',
+                '- A maintainer can add the `autosubmit` label to merge it automatically once everything passes.',
+                '',
+                `More in [CONTRIBUTING](${CONTRIBUTING}) and the [label guide](${GUIDE}).`,
+              ],
+              'needs-info': [
+                'More information is needed to look into this. 🙏',
+                '',
+                'Please add the package and version, the output of `flutter doctor -v`, the platform(s) affected, and the smallest code or steps that reproduce it. The `needs: info` label is removed automatically when you reply.',
+              ],
+              'contribute': [
+                'This issue is open for contributions. 💡',
+                '',
+                `Comment here to say you are working on it, then follow [CONTRIBUTING](${CONTRIBUTING}). Tests are required and labels are automatic.`,
+              ],
+            };
+
+            async function say(number, key) {
+              const marker = `<!-- repo-bot:${key} -->`;
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner, repo, issue_number: number, per_page: 100,
+              });
+              if (comments.some((c) => c.body?.includes(marker))) return;
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: number,
+                body: `${marker}\n${MESSAGES[key].join('\n')}`,
+              });
+            }
+
+            const labels = (issue) => (issue.labels ?? []).map((l) => (typeof l === 'string' ? l : l.name));
+            const event = context.eventName;
+            const action = context.payload.action;
+
+            if (event === 'pull_request_target') {
+              await say(context.payload.pull_request.number, 'welcome-pr');
+            } else if (event === 'issues' && action === 'opened') {
+              await say(context.payload.issue.number, 'welcome-issue');
+            } else if (event === 'issues' && action === 'labeled') {
+              const name = context.payload.label.name;
+              if (name === 'needs: info') await say(context.payload.issue.number, 'needs-info');
+              if (name === 'good first issue' || name === 'help wanted') {
+                await say(context.payload.issue.number, 'contribute');
+              }
+            } else if (event === 'issue_comment') {
+              const { issue, comment } = context.payload;
+              const isReporter = comment.user.login === issue.user.login;
+              const waiting = labels(issue).includes('needs: info');
+              if (!issue.pull_request && isReporter && waiting && comment.user.type !== 'Bot') {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number: issue.number, name: 'needs: info' });
+                await github.rest.issues.addLabels({ owner, repo, issue_number: issue.number, labels: ['needs: triage'] });
+              }
+            }

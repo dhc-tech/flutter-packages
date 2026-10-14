@@ -47,6 +47,12 @@ jobs:
         if: ${{ !cancelled() }}
         run: dart analyze --fatal-infos
 
+      - name: Test CI scripts and workflows
+        if: ${{ !cancelled() }}
+        run: |
+          .github/scripts/test/publish_unpublished_test.sh
+          node --test .github/scripts/test/
+
       - name: Run tests
         if: ${{ !cancelled() }}
         run: .github/scripts/run_tests.sh

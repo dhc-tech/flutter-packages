@@ -57,6 +57,20 @@ Opening an issue from a template adds `type: fix` or `type: feat` and
 | `duplicate`, `invalid`, `wontfix` | Triager | Closing reasons; always leave a comment saying why. |
 | `stale` | Automatic | No activity for a long time; closes if nobody responds. |
 
+## The bot
+
+`.github/workflows/bot.yml` posts short guidance as `github-actions[bot]` and
+keeps the `needs:` labels in sync. Comments are static text, posted once, and
+never repeat anything from the issue.
+
+| When | What the bot does |
+|---|---|
+| An issue is opened | Welcomes the reporter, explains the automatic labels and what details to include. |
+| A pull request is opened | Posts the checklist: Conventional Commit title, required checks, one approval, version bump and `autosubmit`. |
+| `needs: info` is added | Asks the reporter for version, `flutter doctor -v`, platform and a minimal reproduction. |
+| The reporter replies on a `needs: info` issue | Removes `needs: info` and adds `needs: triage` so a maintainer looks again. |
+| `good first issue` or `help wanted` is added | Invites contributors to comment and links the contributing guide. |
+
 ## Triage checklist (maintainers and triagers)
 
 1. Read the issue and remove `needs: triage`.
