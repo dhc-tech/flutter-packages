@@ -12,7 +12,7 @@ dependencies:
     path: ../../apple_sign_in_plugin_platform_interface
   apple_sign_in_plugin_web:
     path: ../
-  cupertino_icons: ^1.0.8
+  cupertino_icons: ^2.0.0
   flutter:
     sdk: flutter
   material_ui: ^1.6.0
