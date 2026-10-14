@@ -71,5 +71,45 @@ check "an unreachable pub API fails the run" '[ "$rc" -ne 0 ]'
 if env -u PUB_CREDENTIALS PUB_API="http://127.0.0.1:$port" "$script" >/dev/null 2>&1; then rc=0; else rc=$?; fi
 check "publishing without PUB_CREDENTIALS fails" '[ "$rc" -ne 0 ]'
 
+# 5. A real publish writes the credentials where `dart pub` reads them, runs
+#    `dart pub publish --force` in the package, and tags it. Everything runs in a
+#    throwaway clone whose origin is a local bare repo, never the real remote.
+git clone --quiet --bare "$root" "$work/origin.git"
+git clone --quiet "$work/origin.git" "$work/repo"
+mkdir -p "$work/bin" "$work/home"
+cat > "$work/bin/dart" <<FAKE
+#!/usr/bin/env bash
+echo "\$(basename "\$PWD") \$*" >> "$work/dart_calls"
+case "\${FAKE_DART_MODE:-ok}" in hang) exec sleep 30 ;; esac
+FAKE
+chmod +x "$work/bin/dart"
+
+app_dir=packages/dig_cli
+for dir in "${packages[@]}"; do publish "$(field name "$dir")" "$(field version "$dir")"; done
+unpublish "$(field name "$app_dir")" "$(field version "$app_dir")"
+: > "$work/dart_calls"
+publish_run() {
+  (cd "$work/repo" && env -u XDG_CONFIG_HOME PATH="$work/bin:$PATH" HOME="$work/home" \
+    PUB_CACHE="$work/pubcache" PUB_API="http://127.0.0.1:$port" PUB_CREDENTIALS='{"fake":"creds"}' \
+    "$@" "$root/$script")
+}
+out="$(publish_run 2>&1)" && rc=0 || rc=$?
+check "a real publish succeeds" '[ "$rc" -eq 0 ]'
+check "dart pub publish --force runs in the unpublished package only" '[ "$(cat "$work/dart_calls")" = "dig_cli pub publish --force" ]'
+check "credentials are written to the dart config directory" '[ "$(cat "$work/home/.config/dart/pub-credentials.json" 2>/dev/null || cat "$work/home/Library/Application Support/dart/pub-credentials.json")" = "{\"fake\":\"creds\"}" ]'
+check "credentials are also written to the legacy pub cache location" '[ "$(cat "$work/pubcache/credentials.json")" = "{\"fake\":\"creds\"}" ]'
+check "the release tag is pushed to origin" 'git --git-dir="$work/origin.git" tag | grep -qx "dig_cli-v$(field version "$app_dir")"'
+
+# 6. A publish that waits for a pub.dev login fails fast instead of hanging.
+if true; then
+  git --git-dir="$work/origin.git" tag -d "dig_cli-v$(field version "$app_dir")" >/dev/null
+  git -C "$work/repo" tag -d "dig_cli-v$(field version "$app_dir")" >/dev/null
+  start=$SECONDS
+  out="$(publish_run FAKE_DART_MODE=hang PUBLISH_TIMEOUT=2 2>&1)" && rc=0 || rc=$?
+  check "a publish stuck on login fails within the timeout" '[ "$rc" -ne 0 ] && [ $((SECONDS - start)) -lt 20 ]'
+  check "the timeout error mentions the credentials" 'grep -q "PUB_CREDENTIALS" <<<"$out"'
+  check "nothing is tagged after a failed publish" '! git --git-dir="$work/origin.git" tag | grep -qx "dig_cli-v$(field version "$app_dir")"'
+fi
+
 [ "$failures" -eq 0 ] || { echo "$failures check(s) failed"; exit 1; }
 echo "all checks passed"

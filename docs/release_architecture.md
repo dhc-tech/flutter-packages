@@ -23,7 +23,7 @@ A change without a version bump merges normally and publishes nothing; it ships
 with the package's next bump. Because the script compares against pub.dev rather
 than a git diff, a skipped or half-finished run is completed by the next one, and
 merges that do not trigger `push` workflows (auto-merge with the default
-`GITHUB_TOKEN`) are still released by the hourly run. No extra token is needed.
+`GITHUB_TOKEN`) are still released by the next hourly run. No extra token is needed.
 
 ## Components
 
@@ -50,7 +50,9 @@ is skipped, so re-running the workflow never duplicates or overwrites one.
 
 ## Manual and recovery runs
 
-- Run `release` from the Actions tab at any time; it only publishes what is missing.
+- **Urgent release:** do not wait for the hourly run. Run `release` from the Actions tab
+  (Run workflow on `main`) or with `gh workflow run release.yml --ref main`; it publishes
+  whatever is missing from pub.dev right away.
 - Preview locally without publishing:
 
   ```bash

@@ -2,9 +2,11 @@ name: release
 
 # Publishes every package whose current `version:` is not on pub.dev yet and
 # tags it <package>-v<version>. It runs on every push to `main`, hourly, and on
-# demand. The hourly run makes releases self-healing: merges made with the
-# default GITHUB_TOKEN (auto-merge via `status: automerge`) do not trigger `push`
-# workflows, and a failed run is simply completed by the next one.
+# demand (for an urgent release, run it by hand). Merges made with the default
+# GITHUB_TOKEN (auto-merge via `status: automerge`) do not trigger `push`
+# workflows, so the hourly run is what releases them, and a failed run is simply
+# completed by the next one. A run with nothing to publish only checks pub.dev
+# and exits in seconds.
 
 on:
   push:
@@ -39,10 +41,26 @@ jobs:
           fetch-depth: 0 # Full history and tags are needed to tag releases.
           persist-credentials: false
 
+      - name: Look for unpublished package versions
+        id: detect
+        run: |
+          # Capture the whole output first. A failing pub.dev check must fail
+          # this step (the shell runs with -e), and piping into `grep -q` would
+          # both hide that failure and close the pipe while the script writes.
+          report="$(DRY_RUN=1 .github/scripts/publish_unpublished.sh)"
+          echo "$report"
+          if grep -q "would publish" <<<"$report"; then
+            echo "pending=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "pending=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install Flutter
+        if: steps.detect.outputs.pending == 'true'
         uses: $/.github/actions/install_flutter
 
       - name: Check validate on this commit
+        if: steps.detect.outputs.pending == 'true'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
@@ -72,6 +90,7 @@ jobs:
             core.setFailed('Timed out waiting for the validate check');
 
       - name: Publish unpublished packages
+        if: steps.detect.outputs.pending == 'true'
         env:
           PUB_CREDENTIALS: ${{ secrets.PUB_CREDENTIALS }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -48,6 +48,6 @@ dart run build_runner build -d                   # after changing build_runner i
 
 Handled by `.github/workflows/release.yml` and `.github/scripts/publish_unpublished.sh`:
 a package whose `version:` is not on pub.dev yet is published and tagged
-`<name>-v<version>` (on push to `main`, hourly, or manually). Preview with
+`<name>-v<version>` (on push to `main`, hourly, or manually; run it by hand for an urgent release). Preview with
 `DRY_RUN=1 .github/scripts/publish_unpublished.sh`.
 See [docs/release_architecture.md](docs/release_architecture.md).
