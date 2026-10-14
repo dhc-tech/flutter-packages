@@ -697,6 +697,33 @@ int _generate(List<String> args) {
   return (startMatch.start, nextMatch?.start ?? text.length);
 }
 
+/// The parts of a tenant's YAML that `update-tenant` does not regenerate. It
+/// rewrites a tenant block from only name, application/bundle ids, logo and API
+/// URL, so anything else (theme, features, icon, splash, firebase, ...) would be
+/// silently dropped; callers refuse to run when this is not empty.
+Map<String, Object?> _unmanagedTenantFields(Object? tenant) {
+  if (tenant == null) {
+    return <String, Object?>{};
+  }
+  final remaining = jsonDecode(jsonEncode(tenant)) as Map<String, Object?>
+    ..remove('name');
+  void dropManaged(String section, List<String> keys) {
+    final Object? value = remaining[section];
+    if (value is Map<String, Object?>) {
+      keys.forEach(value.remove);
+      if (value.isEmpty) {
+        remaining.remove(section);
+      }
+    }
+  }
+
+  dropManaged('android', ['application_id', 'app_name']);
+  dropManaged('ios', ['bundle_id', 'app_name']);
+  dropManaged('assets', ['logo']);
+  dropManaged('environment', ['api_base_url']);
+  return remaining;
+}
+
 /// `update-tenant <id> [--name <n>] [--android-id <id>] [--ios-id <id>] [--api-url <url>] [--logo <path>] [--project-root <dir>] [--config <path>] [--default]`
 /// — changes an existing tenant's fields WITHOUT hand-editing
 /// `white_label.yaml`. Any flag you omit keeps that field's current value
@@ -717,14 +744,34 @@ int _updateTenant(List<String> args) {
   for (var i = 0; i < args.length; i++) {
     switch (args[i]) {
       case '--name':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --name requires a value.');
+          return 1;
+        }
         name = args[++i];
       case '--android-id':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --android-id requires a value.');
+          return 1;
+        }
         androidId = args[++i];
       case '--ios-id':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --ios-id requires a value.');
+          return 1;
+        }
         iosId = args[++i];
       case '--api-url':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --api-url requires a value.');
+          return 1;
+        }
         apiUrl = args[++i];
       case '--logo':
+        if (i + 1 >= args.length) {
+          stderr.writeln('❌ --logo requires a value.');
+          return 1;
+        }
         logoPath = args[++i];
       case '--project-root':
         if (i + 1 >= args.length) {
@@ -801,6 +848,24 @@ int _updateTenant(List<String> args) {
     stderr.writeln(
       '❌ Could not locate tenant "$id"\'s block in white_label.yaml.',
     );
+    return 1;
+  }
+
+  final Object? currentBlock = loadYaml(
+    originalYaml.substring(range.$1, range.$2),
+  );
+  final Map<String, Object?> unmanaged = _unmanagedTenantFields(
+    currentBlock is Map ? currentBlock[id] : null,
+  );
+  if (unmanaged.isNotEmpty) {
+    stderr
+      ..writeln(
+        '❌ Tenant "$id" has settings update-tenant cannot preserve: '
+        '${unmanaged.keys.join(', ')}.',
+      )
+      ..writeln(
+        '   Edit white_label.yaml by hand instead; nothing was changed.',
+      );
     return 1;
   }
 

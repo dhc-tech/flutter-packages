@@ -216,6 +216,14 @@ void main() {
       expect(r.stdout, contains('Project Management (Create)'));
     });
 
+    test('exits instead of looping forever when stdin is closed', () async {
+      final Run r = await dg([], cwd: work, stdin: '').timeout(
+        const Duration(seconds: 30),
+        onTimeout: () => fail('the menu spun on a closed stdin'),
+      );
+      expect(r.exitCode, 0);
+    });
+
     test('shows the full menu inside a Flutter project', () async {
       final Run r = await dg([], cwd: project(), stdin: '0\n');
       expect(r.exitCode, 0);

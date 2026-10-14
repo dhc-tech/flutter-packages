@@ -5,6 +5,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'dart:io';
+
 import 'package:dig_cli/src/utils/version_utils.dart';
 import 'package:dig_cli/src/version_helper.dart';
 import 'package:http/http.dart' as http;
@@ -24,6 +26,7 @@ http.Response jsonResponse(Object body, [int status = 200]) =>
     http.Response(jsonEncode(body), status);
 
 void main() {
+  kDigCliVersionTests();
   group('VersionUtils Tests', () {
     test('isNewer returns true when latest is greater than current', () {
       expect(VersionUtils.isNewer('1.8.1', '1.8.0'), isTrue);
@@ -238,5 +241,16 @@ void main() {
         );
       },
     );
+  });
+}
+
+void kDigCliVersionTests() {
+  test('kDigCliVersion matches the version in pubspec.yaml', () {
+    final String pubspec = File('pubspec.yaml').readAsStringSync();
+    final String version = RegExp(
+      r'^version:\s*(\S+)',
+      multiLine: true,
+    ).firstMatch(pubspec)!.group(1)!;
+    expect(kDigCliVersion, version);
   });
 }

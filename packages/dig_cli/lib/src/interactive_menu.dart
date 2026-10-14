@@ -97,10 +97,11 @@ class InteractiveMenu {
       }
 
       final String? response = stdin.readLineSync()?.trim();
-      if (response == '0') {
+      // A null read means stdin is closed; looping on it would spin forever.
+      if (response == null || response == '0') {
         exit(0);
       }
-      if (response == null || response.isEmpty) {
+      if (response.isEmpty) {
         continue;
       }
 

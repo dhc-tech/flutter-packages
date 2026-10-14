@@ -405,6 +405,40 @@ void main() {
       expect(r.err, contains('No such tenant "ghost"'));
     });
 
+    test('a flag without a value exits 1 instead of crashing', () async {
+      final String before = yaml().readAsStringSync();
+      for (final flag in [
+        '--name',
+        '--android-id',
+        '--ios-id',
+        '--api-url',
+        '--logo',
+      ]) {
+        final Run r = await wl(['update-tenant', 'acme', flag]);
+        expect(r.code, 1, reason: flag);
+        expect(r.err, contains('$flag requires a value'), reason: flag);
+      }
+      expect(yaml().readAsStringSync(), before);
+    });
+
+    test(
+      'refuses to drop settings it cannot preserve and changes nothing',
+      () async {
+        final String original = yaml().readAsStringSync();
+        final String withTheme = original.replaceFirst(
+          '      android:',
+          '      theme:\n        primary_color: "#3366FF"\n\n      android:',
+        );
+        expect(withTheme, isNot(original));
+        yaml().writeAsStringSync(withTheme);
+        final Run r = await wl(['update-tenant', 'acme', '--name', 'Renamed']);
+        expect(r.code, 1, reason: r.all);
+        expect(r.err, contains('theme'));
+        expect(r.err, contains('nothing was changed'));
+        expect(yaml().readAsStringSync(), withTheme);
+      },
+    );
+
     test('validates ids and urls before changing anything', () async {
       final String before = yaml().readAsStringSync();
       for (final args in [
