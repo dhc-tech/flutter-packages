@@ -69,4 +69,7 @@ gradlew.bat
 # AI related
 .agents/rules/personal-*
 .agents/skills/personal-*
+.claude/
+agent-artifacts/
+.direnv
 coverage/
