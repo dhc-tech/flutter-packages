@@ -42,6 +42,7 @@ updates:
       - "p: dig_cli"
       - "infra: dependencies"
 
+  # apple_sign_in_plugin
   - package-ecosystem: "pub"
     directory: "/packages/apple_sign_in_plugin/apple_sign_in_plugin"
     schedule:
@@ -62,6 +63,138 @@ updates:
       - "p: apple_sign_in_plugin"
       - "infra: dependencies"
 
+  - package-ecosystem: "pub"
+    directory: "/packages/apple_sign_in_plugin/apple_sign_in_plugin_android"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: apple_sign_in_plugin"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/apple_sign_in_plugin/apple_sign_in_plugin_darwin"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: apple_sign_in_plugin"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/apple_sign_in_plugin/apple_sign_in_plugin_linux"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: apple_sign_in_plugin"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/apple_sign_in_plugin/apple_sign_in_plugin_web"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: apple_sign_in_plugin"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/apple_sign_in_plugin/apple_sign_in_plugin_windows"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: apple_sign_in_plugin"
+      - "infra: dependencies"
+
+  # attachment_engine
+  - package-ecosystem: "pub"
+    directory: "/packages/attachment_engine/attachment_engine"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: attachment_engine"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/attachment_engine/attachment_engine_platform_interface"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: attachment_engine"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/attachment_engine/attachment_engine_android"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: attachment_engine"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/attachment_engine/attachment_engine_ios"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: attachment_engine"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/attachment_engine/attachment_engine_macos"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: attachment_engine"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/attachment_engine/attachment_engine_linux"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: attachment_engine"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/attachment_engine/attachment_engine_web"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: attachment_engine"
+      - "infra: dependencies"
+
+  - package-ecosystem: "pub"
+    directory: "/packages/attachment_engine/attachment_engine_windows"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    labels:
+      - "p: attachment_engine"
+      - "infra: dependencies"
+
+  # Repository tooling
   - package-ecosystem: "pub"
     directory: "/script/tool"
     schedule:
