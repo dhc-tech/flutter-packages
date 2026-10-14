@@ -46,15 +46,6 @@ melos:
   repository: https://github.com/dhc-tech/flutter-packages
   ignore:
     - "**/example"
-  command:
-    version:
-      branch: main
-      message: "chore(release): publish packages"
-      includeScopes: true
-      linkToCommits: true
-      workspaceChangelog: false
-      updateGitTagRefs: true
-      fetchTags: true
   scripts:
     format:
       description: Format all Dart code.
@@ -76,6 +67,3 @@ melos:
     outdated:
       description: Show outdated dependencies in the workspace.
       run: flutter pub outdated
-    version:preview:
-      description: Preview the next versions from conventional commits without touching git.
-      run: melos version --no-git-tag-version --no-git-commit-version

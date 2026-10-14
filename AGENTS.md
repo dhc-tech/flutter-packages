@@ -8,8 +8,9 @@ Human-oriented details live in [CONTRIBUTING.md](CONTRIBUTING.md) and
 
 - Format with `dart format .`, then run `dart analyze --fatal-infos` and the
   affected tests. A change is not done until all three pass.
-- Do not bump versions or edit `CHANGELOG.md` by hand; Melos generates them from
-  Conventional Commit titles (`fix(pkg): ...`, `feat(pkg): ...`).
+- Versions are bumped by hand, only when a package should release: bump `version:`
+  in its `pubspec.yaml` and add a top `CHANGELOG.md` entry. Never bump versions
+  as a side effect of unrelated changes. Merging a bump publishes the package.
 - Comments explain *why*, never restate the code.
 - Never commit credentials or proprietary names.
 
@@ -41,9 +42,8 @@ dart run build_runner build -d                   # after changing build_runner i
 
 ## Releases
 
-`release_pr.yml` runs `melos version` on `main` and maintains a `release/next` PR;
-merging it triggers `release.yml`, which runs `.github/scripts/publish_changed.sh`
-to publish packages whose `version:` changed and tag them `<name>-v<version>`.
-Preview with `melos run version:preview` (discard the changes afterwards) or
+Handled by `.github/workflows/release.yml` and `.github/scripts/publish_changed.sh`:
+a package is published and tagged `<name>-v<version>` when its `version:` changes
+on `main`. Preview with
 `DRY_RUN=1 BASE_SHA=origin/main~1 .github/scripts/publish_changed.sh`.
 See [docs/release_architecture.md](docs/release_architecture.md).
