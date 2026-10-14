@@ -40,7 +40,7 @@ jobs:
           persist-credentials: false
 
       - name: Install Flutter
-        uses: ./.github/workflows/internals/install_flutter
+        uses: $/.github/workflows/internals/install_flutter
 
       - name: Resolve workspace dependencies
         run: flutter pub get
