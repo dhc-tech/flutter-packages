@@ -809,9 +809,7 @@ void main() {
     });
 
     test('an unwritable destination emits an error event', () async {
-      // Closing the failed sink in the implementation's `finally` rethrows
-      // the same I/O error from an un-awaited future; swallow it here so the
-      // observable contract (an error event, no complete) can be asserted.
+      final uncaught = <Object>[];
       final events = Completer<List<Map<Object?, Object?>>>();
       runZonedGuarded(() async {
         final result = await run(
@@ -823,9 +821,14 @@ void main() {
         );
         await Future<void>.delayed(const Duration(milliseconds: 100));
         events.complete(result);
-      }, (error, stack) {});
+      }, (error, stack) => uncaught.add(error));
 
       final result = await events.future;
+      expect(
+        uncaught,
+        isEmpty,
+        reason: 'a failed download must not leave an uncaught error',
+      );
       expect(result.last['type'], 'error');
       expect(result.where((e) => e['type'] == 'complete'), isEmpty);
     });

@@ -195,7 +195,12 @@ abstract class AttachmentEngineDesktopImpl extends AttachmentEnginePlatform {
         'message': e.toString(),
       });
     } finally {
-      await sink?.close();
+      try {
+        await sink?.close();
+      } on Object {
+        // The same failure was already reported through the error event above;
+        // rethrowing it from this un-awaited future would only leave it uncaught.
+      }
       _cancelled.remove(id);
     }
   }

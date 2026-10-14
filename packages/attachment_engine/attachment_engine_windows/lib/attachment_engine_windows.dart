@@ -2,6 +2,8 @@
 // Use of this source code is governed by an MIT-style license that can be
 // found in the LICENSE file.
 
+import 'dart:async';
+
 import 'package:attachment_engine_platform_interface/attachment_engine_platform_interface.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -178,13 +180,19 @@ class _VideoSurfaceState extends State<_VideoSurface> {
           if (renderObject is! RenderBox || !renderObject.hasSize) return;
           final topLeft = renderObject.localToGlobal(Offset.zero);
           final size = renderObject.size;
-          widget.videoChannel.invokeMethod('setLayout', {
-            'playerId': widget.playerId,
-            'left': topLeft.dx.round(),
-            'top': topLeft.dy.round(),
-            'width': size.width.round(),
-            'height': size.height.round(),
-          });
+          // Layout is re-sent on every frame, so a failure (for example the
+          // native view not existing yet) is retried and must not go uncaught.
+          unawaited(
+            widget.videoChannel
+                .invokeMethod<void>('setLayout', {
+                  'playerId': widget.playerId,
+                  'left': topLeft.dx.round(),
+                  'top': topLeft.dy.round(),
+                  'width': size.width.round(),
+                  'height': size.height.round(),
+                })
+                .catchError((Object _) {}),
+          );
         });
         // The actual video pixels are drawn by the native child HWND
         // layered on top of this widget's bounds, not by Flutter itself —

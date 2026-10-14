@@ -1,5 +1,6 @@
 ## 0.0.2-dev.1
 
+* Fixed a failed download (for example an unwritable destination) and a failing `setLayout` call leaving uncaught asynchronous errors.
 * Updates SDK constraints to Dart `^3.13.0` and Flutter `>=3.47.7`.
 
 ## 0.0.2-dev.0
