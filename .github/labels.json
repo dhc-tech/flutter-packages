@@ -135,34 +135,9 @@
     "description": "Breaking API or behavior change (automatic from title or footer)"
   },
   {
-    "name": "status: blocked",
-    "color": "000000",
-    "description": "Draft, has conflicts or otherwise not mergeable (automatic)"
-  },
-  {
-    "name": "status: changes-requested",
-    "color": "e11d21",
-    "description": "A reviewer requested changes (automatic)"
-  },
-  {
-    "name": "status: ci-failed",
-    "color": "e11d21",
-    "description": "A required check is failing (automatic)"
-  },
-  {
-    "name": "status: needs-review",
-    "color": "fbca04",
-    "description": "Waiting for review or checks (automatic)"
-  },
-  {
-    "name": "status: ready",
-    "color": "0e8a16",
-    "description": "Approved and checks green; merges automatically (automatic)"
-  },
-  {
     "name": "autosubmit",
     "color": "2ea44f",
-    "description": "Maintainers: squash-merge automatically once status: ready"
+    "description": "Maintainers: enable auto-merge (squash) once checks and review pass"
   },
   {
     "name": "needs: triage",

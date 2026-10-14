@@ -60,6 +60,7 @@ is skipped, so re-running the workflow never duplicates or overwrites one.
 |---|---|
 | `PUB_CREDENTIALS` | pub.dev credentials JSON (contents of the file created by `dart pub login`). The script writes it to `$PUB_CACHE/credentials.json`. |
 | `USER_NAME`, `USER_EMAIL` | Git identity used for tags. |
+| `AUTOMERGE_PAT` (optional) | Token used to enable auto-merge for `autosubmit` PRs. Merges made with the default `GITHUB_TOKEN` do not trigger the `release` workflow, so without this secret run `release` manually after such a merge. |
 
 ## Adding a package
 

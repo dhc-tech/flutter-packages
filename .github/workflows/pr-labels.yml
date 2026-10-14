@@ -1,0 +1,61 @@
+name: PR Labels
+
+# Labels every pull request from what it changes and what its title says:
+#   p: / platform:   from changed paths (.github/labeler.yml)
+#   type:            from the Conventional Commit prefix of the title
+#   breaking-change  from `!` in the title or a BREAKING CHANGE footer
+# Size and status are intentionally not labeled; GitHub already shows them.
+# See docs/labels.md.
+
+on:
+  # zizmor: ignore[dangerous-triggers] Safe: no checkout and no PR code is executed. It only reads PR metadata and writes labels, and pull_request_target is what gives fork PRs a token that can label.
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions: read-all
+
+concurrency:
+  group: pr-labels-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  labels:
+    name: labels
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Label from changed paths
+        uses: actions/labeler@8558fd74291d67161a8a78ce36a881fa63b766a9 # v5.0.0
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          sync-labels: true
+
+      - name: Label from the PR title
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const TYPES = [
+              'feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert',
+            ];
+            const pr = context.payload.pull_request;
+            const match = pr.title.match(/^(\w+)(\([^)]*\))?(!)?:/);
+            const type = match && TYPES.includes(match[1]) ? match[1] : null;
+            const breaking = Boolean(match?.[3]) || /BREAKING CHANGE/.test(pr.body ?? '');
+
+            const current = pr.labels.map((l) => l.name);
+            const wanted = new Set(current.filter((n) => !n.startsWith('type: ') && n !== 'breaking-change'));
+            if (type) wanted.add(`type: ${type}`);
+            if (breaking) wanted.add('breaking-change');
+
+            const toAdd = [...wanted].filter((n) => !current.includes(n));
+            const toRemove = current.filter((n) => !wanted.has(n));
+            const { owner, repo } = context.repo;
+            if (toAdd.length > 0) {
+              await github.rest.issues.addLabels({ owner, repo, issue_number: pr.number, labels: toAdd });
+            }
+            for (const name of toRemove) {
+              await github.rest.issues.removeLabel({ owner, repo, issue_number: pr.number, name });
+            }

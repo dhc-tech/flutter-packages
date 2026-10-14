@@ -67,16 +67,15 @@ changes. See [docs/release_architecture.md](docs/release_architecture.md).
 
 Labels are applied automatically from your PR title and changed files, so you
 normally do not set any. See [docs/labels.md](docs/labels.md) for what each label
-means, which ones maintainers add (`autosubmit`, `good first issue`,
-`help wanted`, ...) and how to read the `status:*` labels.
+means and which ones maintainers add (`autosubmit`, `good first issue`,
+`help wanted`, ...).
 
 ## Merging
 
-Once a PR is approved and every check is green it gets the `status: ready` label.
-A maintainer adds the `autosubmit` label to squash-merge it automatically; the
-label is removed if checks fail or changes are requested. Dependabot PRs are
-handled separately by `dependabot-auto-merge.yml`. If a GitHub merge queue is
-enabled for `main`, `validate` already runs on `merge_group` events.
+A PR needs one approval and green `validate`, `dependency-review` and `pr-title`
+checks. A maintainer can add the `autosubmit` label to merge it automatically as
+soon as those pass. If a GitHub merge queue is enabled for `main`, `validate`
+already runs on `merge_group` events.
 
 ## Review
 

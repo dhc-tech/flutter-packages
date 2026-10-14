@@ -15,7 +15,6 @@ Every label belongs to a group and is written `group: value`:
 | `p: <package>` | Which package family? | Automatic (changed files / issue text) |
 | `platform: <name>` | Which platform implementation? | Automatic (changed files / issue text) |
 | `type: <kind>` | What kind of change? | Automatic (PR title) or issue template |
-| `status: <state>` | Where is this PR? | Automatic only |
 | `needs: <what>` | What is it waiting for? | Template, then maintainers |
 | `infra: <area>` | CI or dependency work | Automatic |
 
@@ -27,23 +26,19 @@ A few standalone labels have a fixed meaning: `breaking-change`, `documentation`
 
 **You do not need to label a pull request.** Write the title as a
 [Conventional Commit](https://www.conventionalcommits.org/) (`fix(dig_cli): ...`)
-and the labels below are applied for you. Do not add `status:` labels by hand;
-they are recomputed on every push.
+and the labels below are applied for you. Whether a PR is waiting for review,
+failing checks or ready to merge is shown by GitHub itself (checks, reviews and
+the merge box), so there are no size or status labels.
 
 | Label | When it appears | What to do |
 |---|---|---|
 | `p: apple_sign_in_plugin`, `p: attachment_engine`, `p: dig_cli`, `p: white_label_kit` | Your PR changes files in that package family | Nothing. |
 | `platform: android` / `ios` / `macos` / `darwin` / `linux` / `windows` / `web` / `interface` | Your PR changes a `*_<platform>` package | Nothing. |
-| `type: feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` | From the PR title prefix | Fix the title if it is wrong. |
+| `type: feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert` | From the PR title prefix | Fix the title if the type is wrong. |
 | `breaking-change` | Title has `!` or the body has a `BREAKING CHANGE` footer | Describe the migration in the PR. |
-| `status: needs-review` | Waiting for a review or running checks | Wait, or request a reviewer. |
-| `status: changes-requested` | A reviewer asked for changes | Push fixes; it clears itself. |
-| `status: ci-failed` | A required check is failing | Open the failing check and fix it. |
-| `status: blocked` | Draft or merge conflicts | Mark ready for review or rebase. |
-| `status: ready` | Approved and all checks green | Nothing; it can be merged. |
-| `autosubmit` | **Maintainer adds it** | Squash-merges the PR as soon as it is `status: ready`; removed automatically if checks fail or changes are requested. |
 | `infra: workflows`, `documentation` | Your PR changes `.github/` or markdown | Nothing. |
 | `infra: dependencies` | Dependabot opened the PR | Nothing. |
+| `autosubmit` | **A maintainer adds it** | Turns on GitHub auto-merge (squash): the PR merges by itself once required checks pass and it is approved. Removing the label turns it off. Contributors cannot use it; the label is removed if they try. |
 
 ## Issues
 
@@ -74,12 +69,13 @@ Opening an issue from a template adds `type: fix` or `type: feat` and
 
 ## Merging (maintainers)
 
-When a PR is `status: ready`, add `autosubmit` to squash-merge it hands-free.
-Do not add it to PRs that should wait for a version bump, a release window or
-another PR. Dependabot PRs are handled by `dependabot-auto-merge.yml`.
+Add `autosubmit` to a PR you want merged as soon as it is approved and green;
+GitHub does the merge and nothing is bypassed. Do not add it to PRs that should
+wait for a version bump, a release window or another PR. Dependabot patch and
+minor PRs enable auto-merge on their own (`dependabot-auto-merge.yml`).
 
 ## Changing labels
 
 Edit `.github/labels.json` (the workflow syncs it on `main`). Path-based rules
 live in `.github/labeler.yml`, issue-text rules in `.github/workflows/issue-labeler.yml`,
-and `type` / `status` logic in `.github/workflows/pr-metadata.yml`.
+and the `type` / `breaking-change` logic in `.github/workflows/pr-labels.yml`.
