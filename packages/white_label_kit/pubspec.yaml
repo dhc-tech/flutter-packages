@@ -28,7 +28,7 @@ executables:
   build: build
 
 dependencies:
-  build: ^4.0.10
+  build: ^5.0.0
   icons_launcher: ^3.1.0
   meta: ^1.16.0
   path: ^1.9.1
